@@ -270,12 +270,9 @@ module RailVerdict
         sleep 0.01 while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
         pids.each do |pid|
           signal_group(pid, "KILL")
-          begin
-            Process.waitpid(pid)
-          rescue Errno::ECHILD
-            nil
-          end
         end
+        # The active runner owns waitpid; the signal path must not reap the
+        # child before its normal cleanup resumes.
         @pids.clear
       end
 

@@ -117,7 +117,7 @@ module RailVerdict
     end
 
     def require_nonempty(value, name, max_length)
-      unless value.is_a?(String) && !value.empty? && value.bytesize <= max_length
+      unless value.is_a?(String) && value.valid_encoding? && !value.empty? && value.bytesize <= max_length
         raise ArgumentError, "#{name} must be a non-empty string of at most #{max_length} bytes"
       end
 
@@ -133,7 +133,7 @@ module RailVerdict
       path = location.fetch("path") do
         raise ArgumentError, "location requires a path"
       end
-      unless path.is_a?(String) && path.match?(LOCATION_PATH_PATTERN)
+      unless path.is_a?(String) && path.valid_encoding? && path.match?(LOCATION_PATH_PATTERN)
         raise ArgumentError, "location.path must be a clean repository-relative path"
       end
 
