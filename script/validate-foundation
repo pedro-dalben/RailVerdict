@@ -1,0 +1,663 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "digest"
+require "json"
+require "open3"
+require "pathname"
+require "set"
+require "tempfile"
+require "uri"
+require "yaml"
+
+ROOT = Pathname.new(__dir__).join("..").expand_path.freeze
+SUBCHECKS = %w[
+  schemas links identity legal analyzers contracts adrs security roadmap language
+  provenance whitespace no-production
+].freeze
+
+ADR_FILES = %w[
+  0001-deterministic-pass-fail.md
+  0002-external-analyzer-execution.md
+  0003-canonical-finding.md
+  0004-versioned-schemas.md
+  0005-fingerprint-baseline.md
+  0006-no-new-debt.md
+  0007-advisory-ai.md
+  0008-remote-ai-explicit-opt-in.md
+  0009-github-as-an-adapter.md
+  0010-cli-and-json-canonical.md
+  0011-mcp-as-an-adapter.md
+  0012-third-party-license-review.md
+  0013-information-firewall.md
+  0014-apache-2-license.md
+  0015-separate-trademark-policy.md
+].freeze
+
+ARTIFACT_MANIFEST = (
+  %w[
+    README.md PROJECT.md PHILOSOPHY.md ARCHITECTURE.md LICENSE NOTICE TRADEMARKS.md
+    SECURITY.md ROADMAP.md docs/foundation.md docs/analyzers.md docs/contracts.md
+    schemas/finding-v1.schema.json schemas/configuration-v1.schema.json
+    examples/finding-v1.json examples/configuration-v1.yml
+  ] + ADR_FILES.map { |name| "docs/adr/#{name}" }
+).freeze
+
+PUBLIC_TEXT_FILES = (ARTIFACT_MANIFEST + ["script/validate-foundation"]).freeze
+
+class FoundationValidationError < StandardError; end
+
+def fail_check(message)
+  raise FoundationValidationError, message
+end
+
+def read_file(relative)
+  path = ROOT.join(relative)
+  fail_check("missing required file: #{relative}") unless path.file?
+
+  path.binread
+end
+
+def utf8_file(relative)
+  content = read_file(relative).force_encoding(Encoding::UTF_8)
+  fail_check("invalid UTF-8: #{relative}") unless content.valid_encoding?
+
+  content
+end
+
+def markdown_section(relative, heading)
+  lines = utf8_file(relative).lines
+  start = lines.index { |line| line.strip == heading }
+  fail_check("missing #{heading.inspect} in #{relative}") unless start
+
+  level = heading[/\A#+/].length
+  boundary = /\A#{'#' * level}(?!#)\s/
+  lines[(start + 1)..].take_while { |line| !line.match?(boundary) }.join
+end
+
+def markdown_cells(line)
+  stripped = line.strip
+  return [] unless stripped.start_with?("|") && stripped.end_with?("|")
+
+  stripped[1...-1].split(/(?<!\\)\|/).map { |cell| cell.gsub("\\|", "|").strip }
+end
+
+def markdown_table(relative, heading)
+  table_lines = []
+  markdown_section(relative, heading).lines.each do |line|
+    cells = markdown_cells(line)
+    if cells.empty?
+      break unless table_lines.empty?
+      next
+    end
+    table_lines << cells
+  end
+  rows = table_lines.reject { |cells| cells.all? { |cell| cell.match?(/\A:?-{3,}:?\z/) } }
+  fail_check("missing table under #{heading.inspect} in #{relative}") if rows.length < 2
+
+  [rows.first, rows.drop(1)]
+end
+
+def walk_json(value, &block)
+  yield value
+  case value
+  when Hash
+    value.each_value { |child| walk_json(child, &block) }
+  when Array
+    value.each { |child| walk_json(child, &block) }
+  end
+end
+
+def capture(*argv)
+  allowed = %w[git python3]
+  fail_check("unexpected subprocess executable") unless allowed.include?(argv.first)
+
+  stdout, stderr, status = Open3.capture3({ "LC_ALL" => "C", "LANG" => "C" }, *argv, chdir: ROOT.to_s)
+  return stdout if status.success?
+
+  detail = stderr.to_s.lines.first.to_s.strip
+  fail_check("#{argv.first} subprocess failed#{detail.empty? ? '' : ": #{detail}"}")
+end
+
+def check_schemas
+  finding_schema = JSON.parse(utf8_file("schemas/finding-v1.schema.json"))
+  configuration_schema = JSON.parse(utf8_file("schemas/configuration-v1.schema.json"))
+  finding_example = JSON.parse(utf8_file("examples/finding-v1.json"))
+  configuration_example = YAML.safe_load(
+    utf8_file("examples/configuration-v1.yml"),
+    permitted_classes: [], permitted_symbols: [], aliases: false
+  )
+
+  [finding_schema, configuration_schema].each do |schema|
+    fail_check("schema does not declare Draft 2020-12") unless schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    walk_json(schema) do |node|
+      next unless node.is_a?(Hash) && node.key?("$ref")
+      fail_check("schema contains a non-local $ref") unless node["$ref"].is_a?(String) && node["$ref"].start_with?("#/")
+    end
+  end
+
+  Tempfile.create(["foundation-configuration", ".json"]) do |file|
+    file.chmod(0o600)
+    file.write(JSON.generate(configuration_example))
+    file.flush
+
+    python = <<~'PYTHON'
+      import copy
+      import json
+      import sys
+      from jsonschema import Draft202012Validator
+
+      finding_schema = json.load(open(sys.argv[1], encoding="utf-8"))
+      finding = json.load(open(sys.argv[2], encoding="utf-8"))
+      configuration_schema = json.load(open(sys.argv[3], encoding="utf-8"))
+      configuration = json.load(open(sys.argv[4], encoding="utf-8"))
+
+      cases = [
+          ("finding", finding_schema, finding, ("location",)),
+          ("configuration", configuration_schema, configuration, ("analyzers", "rubocop")),
+      ]
+      for name, schema, example, nested_path in cases:
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          validator.validate(example)
+
+          root_unknown = copy.deepcopy(example)
+          root_unknown["_unexpected"] = True
+          assert list(validator.iter_errors(root_unknown)), f"{name} accepted a root unknown field"
+
+          nested_unknown = copy.deepcopy(example)
+          target = nested_unknown
+          for key in nested_path:
+              target = target[key]
+          target["_unexpected"] = True
+          assert list(validator.iter_errors(nested_unknown)), f"{name} accepted a nested unknown field"
+
+      finding_validator = Draft202012Validator(finding_schema)
+      for forbidden in ("blocking", "gate", "policy_decision", "status"):
+          mutation = copy.deepcopy(finding)
+          mutation[forbidden] = "FAIL"
+          assert list(finding_validator.iter_errors(mutation)), f"Finding accepted gate authority: {forbidden}"
+    PYTHON
+
+    capture(
+      "python3", "-c", python,
+      ROOT.join("schemas/finding-v1.schema.json").to_s,
+      ROOT.join("examples/finding-v1.json").to_s,
+      ROOT.join("schemas/configuration-v1.schema.json").to_s,
+      file.path
+    )
+  end
+end
+
+def check_links
+  markdown_files = ARTIFACT_MANIFEST.select { |path| path.end_with?(".md") }
+  markdown_files.each do |relative|
+    utf8_file(relative).scan(/\[[^\]]*\]\(([^)]+)\)/).flatten.each do |raw_target|
+      target = raw_target.strip.sub(/\A</, "").sub(/>\z/, "")
+      next if target.empty? || target.start_with?("#") || target.match?(/\A(?:https?:|mailto:)/i)
+
+      path_part = URI.decode_www_form_component(target.split("#", 2).first)
+      resolved = ROOT.join(File.dirname(relative), path_part).expand_path
+      unless resolved == ROOT || resolved.to_s.start_with?("#{ROOT}#{File::SEPARATOR}")
+        fail_check("relative link escapes repository: #{relative}")
+      end
+      fail_check("broken relative link in #{relative}: #{path_part}") unless resolved.exist?
+    end
+  end
+
+  required = %w[
+    PROJECT.md PHILOSOPHY.md ARCHITECTURE.md LICENSE NOTICE TRADEMARKS.md SECURITY.md ROADMAP.md
+    docs/foundation.md docs/analyzers.md docs/contracts.md schemas/finding-v1.schema.json
+    schemas/configuration-v1.schema.json examples/finding-v1.json examples/configuration-v1.yml
+    docs/adr/
+  ]
+  targets = utf8_file("README.md").scan(/\[[^\]]*\]\(([^)]+)\)/).flatten.map { |target| target.split("#", 2).first }
+  missing = required - targets
+  fail_check("README is missing explicit foundation targets: #{missing.join(', ')}") unless missing.empty?
+end
+
+def check_identity
+  rejected_name = %w[Line Clear].join
+  expected_surfaces = [
+    "RubyGems `rail_verdict`",
+    "RubyGems `rail-verdict`",
+    "RubyGems `railverdict`",
+    "GitHub organization `railverdict`",
+    "GitHub repository `railverdict/railverdict`",
+    "GitHub exact-name repository search",
+    "RDAP `railverdict.dev`",
+    "RDAP `railverdict.com`",
+    "RDAP `railverdict.org`",
+    "Exact/current-product web search",
+    "USPTO exact/similar search",
+    "WIPO Global Brand Database",
+    "TMview",
+    "Brazil INPI"
+  ]
+  header, rows = markdown_table("docs/foundation.md", "## Dated Name Evidence Matrix")
+  expected_header = ["Surface", "Checked on", "Query / scope", "Source URL", "Observed result", "Classification", "Limitation / remaining gate"]
+  fail_check("naming matrix columns changed") unless header == expected_header
+  fail_check("naming matrix must contain exactly fourteen rows") unless rows.length == 14
+  fail_check("naming matrix surfaces changed") unless rows.map(&:first) == expected_surfaces
+  rows.each do |row|
+    fail_check("naming matrix row has wrong width") unless row.length == 7
+    fail_check("naming matrix row contains an empty field") if row.any?(&:empty?)
+    fail_check("naming matrix date is invalid") unless row[1].match?(/\A\d{4}-\d{2}-\d{2}\z/)
+    fail_check("naming matrix source must be HTTPS") unless row[3].start_with?("https://")
+  end
+  rows.drop(9).each do |row|
+    fail_check("incomplete legal surface is not unresolved") unless row[5].include?("Unresolved external gate")
+    fail_check("incomplete legal surface does not retain publication block") unless row[6].match?(/(?:unresolved|required|block)/i)
+  end
+
+  _, identity_rows = markdown_table("docs/foundation.md", "## Identity Decision")
+  expected_identity = {
+    "Project" => "`RailVerdict`",
+    "Gem / require path" => "`rail_verdict`",
+    "Ruby namespace" => "`RailVerdict`",
+    "Executable" => "`railverdict`",
+    "Configuration" => "`.railverdict.yml`",
+    "Repository identity" => "`railverdict`",
+    "Draft schema root" => "`https://railverdict.dev/schemas/`"
+  }
+  fail_check("canonical seven-surface identity changed") unless identity_rows.to_h == expected_identity
+
+  foundation = utf8_file("docs/foundation.md")
+  before_history, history = foundation.split("## Rejected Working-Name History", 2)
+  fail_check("missing rejected-name history") unless history
+  fail_check("rejected working name appears outside its history") if before_history.include?(rejected_name)
+  fail_check("rejected working-name history is missing") unless history.include?(rejected_name)
+  (PUBLIC_TEXT_FILES - ["docs/foundation.md"]).each do |relative|
+    fail_check("rejected working name leaked outside its history: #{relative}") if utf8_file(relative).include?(rejected_name)
+  end
+  fail_check("publication blocker missing") unless foundation.match?(/Publication is blocked/i)
+  fail_check("qualified trademark review missing") unless (foundation + utf8_file("README.md")).match?(/qualified trademark review/i)
+end
+
+def check_legal
+  digest = Digest::SHA256.file(ROOT.join("LICENSE")).hexdigest
+  expected = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  fail_check("LICENSE does not match canonical Apache-2.0 text") unless digest == expected
+
+  notice = utf8_file("NOTICE")
+  fail_check("NOTICE invents ownership facts") unless notice.match?(/No copyright-owner, trademark-owner, legal-contact, or third-party attribution/i)
+  fail_check("NOTICE does not point to unresolved evidence") unless notice.match?(/unresolved ownership and contact/i)
+
+  trademarks = utf8_file("TRADEMARKS.md")
+  required = [
+    /not a software-license condition/i,
+    /does not limit personal or commercial use/i,
+    /modification, forks, redistribution, consulting, resale/i,
+    /nominative references are permitted/i,
+    /official status, sponsorship, or endorsement/i,
+    /Publication remains blocked/i,
+    /qualified legal review are unresolved/i
+  ]
+  required.each { |pattern| fail_check("trademark/software-right boundary is incomplete") unless trademarks.match?(pattern) }
+
+  foundation = utf8_file("docs/foundation.md")
+  %w[owner contact reviewer outcome].each do |term|
+    fail_check("foundation legal status omits unresolved #{term}") unless foundation.match?(/#{term}.{0,120}Unresolved|Unresolved.{0,120}#{term}/im)
+  end
+end
+
+def check_analyzers
+  expected_tools = [
+    "Minitest", "RSpec Core", "RuboCop", "rubocop-rails", "SimpleCov", "Undercover",
+    "RubyCritic", "Brakeman", "Prosopite", "bundler-audit", "strong_migrations"
+  ]
+  expected_header = [
+    "Tool", "Homepage", "Observed version", "License", "Commercial-use consideration",
+    "Target-project install", "Bundled status", "Proposed version policy", "Native output",
+    "Execution cost", "Failure semantics", "Disposition", "Owner / blocker", "Review date",
+    "Evidence source"
+  ]
+  header, rows = markdown_table("docs/analyzers.md", "## Analyzer Registry")
+  fail_check("analyzer registry columns changed") unless header == expected_header
+  fail_check("analyzer registry must contain exactly eleven rows") unless rows.length == 11
+  fail_check("analyzer registry tool set or order changed") unless rows.map(&:first) == expected_tools
+  rows.each do |row|
+    fail_check("analyzer registry row has wrong width") unless row.length == expected_header.length
+    fail_check("analyzer registry contains an empty required field") if row.any?(&:empty?)
+    fail_check("analyzer homepage must be HTTPS") unless row[1].start_with?("https://")
+    fail_check("analyzer must remain External") unless row[6].include?("External")
+    fail_check("analyzer evidence source must be HTTPS") unless row[14].include?("https://")
+  end
+
+  brakeman = rows.find { |row| row.first == "Brakeman" }
+  fail_check("Brakeman current license changed") unless brakeman[3] == "Brakeman Public Use License"
+  fail_check("Brakeman must remain on HOLD") unless brakeman[11] == "HOLD"
+
+  shortlist = markdown_section("docs/analyzers.md", "## Technical Shortlist")
+  fail_check("Brakeman leaked into Technical Shortlist") if shortlist.match?(/Brakeman/i)
+  %w[RuboCop Minitest SimpleCov bundler-audit].each do |tool|
+    fail_check("Technical Shortlist omits #{tool}") unless shortlist.include?(tool)
+  end
+end
+
+def check_contracts
+  expected = {
+    "`railverdict init`" => ["--config PATH", "--force"],
+    "`railverdict doctor`" => ["--config PATH", "--format console|json"],
+    "`railverdict check`" => ["--config PATH", "--format console|json", "--changed", "--base REV"],
+    "`railverdict baseline create`" => ["--config PATH", "--output PATH", "--format console|json"],
+    "`railverdict findings`" => ["--config PATH", "--format console|json"]
+  }
+  header, rows = markdown_table("docs/contracts.md", "## Draft CLI Surface")
+  fail_check("CLI table columns changed") unless header == ["Command", "Exact draft options", "Draft read/write boundary", "Status"]
+  fail_check("CLI must contain exactly five command rows") unless rows.length == 5
+  fail_check("CLI command set or order changed") unless rows.map(&:first) == expected.keys
+  rows.each do |row|
+    options = row[1].scan(/`([^`]+)`/).flatten
+    fail_check("CLI option set changed for #{row.first}") unless options == expected.fetch(row.first)
+    fail_check("CLI row is not Draft / unimplemented") unless row[3] == "Draft / unimplemented"
+    fail_check("CLI read/write boundary is empty") if row[2].empty?
+  end
+
+  text = utf8_file("docs/contracts.md")
+  fail_check("global CLI options changed") unless text.include?("`--help` and `--version`")
+  fail_check("deterministic ordering contract missing") unless text.match?(/stable and deterministic.*normalized repository-relative path/im)
+  fail_check("JSON stdout contract missing") unless text.match?(/stdout contains exactly one JSON document.*one newline/im)
+  fail_check("diagnostic stderr contract missing") unless text.match?(/Diagnostics and\s+progress are written only to stderr/im)
+  fail_check("reporter purity contract missing") unless text.match?(/Reporters are pure deterministic projections/im)
+
+  _, exits = markdown_table("docs/contracts.md", "### Draft exit contract")
+  fail_check("exit set changed") unless exits.map { |row| row.first.scan(/`(\d+)`/).flatten.first } == %w[0 1 2 130]
+  fail_check("exit rows are not all draft") unless exits.all? { |row| row[2] == "Draft / unimplemented" }
+  meanings = exits.map { |row| row[1] }.join(" ")
+  %w[PASS WARN FAIL usage configuration tool parser internal interrupted cleanup].each do |term|
+    fail_check("exit contract omits #{term}") unless meanings.match?(/#{Regexp.escape(term)}/i)
+  end
+end
+
+def check_adrs
+  actual = Dir.children(ROOT.join("docs/adr")).select { |name| name.end_with?(".md") }.sort
+  fail_check("ADR file set must be exactly the approved fifteen") unless actual == ADR_FILES
+
+  decisions = {
+    "0001-deterministic-pass-fail.md" => /sole authority for PASS and FAIL.*incomplete cannot produce PASS/im,
+    "0002-external-analyzer-execution.md" => /external processes.*not vendor, bundle, silently install, or reimplement/im,
+    "0003-canonical-finding.md" => /canonical, analyzer-independent evidence record.*no policy authority/im,
+    "0004-versioned-schemas.md" => /Independently versioned schemas are the strict canonical machine contracts/im,
+    "0005-fingerprint-baseline.md" => /Stable, versioned fingerprints.*explicit baselines/im,
+    "0006-no-new-debt.md" => /No-new-debt is RailVerdict's recommended adoption mode/im,
+    "0007-advisory-ai.md" => /AI is optional and advisory by default/im,
+    "0008-remote-ai-explicit-opt-in.md" => /Remote AI requires explicit opt-in/im,
+    "0009-github-as-an-adapter.md" => /GitHub is a downstream adapter.*not a second verification engine/im,
+    "0010-cli-and-json-canonical.md" => /local CLI and versioned canonical JSON output.*stable automation interfaces/im,
+    "0011-mcp-as-an-adapter.md" => /MCP is a thin downstream adapter/im,
+    "0012-third-party-license-review.md" => /Every third-party license and commercial-use boundary receives a dated, source-linked review/im,
+    "0013-information-firewall.md" => /synthetic, English-only information firewall/im,
+    "0014-apache-2-license.md" => /uses the unmodified Apache-2.0 license/im,
+    "0015-separate-trademark-policy.md" => /Trademark and source-confusion rules remain in a separate policy/im
+  }
+  owners = {
+    "0001-deterministic-pass-fail.md" => /Phase 1 owns/,
+    "0002-external-analyzer-execution.md" => /Phase 1 owns/,
+    "0003-canonical-finding.md" => /Phase 1 owns/,
+    "0004-versioned-schemas.md" => /Phase 1 owns/,
+    "0005-fingerprint-baseline.md" => /Phase 3 owns/,
+    "0006-no-new-debt.md" => /Phase 3 owns/,
+    "0007-advisory-ai.md" => /Phase 6 owns/,
+    "0008-remote-ai-explicit-opt-in.md" => /Phase 6 owns/,
+    "0009-github-as-an-adapter.md" => /Phase 4 owns/,
+    "0010-cli-and-json-canonical.md" => /Phase 1 owns/,
+    "0011-mcp-as-an-adapter.md" => /Phase 8 owns/,
+    "0012-third-party-license-review.md" => /Each implementing adapter phase owns/,
+    "0013-information-firewall.md" => /Phase 9 owns/,
+    "0014-apache-2-license.md" => /Phase 9 owns/,
+    "0015-separate-trademark-policy.md" => /Phase 0 owns/
+  }
+
+  ADR_FILES.each do |name|
+    text = utf8_file("docs/adr/#{name}")
+    %w[Context Decision Consequences Deferred\ Work Related\ Requirements Related\ Documents].each do |heading|
+      fail_check("#{name} is missing #{heading.tr('\\', ' ')}") unless text.match?(/^## #{heading.tr('\\', ' ')}$/)
+    end
+    fail_check("#{name} is not Accepted") unless text.match?(/^Status: Accepted$/)
+    fail_check("#{name} does not retain Not started status") unless text.match?(/^Implementation status: Not started$/)
+    fail_check("#{name} decision changed") unless text.match?(decisions.fetch(name))
+    deferred = markdown_section("docs/adr/#{name}", "## Deferred Work")
+    fail_check("#{name} has no deferred-work owner") unless deferred.match?(owners.fetch(name))
+  end
+
+  license_review = utf8_file("docs/adr/0012-third-party-license-review.md")
+  fail_check("license ADR invents reviewer/owner/contact/conclusion") unless license_review.match?(/no owner, contact, reviewer, or legal conclusion is invented/i)
+  apache = utf8_file("docs/adr/0014-apache-2-license.md")
+  fail_check("Apache ADR loses unknown owner status") unless apache.match?(/owner and copyright facts remain unknown/i)
+  fail_check("Apache ADR loses publication block") unless apache.match?(/Publication waits/i)
+  trademark = utf8_file("docs/adr/0015-separate-trademark-policy.md")
+  fail_check("trademark ADR loses unresolved legal fields") unless trademark.match?(/owner and contact remain unresolved.*reviewer's actual conclusion/im)
+  fail_check("trademark ADR loses publication block") unless trademark.match?(/Publication remains blocked/i)
+end
+
+def check_security
+  text = utf8_file("SECURITY.md")
+  %w[Assets Adversaries Trust\ Boundaries STRIDE Information\ Firewall].each do |term|
+    fail_check("SECURITY.md omits #{term.tr('\\', ' ')}") unless text.match?(/#{term.tr('\\', ' ')}/i)
+  end
+  %w[false\ PASS subprocess AI fork supply-chain].each do |term|
+    fail_check("SECURITY.md omits #{term.tr('\\', ' ')} risk") unless text.match?(/#{term.tr('\\', ' ')}/i)
+  end
+  fail_check("subprocess non-sandbox limit missing") unless text.match?(/not an operating-system sandbox/i)
+
+  header, threats = markdown_table("SECURITY.md", "## STRIDE Threat Register")
+  fail_check("threat register columns changed") unless header.length == 9
+  fail_check("threat register must contain T-01 through T-16") unless threats.map(&:first) == (1..16).map { |number| format("T-%02d", number) }
+  threats.each do |row|
+    fail_check("threat register row has wrong width") unless row.length == 9
+    fail_check("threat register contains an empty field") if row.any?(&:empty?)
+    fail_check("HIGH threat was accepted") if row[3] == "HIGH" && row[4].match?(/Accept/i)
+  end
+
+  _, controls = markdown_table("SECURITY.md", "## Required Control Register")
+  fail_check("control register must contain C-01 through C-10") unless controls.map { |row| row.first.split.first } == (1..10).map { |number| format("C-%02d", number) }
+
+  required_asvs = %w[1.2.5 2.1.1 2.2.1 2.2.2 5.2.1 5.2.2 5.3.2 8.1.1 8.2.1 8.2.2 8.3.1 15.1.1 15.2.1 15.3.1]
+  required_asvs.each { |id| fail_check("ASVS L1 mapping omits #{id}") unless text.include?("v5.0.0-#{id}") }
+  %w[Tracked\ tree Git\ history Generated\ gem archives media documentation release\ notes CI\ caches installed-artifact].each do |surface|
+    fail_check("information firewall omits #{surface.tr('\\', ' ')}") unless text.match?(/#{surface.tr('\\', ' ')}/i)
+  end
+  %w[passed failed not\ run not\ applicable].each do |state|
+    fail_check("information firewall omits #{state.tr('\\', ' ')} state") unless text.match?(/#{state.tr('\\', ' ')}/i)
+  end
+  fail_check("private pattern input is not external") unless text.match?(/private detection corpus.*outside Git/im)
+  fail_check("non-echoing rule missing") unless text.match?(/never print a pattern, matching value, matching line/im)
+  fail_check("provenance failures do not block publication") unless text.match?(/Every unresolved provenance match blocks publication/i)
+end
+
+def check_roadmap
+  requirements_text = utf8_file(".planning/REQUIREMENTS.md").split("## v2 Requirements", 2).first
+  requirements = requirements_text.scan(/\*\*([A-Z]+-\d{2})\*\*/).flatten
+  fail_check("expected 85 unique first-release requirements") unless requirements.length == 85 && requirements.uniq.length == 85
+
+  roadmap = utf8_file("ROADMAP.md")
+  mapped = roadmap.lines.grep(/\*\*Requirements:\*\*/).join.scan(/[A-Z]+-\d{2}/)
+  fail_check("public roadmap mapping mismatch") unless mapped.tally == requirements.to_h { |id| [id, 1] }
+
+  phases = roadmap.scan(/^### Phase (\d+):/).flatten.map(&:to_i)
+  fail_check("public roadmap must contain ordered Phases 0-9 once") unless phases == (0..9).to_a
+  (0..9).each do |number|
+    body = roadmap.split(/^### Phase #{number}:[^\n]*\n/, 2).last
+    body = body.split(/^### Phase \d+:/, 2).first if number < 9
+    fail_check("Phase #{number} omits Goal") unless body.include?("**Goal**:")
+    fail_check("Phase #{number} omits Depends on") unless body.include?("**Depends on**:")
+    %w[Requirements Success\ Criteria Exit\ gate Non-goals].each do |label|
+      fail_check("Phase #{number} omits #{label.tr('\\', ' ')}") unless body.match?(/\*\*#{label.tr('\\', ' ')}:?\*\*/)
+    end
+    expected_dependency = number.zero? ? "Nothing (first phase)" : "Phase #{number - 1}"
+    fail_check("Phase #{number} dependency changed") unless body.include?("**Depends on**: #{expected_dependency}")
+  end
+
+  planning = utf8_file(".planning/ROADMAP.md")
+  state = utf8_file(".planning/STATE.md")
+  combined = roadmap + planning + state
+  unless combined.scan(/Phase 0.{0,300}(?:complete|completion).{0,300}publication.{0,120}block/im).any?
+    fail_check("foundation completion/publication blocker distinction is missing")
+  end
+  fail_check("qualified trademark review gate missing") unless combined.match?(/qualified trademark review/i)
+  fail_check("Phase 2 injected-line ownership missing") unless roadmap.match?(/Phase 2.{0,1200}injected line set/im)
+  fail_check("Phase 4 production coverage ownership missing") unless roadmap.match?(/Phase 4.{0,1000}production changed-code coverage/im)
+  fail_check("Brakeman unsupported boundary missing") unless roadmap.match?(/Brakeman.{0,400}(?:unsupported|written)/im)
+end
+
+def check_language
+  markers = [
+    ["n", "\u00E3", "o"].join,
+    ["tam", "b\u00E9", "m"].join,
+    ["c\u00F3", "digo"].join,
+    %w[ar quivo].join,
+    %w[pro jeto].join,
+    ["revis", "\u00E3", "o"].join,
+    ["publica", "\u00E7\u00E3", "o"].join,
+    ["licen", "\u00E7", "a"].join,
+    ["execu", "\u00E7\u00E3", "o"].join,
+    %w[fa lha].join,
+    ["seguran", "\u00E7", "a"].join,
+    %w[requi sito].join
+  ]
+  suspicious_words = Regexp.new("\\b(?:#{markers.map { |word| Regexp.escape(word) }.join('|')})\\b", Regexp::IGNORECASE)
+  forbidden_controls = /[\u200B\u200C\u200D\u202A-\u202E\u2066-\u2069]/
+  PUBLIC_TEXT_FILES.each do |relative|
+    text = utf8_file(relative)
+    fail_check("unreviewed Portuguese marker in #{relative}") if text.match?(suspicious_words)
+    fail_check("hidden Unicode control in #{relative}") if text.match?(forbidden_controls)
+  end
+  puts "  language note: automated UTF-8/marker checks passed; manual semantic review remains required"
+end
+
+def parse_private_patterns(path)
+  bytes = Pathname.new(path).binread
+  patterns = bytes.split(/\r?\n/).filter_map do |line|
+    next if line.empty? || line.start_with?("#")
+
+    category, value = line.include?("\t") ? line.split("\t", 2) : ["private", line]
+    fail_check("private pattern category is invalid") unless category.match?(/\A[a-z0-9_-]+\z/i)
+    fail_check("private pattern value is empty") if value.nil? || value.empty?
+    [category, value.b]
+  end
+  fail_check("external private pattern file is empty") if patterns.empty?
+  patterns
+rescue Errno::ENOENT, Errno::EACCES
+  fail_check("external private pattern file cannot be read")
+end
+
+def pattern_hits(bytes, patterns)
+  patterns.filter_map { |category, pattern| category if bytes.include?(pattern) }
+end
+
+def check_provenance
+  pattern_path = ENV["FOUNDATION_PRIVATE_PATTERNS"]
+  tracked = capture("git", "ls-files", "-z").split("\0").reject(&:empty?)
+  future = {
+    "generated gem" => tracked.any? { |path| path.end_with?(".gem") },
+    "release/archive" => tracked.any? { |path| path.match?(/\.(?:zip|tar|tgz|gz|bz2|xz)\z/i) },
+    "media" => tracked.any? { |path| path.match?(/\.(?:png|jpe?g|gif|webp|svg|mp3|mp4|mov|pdf|docx)\z/i) },
+    "CI artifacts" => tracked.any? { |path| path.start_with?(".github/") },
+    "installed artifact" => false
+  }
+
+  unless pattern_path && !pattern_path.empty?
+    puts "  provenance state: tracked tree = not run; Git history/all refs = not run"
+    future.each { |surface, exists| puts "  provenance state: #{surface} = #{exists ? 'not run' : 'not applicable'}" }
+    puts "  provenance note: FOUNDATION_PRIVATE_PATTERNS was not supplied; publication remains blocked"
+    return
+  end
+
+  external = Pathname.new(pattern_path).expand_path
+  fail_check("private pattern path must be absolute") unless Pathname.new(pattern_path).absolute?
+  fail_check("private pattern file must stay outside the repository") if external == ROOT || external.to_s.start_with?("#{ROOT}#{File::SEPARATOR}")
+  patterns = parse_private_patterns(external)
+
+  tree_counts = Hash.new(0)
+  safe_paths = Set.new
+  withheld_paths = 0
+  tracked.each do |relative|
+    path_bytes = relative.b
+    content = ROOT.join(relative).file? ? ROOT.join(relative).binread : "".b
+    categories = (pattern_hits(path_bytes, patterns) + pattern_hits(content, patterns)).uniq
+    next if categories.empty?
+
+    categories.each { |category| tree_counts[category] += 1 }
+    if pattern_hits(path_bytes, patterns).empty? && relative.match?(/\A[0-9A-Za-z._\/-]+\z/)
+      safe_paths << relative
+    else
+      withheld_paths += 1
+    end
+  end
+
+  history_counts = Hash.new(0)
+  objects = capture("git", "rev-list", "--objects", "--all").lines.map { |line| line.split.first }.uniq
+  objects.each do |oid|
+    type = capture("git", "cat-file", "-t", oid).strip
+    next unless %w[blob commit tag].include?(type)
+
+    pattern_hits(capture("git", "cat-file", "-p", oid).b, patterns).uniq.each do |category|
+      history_counts[category] += 1
+    end
+  end
+
+  puts "  provenance state: tracked tree = #{tree_counts.empty? ? 'passed' : 'failed'}; counts=#{tree_counts.sort.to_h}"
+  puts "  provenance safe paths: #{safe_paths.to_a.sort.join(', ')}" unless safe_paths.empty?
+  puts "  provenance withheld unsafe paths: #{withheld_paths}" if withheld_paths.positive?
+  puts "  provenance state: Git history/all refs = #{history_counts.empty? ? 'passed' : 'failed'}; counts=#{history_counts.sort.to_h}"
+  future.each { |surface, exists| puts "  provenance state: #{surface} = #{exists ? 'passed' : 'not applicable'}" }
+  puts "  provenance note: automated pattern evidence does not clear separate publication gates"
+  fail_check("external private-pattern scan found unresolved matches") unless tree_counts.empty? && history_counts.empty?
+end
+
+def check_whitespace
+  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 31
+  ARTIFACT_MANIFEST.each do |relative|
+    bytes = read_file(relative)
+    fail_check("missing final newline: #{relative}") unless bytes.end_with?("\n")
+    bytes.lines.each_with_index do |line, index|
+      fail_check("trailing whitespace: #{relative}:#{index + 1}") if line.match?(/[ \t]+(?=\r?\n|\z)/)
+    end
+  end
+end
+
+def check_no_production
+  paths = Dir.glob("**/*", File::FNM_DOTMATCH, base: ROOT.to_s).reject do |path|
+    path == "." || path == ".." || path.start_with?(".git/") || path == ".git"
+  end
+  forbidden = paths.select do |path|
+    path.match?(%r{\A(?:lib|exe|bin)(?:/|\z)}) ||
+      path.match?(/\.gemspec\z/) ||
+      path.match?(/\A(?:Gemfile(?:\.lock)?|Rakefile)\z/) ||
+      path.match?(%r{\A(?:fixtures|spec/fixtures|test/fixtures|test/dummy)(?:/|\z)}) ||
+      path.match?(%r{\A\.github/(?:workflows|actions)(?:/|\z)}) ||
+      path.match?(%r{\A(?:release|releases|publication|publish)(?:/|\z)}) ||
+      path.match?(%r{\Ascript/(?:release|publish)}) ||
+      path.match?(%r{\A(?:ai|mcp)(?:/|\z)})
+  end
+  fail_check("forbidden production paths exist: #{forbidden.sort.join(', ')}") unless forbidden.empty?
+
+  script = utf8_file("script/validate-foundation")
+  fail_check("validator defines the RailVerdict product namespace") if script.match?(/\b(?:module|class)\s+RailVerdict\b/)
+  network_tokens = [["Net", "::HTTP"].join, %w[TCP Socket].join, ["Socket", ".tcp"].join]
+  package_tools = %w[gem pip pip3 bundle]
+  download_tools = [%w[cur l].join, %w[w get].join]
+  forbidden_operation = network_tokens.any? { |token| script.include?(token) } ||
+    package_tools.any? { |tool| script.match?(Regexp.new("\\b#{tool}\\s+install\\b")) } ||
+    download_tools.any? { |tool| script.match?(Regexp.new("\\b#{tool}\\s")) }
+  fail_check("validator contains network or package-install behavior") if forbidden_operation
+end
+
+requested = ARGV.empty? ? SUBCHECKS : ARGV
+unknown = requested - SUBCHECKS
+unless unknown.empty?
+  warn "Unknown foundation subcheck: #{unknown.join(', ')}"
+  warn "Allowed subchecks: #{SUBCHECKS.join(', ')}"
+  exit 2
+end
+
+begin
+  requested.each do |name|
+    send("check_#{name.tr('-', '_')}")
+    puts "PASS #{name}"
+  end
+rescue FoundationValidationError, JSON::ParserError, Psych::Exception, URI::Error => error
+  warn "FAIL #{error.message}"
+  exit 1
+end
