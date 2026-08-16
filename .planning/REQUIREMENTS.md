@@ -34,20 +34,20 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 
 ### Trustworthy Core
 
-- [ ] **CORE-01**: One lowercase executable exposes `init`, `doctor`, `check`, `findings`, and the explicit `baseline create` boundary; Phase 1 rejects or defers baseline creation, while Phase 3 owns its actual atomic write.
-- [ ] **CORE-02**: A developer can run `railverdict check` offline with AI disabled and without an account, telemetry, or hosted RailVerdict service.
-- [ ] **CORE-03**: Configuration is loaded as data, validated against a versioned strict schema, rejects unknown keys with useful paths, and exposes effective values.
-- [ ] **CORE-04**: `RunContext` records the repository root, revision scope, Ruby/Rails context, selected analyzers, tool versions, and deterministic inputs without mutable global state.
-- [ ] **CORE-05**: External commands execute only as executable-plus-argv arrays with a verified working directory and no interpolated shell string.
-- [ ] **CORE-06**: External execution applies monotonic timeouts, bounded concurrent stdout/stderr draining, minimal environment, closed descriptors, process-group termination, child reaping, and temporary-file cleanup.
-- [ ] **CORE-07**: Analyzer results distinguish succeeded, unavailable, unsupported, timed out, signaled, failed, parse failed, truncated, and malformed evidence.
-- [ ] **CORE-08**: A required analyzer that does not succeed can never be normalized as zero findings or produce a trustworthy PASS.
-- [ ] **CORE-09**: A narrow RuboCop adapter detects a supported version, invokes the target bundle, consumes structured output, and preserves execution provenance.
-- [ ] **CORE-10**: Every normalized finding follows the versioned analyzer-independent Finding contract and retains its origin and native evidence reference.
-- [ ] **CORE-11**: Only the policy evaluator creates immutable policy decisions and `GateResult`; adapters and reporters cannot change gate authority.
-- [ ] **CORE-12**: Console output is deterministic and readable, while JSON mode writes exactly one versioned JSON document to stdout and diagnostics only to stderr.
-- [ ] **CORE-13**: Stable process exits distinguish pass, policy failure, incomplete/tool/configuration error, and user interruption.
-- [ ] **CORE-14**: Repeated runs with equivalent inputs produce equivalent canonical gate content despite locale, timezone, path, ordering, or concurrency variation.
+- [x] **CORE-01**: One lowercase executable exposes `init`, `doctor`, `check`, `findings`, and the explicit `baseline create` boundary; Phase 1 rejects or defers baseline creation, while Phase 3 owns its actual atomic write.
+- [x] **CORE-02**: A developer can run `railverdict check` offline with AI disabled and without an account, telemetry, or hosted RailVerdict service.
+- [x] **CORE-03**: Configuration is loaded as data, validated against a versioned strict schema, rejects unknown keys with useful paths, and exposes effective values.
+- [x] **CORE-04**: `RunContext` records the repository root, revision scope, Ruby/Rails context, selected analyzers, tool versions, and deterministic inputs without mutable global state.
+- [x] **CORE-05**: External commands execute only as executable-plus-argv arrays with a verified working directory and no interpolated shell string.
+- [x] **CORE-06**: External execution applies monotonic timeouts, bounded concurrent stdout/stderr draining, minimal environment, closed descriptors, process-group termination, child reaping, and temporary-file cleanup.
+- [x] **CORE-07**: Analyzer results distinguish succeeded, unavailable, unsupported, timed out, signaled, failed, parse failed, truncated, and malformed evidence.
+- [x] **CORE-08**: A required analyzer that does not succeed can never be normalized as zero findings or produce a trustworthy PASS.
+- [x] **CORE-09**: A narrow RuboCop adapter detects a supported version, invokes the target bundle, consumes structured output, and preserves execution provenance.
+- [x] **CORE-10**: Every normalized finding follows the versioned analyzer-independent Finding contract and retains its origin and native evidence reference.
+- [x] **CORE-11**: Only the policy evaluator creates immutable policy decisions and `GateResult`; adapters and reporters cannot change gate authority.
+- [x] **CORE-12**: Console output is deterministic and readable, while JSON mode writes exactly one versioned JSON document to stdout and diagnostics only to stderr.
+- [x] **CORE-13**: Stable process exits distinguish pass, policy failure, incomplete/tool/configuration error, and user interruption.
+- [x] **CORE-14**: Repeated runs with equivalent inputs produce equivalent canonical gate content despite locale, timezone, path, ordering, or concurrency variation.
 
 ### Evidence Ecosystem
 
@@ -189,20 +189,20 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | FND-12 | Phase 0 | Complete |
 | FND-13 | Phase 0 | Complete |
 | FND-14 | Phase 0 | Complete |
-| CORE-01 | Phase 1 | Pending |
-| CORE-02 | Phase 1 | Pending |
-| CORE-03 | Phase 1 | Pending |
-| CORE-04 | Phase 1 | Pending |
-| CORE-05 | Phase 1 | Pending |
-| CORE-06 | Phase 1 | Pending |
-| CORE-07 | Phase 1 | Pending |
-| CORE-08 | Phase 1 | Pending |
-| CORE-09 | Phase 1 | Pending |
-| CORE-10 | Phase 1 | Pending |
-| CORE-11 | Phase 1 | Pending |
-| CORE-12 | Phase 1 | Pending |
-| CORE-13 | Phase 1 | Pending |
-| CORE-14 | Phase 1 | Pending |
+| CORE-01 | Phase 1 | Complete |
+| CORE-02 | Phase 1 | Complete |
+| CORE-03 | Phase 1 | Complete |
+| CORE-04 | Phase 1 | Complete |
+| CORE-05 | Phase 1 | Complete |
+| CORE-06 | Phase 1 | Complete |
+| CORE-07 | Phase 1 | Complete |
+| CORE-08 | Phase 1 | Complete |
+| CORE-09 | Phase 1 | Complete |
+| CORE-10 | Phase 1 | Complete |
+| CORE-11 | Phase 1 | Complete |
+| CORE-12 | Phase 1 | Complete |
+| CORE-13 | Phase 1 | Complete |
+| CORE-14 | Phase 1 | Complete |
 | EVID-01 | Phase 2 | Pending |
 | EVID-02 | Phase 2 | Pending |
 | EVID-03 | Phase 2 | Pending |

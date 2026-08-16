@@ -11,8 +11,8 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - Integer phases 0 through 9 are planned milestone work.
 - Decimal phases are reserved for urgent insertions and execute between their surrounding integers.
 
-- [ ] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
-- [ ] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
+- [x] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
+- [x] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
 - [ ] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
 - [ ] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
 - [ ] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
@@ -54,7 +54,14 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic public Rails fixture completes the RuboCop vertical path in both console and JSON modes, and negative execution fixtures prove that incomplete required evidence cannot pass.
 **Non-goals**: Adapter breadth, baselines, Git changed scope, Rails context enrichment, AI, repair orchestration, or MCP.
-**Plans**: TBD
+**Plans**: 6/6 plans executed
+
+- [x] `01-01-PLAN.md` — Gem and CLI foundation
+- [x] `01-02-PLAN.md` — Configuration and RunContext
+- [x] `01-03-PLAN.md` — Safe external process execution
+- [x] `01-04-PLAN.md` — Canonical contracts and RuboCop adapter
+- [x] `01-05-PLAN.md` — Policy authority, GateResult, and reporters
+- [x] `01-06-PLAN.md` — Check orchestration and deterministic verification
 
 ### Phase 2: Evidence Ecosystem
 

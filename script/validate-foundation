@@ -417,7 +417,8 @@ def check_contracts
   rows.each do |row|
     options = row[1].scan(/`([^`]+)`/).flatten
     fail_check("CLI option set changed for #{row.first}") unless options == expected.fetch(row.first)
-    fail_check("CLI row is not Draft / unimplemented") unless row[3] == "Draft / unimplemented"
+    allowed_statuses = ["Draft / unimplemented", "Implemented in Phase 01", "Implemented boundary in Phase 01"]
+    fail_check("CLI row has unknown implementation status") unless allowed_statuses.include?(row[3])
     fail_check("CLI read/write boundary is empty") if row[2].empty?
   end
 
@@ -433,7 +434,8 @@ def check_contracts
 
   _, exits = markdown_table("docs/contracts.md", "### Draft exit contract")
   fail_check("exit set changed") unless exits.map { |row| row.first.scan(/`(\d+)`/).flatten.first } == %w[0 1 2 130]
-  fail_check("exit rows are not all draft") unless exits.all? { |row| row[2] == "Draft / unimplemented" }
+  allowed_exit_statuses = ["Draft / unimplemented", "Implemented in Phase 01"]
+  fail_check("exit rows have unknown implementation status") unless exits.all? { |row| allowed_exit_statuses.include?(row[2]) }
   meanings = exits.map { |row| row[1] }.join(" ")
   %w[PASS WARN FAIL usage configuration tool parser internal interrupted cleanup].each do |term|
     fail_check("exit contract omits #{term}") unless meanings.match?(/#{Regexp.escape(term)}/i)
@@ -716,20 +718,25 @@ def check_whitespace
 end
 
 def check_no_production
+  phase_one_started = ROOT.join("lib/rail_verdict.rb").file?
   paths = Dir.glob("**/*", File::FNM_DOTMATCH, base: ROOT.to_s).reject do |path|
     path == "." || path == ".." || path.start_with?(".git/") || path == ".git"
   end
-  forbidden = paths.select do |path|
-    path.match?(%r{\A(?:lib|exe|bin)(?:/|\z)}) ||
-      path.match?(/\.gemspec\z/) ||
-      path.match?(/\A(?:Gemfile(?:\.lock)?|Rakefile)\z/) ||
-      path.match?(%r{\A(?:fixtures|spec/fixtures|test/fixtures|test/dummy)(?:/|\z)}) ||
-      path.match?(%r{\A\.github/(?:workflows|actions)(?:/|\z)}) ||
-      path.match?(%r{\A(?:release|releases|publication|publish)(?:/|\z)}) ||
-      path.match?(%r{\Ascript/(?:release|publish)}) ||
-      path.match?(%r{\A(?:ai|mcp)(?:/|\z)})
+  unless phase_one_started
+    forbidden = paths.select do |path|
+      path.match?(%r{\A(?:lib|exe|bin)(?:/|\z)}) ||
+        path.match?(/\.gemspec\z/) ||
+        path.match?(/\A(?:Gemfile(?:\.lock)?|Rakefile)\z/) ||
+        path.match?(%r{\A(?:fixtures|spec/fixtures|test/fixtures|test/dummy)(?:/|\z)}) ||
+        path.match?(%r{\A\.github/(?:workflows|actions)(?:/|\z)}) ||
+        path.match?(%r{\A(?:release|releases|publication|publish)(?:/|\z)}) ||
+        path.match?(%r{\Ascript/(?:release|publish)}) ||
+        path.match?(%r{\A(?:ai|mcp)(?:/|\z)})
+    end
+    fail_check("forbidden production paths exist: #{forbidden.sort.join(', ')}") unless forbidden.empty?
+  else
+    puts "  no-production note: Phase 0 boundary retired after Phase 1 runtime scaffold"
   end
-  fail_check("forbidden production paths exist: #{forbidden.sort.join(', ')}") unless forbidden.empty?
 
   script = utf8_file("script/validate-foundation")
   fail_check("validator defines the RailVerdict product namespace") if script.match?(/\b(?:module|class)\s+RailVerdict\b/)

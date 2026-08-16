@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 01
 current_phase_name: trustworthy-core
-status: planning
-stopped_at: "Phase 00 independently verified; Phase 01 planning started"
-last_updated: "2026-08-16T21:00:00-03:00"
+status: complete
+stopped_at: "Phase 01 Trustworthy Core verified; Phase 02 not started"
+last_updated: "2026-08-16T23:30:00-03:00"
 last_activity: 2026-08-16
-last_activity_desc: Phase 00 independently verified and closed; Phase 01 Trustworthy Core planned
+last_activity_desc: Phase 01 Trustworthy Core implemented, verified, and closed for development
 progress:
   total_phases: 10
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 7
-  percent: 54
+  completed_plans: 13
+  percent: 100
 ---
 
 # Project State
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 00 — product-naming-and-legal-foundation
+**Current focus:** Phase 01 — trustworthy-core
 
 ## Current Position
 
-Phase: 01 (trustworthy-core) — PLANNED, EXECUTION STARTING
-Plan: 0 of 6
-Status: Phase 00 independently verified 2026-08-16; Phase 01 plans written
-Last activity: 2026-08-16 — Phase 00 closed; Phase 01 planned
+Phase: 01 (trustworthy-core) — COMPLETE
+Plan: 6 of 6
+Status: Phase 01 independently validated 2026-08-16; Phase 02 not started
+Last activity: 2026-08-16 — trustworthy core verified and phase closed
 
-Progress: [█████░░░░░] 54%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -47,7 +47,8 @@ Progress: [█████░░░░░] 54%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| Phase 00 | 7 | 7 | ~9 min |
+| Phase 01 | 6 | 6 | ~15 min |
 
 **Recent Trend:**
 
@@ -96,6 +97,10 @@ Recent decisions affecting current work:
 - [Phase 00]: Treat schemas, fingerprints, explicit baselines, and no-new-debt policy as independently versioned contracts. — Legacy adoption requires stable identity and reviewable migration without silent baseline mutation.
 - [Phase 00]: Require explicit opt-in and fail-closed controls for remote AI. — Minimized inspectable context, secret scanning, and budgets protect privacy without changing the deterministic gate.
 - [Phase 00]: Keep Apache-2.0 rights, third-party review, the information firewall, and trademark policy as separate release gates. — Unknown legal and provenance facts must remain unresolved rather than being invented or treated as publication clearance.
+- [Phase 01]: Use `json_schemer` for strict configuration and result validation; compatibility remains provisional until 1.0.
+- [Phase 01]: Keep policy as sole GateResult authority; required incomplete analyzer evidence is always INCOMPLETE and never PASS.
+- [Phase 01]: Exclude parent `RUBYOPT`/`RUBYLIB` from analyzer children so RailVerdict's Bundler context cannot hijack target RuboCop resolution.
+- [Phase 01]: Evaluate `no_new_debt` as strict until Phase 3 baselines exist; do not persist baselines or implement changed scope.
 
 ### Pending Todos
 
@@ -116,6 +121,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T16:20:35-03:00
-Stopped at: Phase 00 remediation complete; ready for independent verification
+Last session: 2026-08-16T23:30:00-03:00
+Stopped at: Phase 01 Trustworthy Core complete; do not start Phase 02 in this session
 Resume file: None

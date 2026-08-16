@@ -77,7 +77,14 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic public Rails fixture completes the RuboCop vertical path in both console and JSON modes, and negative execution fixtures prove that incomplete required evidence cannot pass.
 **Non-goals**: Adapter breadth, baselines, Git changed scope, Rails context enrichment, AI, repair orchestration, or MCP.
-**Plans**: TBD
+**Plans**: 6/6 plans executed
+
+- [x] `01-01-PLAN.md`
+- [x] `01-02-PLAN.md`
+- [x] `01-03-PLAN.md`
+- [x] `01-04-PLAN.md`
+- [x] `01-05-PLAN.md`
+- [x] `01-06-PLAN.md`
 
 ### Phase 2: Evidence Ecosystem
 
@@ -217,7 +224,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Product, Naming and Legal Foundation | 7/7 | Independently verified | 2026-08-16 |
-| 1. Trustworthy Core | 0/6 | In progress | - |
+| 1. Trustworthy Core | 6/6 | Complete | 2026-08-16 |
 | 2. Evidence Ecosystem | 0/TBD | Not started | - |
 | 3. Fingerprints, Baselines and Policies | 0/TBD | Not started | - |
 | 4. Git Diff and Pull Request Readiness | 0/TBD | Not started | - |
