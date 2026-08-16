@@ -171,15 +171,100 @@ A requirement is complete only when its implementation or document exists, its s
 
 ## Traceability
 
-Roadmap creation populates the authoritative requirement-to-phase mapping.
+The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirement belongs to exactly one phase.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| FND-01 | Phase 0 | Pending |
+| FND-02 | Phase 0 | Pending |
+| FND-03 | Phase 0 | Pending |
+| FND-04 | Phase 0 | Pending |
+| FND-05 | Phase 0 | Pending |
+| FND-06 | Phase 0 | Pending |
+| FND-07 | Phase 0 | Pending |
+| FND-08 | Phase 0 | Pending |
+| FND-09 | Phase 0 | Pending |
+| FND-10 | Phase 0 | Pending |
+| FND-11 | Phase 0 | Pending |
+| FND-12 | Phase 0 | Pending |
+| FND-13 | Phase 0 | Pending |
+| FND-14 | Phase 0 | Pending |
+| CORE-01 | Phase 1 | Pending |
+| CORE-02 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 1 | Pending |
+| CORE-05 | Phase 1 | Pending |
+| CORE-06 | Phase 1 | Pending |
+| CORE-07 | Phase 1 | Pending |
+| CORE-08 | Phase 1 | Pending |
+| CORE-09 | Phase 1 | Pending |
+| CORE-10 | Phase 1 | Pending |
+| CORE-11 | Phase 1 | Pending |
+| CORE-12 | Phase 1 | Pending |
+| CORE-13 | Phase 1 | Pending |
+| CORE-14 | Phase 1 | Pending |
+| EVID-01 | Phase 2 | Pending |
+| EVID-02 | Phase 2 | Pending |
+| EVID-03 | Phase 2 | Pending |
+| EVID-04 | Phase 2 | Pending |
+| EVID-05 | Phase 2 | Pending |
+| EVID-06 | Phase 2 | Pending |
+| EVID-07 | Phase 2 | Pending |
+| EVID-08 | Phase 2 | Pending |
+| EVID-09 | Phase 2 | Pending |
+| EVID-10 | Phase 2 | Pending |
+| DEBT-01 | Phase 3 | Pending |
+| DEBT-02 | Phase 3 | Pending |
+| DEBT-03 | Phase 3 | Pending |
+| DEBT-04 | Phase 3 | Pending |
+| DEBT-05 | Phase 3 | Pending |
+| DEBT-06 | Phase 3 | Pending |
+| DEBT-07 | Phase 3 | Pending |
+| DEBT-08 | Phase 3 | Pending |
+| DEBT-09 | Phase 3 | Pending |
+| DEBT-10 | Phase 3 | Pending |
+| GIT-01 | Phase 4 | Pending |
+| GIT-02 | Phase 4 | Pending |
+| GIT-03 | Phase 4 | Pending |
+| GIT-04 | Phase 4 | Pending |
+| GIT-05 | Phase 4 | Pending |
+| GIT-06 | Phase 4 | Pending |
+| GIT-07 | Phase 4 | Pending |
+| GIT-08 | Phase 4 | Pending |
+| RAIL-01 | Phase 5 | Pending |
+| RAIL-02 | Phase 5 | Pending |
+| RAIL-03 | Phase 5 | Pending |
+| RAIL-04 | Phase 5 | Pending |
+| AI-01 | Phase 6 | Pending |
+| AI-02 | Phase 6 | Pending |
+| AI-03 | Phase 6 | Pending |
+| AI-04 | Phase 6 | Pending |
+| AI-05 | Phase 6 | Pending |
+| AI-06 | Phase 6 | Pending |
+| AI-07 | Phase 6 | Pending |
+| AI-08 | Phase 6 | Pending |
+| AGNT-01 | Phase 7 | Pending |
+| AGNT-02 | Phase 7 | Pending |
+| AGNT-03 | Phase 7 | Pending |
+| AGNT-04 | Phase 7 | Pending |
+| AGNT-05 | Phase 7 | Pending |
+| MCP-01 | Phase 8 | Pending |
+| MCP-02 | Phase 8 | Pending |
+| MCP-03 | Phase 8 | Pending |
+| REL-01 | Phase 9 | Pending |
+| REL-02 | Phase 9 | Pending |
+| REL-03 | Phase 9 | Pending |
+| REL-04 | Phase 9 | Pending |
+| REL-05 | Phase 9 | Pending |
+| REL-06 | Phase 9 | Pending |
+| REL-07 | Phase 9 | Pending |
+| REL-08 | Phase 9 | Pending |
+| REL-09 | Phase 9 | Pending |
 
 **Coverage:**
 - v1 requirements: 85
-- Mapped to phases: 0
-- Unmapped: 85
+- Mapped to phases: 85
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-16*
