@@ -39,7 +39,8 @@ ARTIFACT_MANIFEST = (
     README.md PROJECT.md PHILOSOPHY.md ARCHITECTURE.md LICENSE NOTICE TRADEMARKS.md
     SECURITY.md ROADMAP.md docs/foundation.md docs/analyzers.md docs/contracts.md
     schemas/finding-v1.schema.json schemas/configuration-v1.schema.json
-    examples/finding-v1.json examples/configuration-v1.yml
+    schemas/result-v1.schema.json
+    examples/finding-v1.json examples/configuration-v1.yml examples/result-v1.json
   ] + ADR_FILES.map { |name| "docs/adr/#{name}" }
 ).freeze
 
@@ -108,27 +109,87 @@ def walk_json(value, &block)
   end
 end
 
-def capture(*argv)
+def capture(*argv, max_output: 4 * 1024 * 1024, timeout_seconds: 15)
   allowed = %w[git python3]
   fail_check("unexpected subprocess executable") unless allowed.include?(argv.first)
 
-  stdout, stderr, status = Open3.capture3({ "LC_ALL" => "C", "LANG" => "C" }, *argv, chdir: ROOT.to_s)
-  return stdout if status.success?
+  stdin = stdout = stderr = wait_thread = nil
+  pid = nil
+  stdout_buffer = "".b
+  stderr_buffer = "".b
+  buffers = {}
+  deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout_seconds
+  begin
+    stdin, stdout, stderr, wait_thread = Open3.popen3(
+      { "LC_ALL" => "C", "LANG" => "C" }, *argv, chdir: ROOT.to_s, pgroup: true
+    )
+    pid = wait_thread.pid
+    stdin.close
+    buffers = { stdout => [stdout_buffer, max_output], stderr => [stderr_buffer, 64 * 1024] }
 
-  detail = stderr.to_s.lines.first.to_s.strip
-  fail_check("#{argv.first} subprocess failed#{detail.empty? ? '' : ": #{detail}"}")
+    until buffers.empty?
+      remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      fail_check("#{argv.first} subprocess timed out") if remaining <= 0
+
+      ready = IO.select(buffers.keys, nil, nil, remaining)
+      next unless ready
+
+      ready.first.each do |io|
+        loop do
+          chunk = io.read_nonblock(16 * 1024, exception: false)
+          break if chunk == :wait_readable
+
+          if chunk.nil? || chunk == :eof
+            io.close
+            buffers.delete(io)
+            break
+          end
+
+          buffer, limit = buffers.fetch(io)
+          buffer << chunk
+          fail_check("#{argv.first} subprocess exceeded output limit") if buffer.bytesize > limit
+        end
+      end
+    end
+
+    status = wait_thread.value
+    return stdout_buffer if status.success?
+
+    detail = stderr_buffer.lines.first.to_s.strip
+    fail_check("#{argv.first} subprocess failed#{detail.empty? ? '' : ": #{detail}"}")
+  ensure
+    if wait_thread&.alive?
+      begin
+        Process.kill("TERM", -pid)
+      rescue Errno::ESRCH, Errno::EINVAL
+        Process.kill("TERM", pid) rescue nil
+      end
+      sleep 0.05
+      if wait_thread.alive?
+        begin
+          Process.kill("KILL", -pid)
+        rescue Errno::ESRCH, Errno::EINVAL
+          Process.kill("KILL", pid) rescue nil
+        end
+      end
+      wait_thread.join
+    end
+    [stdin, stdout, stderr].compact.each { |io| io.close unless io.closed? }
+  end
 end
 
 def check_schemas
   finding_schema = JSON.parse(utf8_file("schemas/finding-v1.schema.json"))
   configuration_schema = JSON.parse(utf8_file("schemas/configuration-v1.schema.json"))
+  result_schema = JSON.parse(utf8_file("schemas/result-v1.schema.json"))
   finding_example = JSON.parse(utf8_file("examples/finding-v1.json"))
   configuration_example = YAML.safe_load(
     utf8_file("examples/configuration-v1.yml"),
     permitted_classes: [], permitted_symbols: [], aliases: false
   )
+  result_example = JSON.parse(utf8_file("examples/result-v1.json"))
 
-  [finding_schema, configuration_schema].each do |schema|
+  [finding_schema, configuration_schema, result_schema].each do |schema|
     fail_check("schema does not declare Draft 2020-12") unless schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
     walk_json(schema) do |node|
       next unless node.is_a?(Hash) && node.key?("$ref")
@@ -151,10 +212,13 @@ def check_schemas
       finding = json.load(open(sys.argv[2], encoding="utf-8"))
       configuration_schema = json.load(open(sys.argv[3], encoding="utf-8"))
       configuration = json.load(open(sys.argv[4], encoding="utf-8"))
+      result_schema = json.load(open(sys.argv[5], encoding="utf-8"))
+      result = json.load(open(sys.argv[6], encoding="utf-8"))
 
       cases = [
           ("finding", finding_schema, finding, ("location",)),
           ("configuration", configuration_schema, configuration, ("analyzers", "rubocop")),
+          ("result", result_schema, result, ("analyzer_results", 0)),
       ]
       for name, schema, example, nested_path in cases:
           Draft202012Validator.check_schema(schema)
@@ -184,7 +248,9 @@ def check_schemas
       ROOT.join("schemas/finding-v1.schema.json").to_s,
       ROOT.join("examples/finding-v1.json").to_s,
       ROOT.join("schemas/configuration-v1.schema.json").to_s,
-      file.path
+      file.path,
+      ROOT.join("schemas/result-v1.schema.json").to_s,
+      ROOT.join("examples/result-v1.json").to_s
     )
   end
 end
@@ -208,7 +274,8 @@ def check_links
   required = %w[
     PROJECT.md PHILOSOPHY.md ARCHITECTURE.md LICENSE NOTICE TRADEMARKS.md SECURITY.md ROADMAP.md
     docs/foundation.md docs/analyzers.md docs/contracts.md schemas/finding-v1.schema.json
-    schemas/configuration-v1.schema.json examples/finding-v1.json examples/configuration-v1.yml
+    schemas/configuration-v1.schema.json schemas/result-v1.schema.json
+    examples/finding-v1.json examples/configuration-v1.yml examples/result-v1.json
     docs/adr/
   ]
   targets = utf8_file("README.md").scan(/\[[^\]]*\]\(([^)]+)\)/).flatten.map { |target| target.split("#", 2).first }
@@ -360,6 +427,9 @@ def check_contracts
   fail_check("JSON stdout contract missing") unless text.match?(/stdout contains exactly one JSON document.*one newline/im)
   fail_check("diagnostic stderr contract missing") unless text.match?(/Diagnostics and\s+progress are written only to stderr/im)
   fail_check("reporter purity contract missing") unless text.match?(/Reporters are pure deterministic projections/im)
+  %w[AnalyzerResult GateResult completion_status evidence_status execution_status operational_failures decision_reasons].each do |term|
+    fail_check("result contract omits #{term}") unless text.include?(term)
+  end
 
   _, exits = markdown_table("docs/contracts.md", "### Draft exit contract")
   fail_check("exit set changed") unless exits.map { |row| row.first.scan(/`(\d+)`/).flatten.first } == %w[0 1 2 130]
@@ -429,6 +499,19 @@ def check_adrs
   trademark = utf8_file("docs/adr/0015-separate-trademark-policy.md")
   fail_check("trademark ADR loses unresolved legal fields") unless trademark.match?(/owner and contact remain unresolved.*reviewer's actual conclusion/im)
   fail_check("trademark ADR loses publication block") unless trademark.match?(/Publication remains blocked/i)
+
+  all_adrs = ADR_FILES.map { |name| utf8_file("docs/adr/#{name}") }.join("\n")
+  topic_checks = {
+    "Rails-first scope" => /Rails-first product scope/i,
+    "local-first operation" => /local-first operation/i,
+    "policy-owned gate authority" => /sole authority for PASS and FAIL|policy, not the baseline or analyzer, decides/i,
+    "safe subprocess execution" => /Executable-plus-argv isolation reduces command-injection risk/i,
+    "one-gem architecture" => /one gem and one process/i,
+    "provider-independent AI" => /AI boundary is provider-independent/i
+  }
+  topic_checks.each do |topic, pattern|
+    fail_check("ADR set omits #{topic}") unless all_adrs.match?(pattern)
+  end
 end
 
 def check_security
@@ -546,6 +629,12 @@ def pattern_hits(bytes, patterns)
   patterns.filter_map { |category, pattern| category if bytes.include?(pattern) }
 end
 
+def bounded_file_read(path, limit = 4 * 1024 * 1024)
+  fail_check("provenance input exceeds byte limit") if path.file? && path.size > limit
+
+  path.binread
+end
+
 def check_provenance
   pattern_path = ENV["FOUNDATION_PRIVATE_PATTERNS"]
   tracked = capture("git", "ls-files", "-z").split("\0").reject(&:empty?)
@@ -560,8 +649,8 @@ def check_provenance
   unless pattern_path && !pattern_path.empty?
     puts "  provenance state: tracked tree = not run; Git history/all refs = not run"
     future.each { |surface, exists| puts "  provenance state: #{surface} = #{exists ? 'not run' : 'not applicable'}" }
-    puts "  provenance note: FOUNDATION_PRIVATE_PATTERNS was not supplied; publication remains blocked"
-    return
+    puts "  provenance note: FOUNDATION_PRIVATE_PATTERNS was not supplied; maintainer input required; publication remains blocked"
+    return :not_run
   end
 
   external = Pathname.new(pattern_path).expand_path
@@ -574,7 +663,7 @@ def check_provenance
   withheld_paths = 0
   tracked.each do |relative|
     path_bytes = relative.b
-    content = ROOT.join(relative).file? ? ROOT.join(relative).binread : "".b
+    content = ROOT.join(relative).file? ? bounded_file_read(ROOT.join(relative)) : "".b
     categories = (pattern_hits(path_bytes, patterns) + pattern_hits(content, patterns)).uniq
     next if categories.empty?
 
@@ -587,8 +676,17 @@ def check_provenance
   end
 
   history_counts = Hash.new(0)
-  objects = capture("git", "rev-list", "--objects", "--all").lines.map { |line| line.split.first }.uniq
-  objects.each do |oid|
+  refs = capture("git", "for-each-ref", "--format=%(refname)").lines.map(&:chomp)
+  refs.each do |ref|
+    pattern_hits(ref.b, patterns).uniq.each { |category| history_counts[category] += 1 }
+  end
+
+  objects = capture("git", "rev-list", "--objects", "--all").lines.filter_map do |line|
+    oid, path = line.chomp.split(" ", 2)
+    [oid, path]
+  end.uniq
+  objects.each do |oid, path|
+    pattern_hits(path.to_s.b, patterns).uniq.each { |category| history_counts[category] += 1 }
     type = capture("git", "cat-file", "-t", oid).strip
     next unless %w[blob commit tag].include?(type)
 
@@ -607,7 +705,7 @@ def check_provenance
 end
 
 def check_whitespace
-  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 31
+  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 33
   ARTIFACT_MANIFEST.each do |relative|
     bytes = read_file(relative)
     fail_check("missing final newline: #{relative}") unless bytes.end_with?("\n")
@@ -654,8 +752,12 @@ end
 
 begin
   requested.each do |name|
-    send("check_#{name.tr('-', '_')}")
-    puts "PASS #{name}"
+    result = send("check_#{name.tr('-', '_')}")
+    if result == :not_run
+      puts "NOT RUN #{name}"
+    else
+      puts "PASS #{name}"
+    end
   end
 rescue FoundationValidationError, JSON::ParserError, Psych::Exception, URI::Error => error
   warn "FAIL #{error.message}"

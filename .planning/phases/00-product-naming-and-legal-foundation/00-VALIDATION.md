@@ -66,7 +66,11 @@ These are the sixteen task IDs actually executed by the seven Phase 0 plans.
 
 ## Exact ADR Set
 
-The `adrs` subcheck parses the exact source-brief filenames and verifies each named Decision and Deferred Work owner:
+The `adrs` subcheck parses the exact fifteen final filenames, verifies each
+Decision and Deferred Work owner, and checks the grouped topic anchors required
+by `00-CONTEXT.md`. The locked context names decision topics rather than
+requiring one topic per file; related topics may be grouped when the mapping is
+explicit and no duplicate ADR set is created:
 
 - `0001-deterministic-pass-fail.md`
 - `0002-external-analyzer-execution.md`
@@ -91,6 +95,7 @@ The `adrs` subcheck parses the exact source-brief filenames and verifies each na
 - [x] `script/validate-foundation` — one offline repository validator with `schemas`, `links`, `identity`, `legal`, `analyzers`, `contracts`, `adrs`, `security`, `roadmap`, `language`, `provenance`, `whitespace`, and `no-production` subchecks.
 - [x] `schemas/finding-v1.schema.json` and `schemas/configuration-v1.schema.json` — strict JSON Schema Draft 2020-12 contract drafts.
 - [x] `examples/finding-v1.json` and `examples/configuration-v1.yml` — small synthetic examples validated from JSON and safely loaded YAML.
+- [x] `schemas/result-v1.schema.json` and `examples/result-v1.json` — versioned AnalyzerResult/GateResult envelope with explicit incomplete evidence states.
 - [x] External private-pattern input procedure — `FOUNDATION_PRIVATE_PATTERNS` points to a maintainer-controlled path outside Git; pattern values and matches are never printed.
 - [x] Publication-gate record — qualified review, factual owner/contact details, and the external private corpus remain unresolved without being misreported as passed.
 - [x] Validator-owned whitespace manifest — exact Phase 0 public artifacts reject trailing spaces/tabs and missing final newlines independently of Git state.
@@ -126,3 +131,13 @@ Qualified trademark review, factual owner/contact evidence, and the external pri
 - [ ] Independent phase verification is pending.
 
 **Execution evidence:** automated Phase 0 convergence passed on 2026-08-16. The documented foundation is ready for independent verification; publication remains blocked.
+
+## Remediation Evidence
+
+- Phase 1 ownership now exposes `baseline create` as a deferred command boundary; Phase 3 owns actual baseline writes.
+- `result-v1.schema.json` defines versioned analyzer execution, completeness, operational failure, finding summary, deterministic gate, and decision-reason contracts.
+- Finding semantics now distinguish standalone `observed` state, later baseline states, opaque native evidence references, advisory AI origin, and runtime line-range validation.
+- Configuration semantics reject duplicate/unsafe YAML forms, unknown paths, invalid required/disabled combinations, and ambiguous precedence.
+- The final fifteen ADRs explicitly cover Rails-first scope, local-first operation, policy-owned authority, safe subprocesses, one-gem structure, and provider-independent AI through grouped topic mapping.
+- The validator reports `NOT RUN provenance` when `FOUNDATION_PRIVATE_PATTERNS` is absent; this is a publication blocker and not a successful provenance pass. Supplied synthetic patterns fail on matches and clean patterns complete without matches.
+- The literal name `IntegrarPlus` is permitted only for authorized high-level historical attribution or provenance-policy documentation; all technical/private material remains prohibited and examples remain synthetic.
