@@ -35,7 +35,18 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
   5. Adapter and automation authors can validate the draft Finding and configuration schemas, understand unknown-field behavior and the proposed CLI/stdout/stderr/exit contracts, and trace all 85 v1 requirements through this Phase 0–9 roadmap.
 **Exit gate**: Phase 0 documentation and draft contracts are mutually consistent; the RailVerdict identity decision and all required clearance evidence are recorded; the publication blocker is explicit; and no production core implementation has begun. Phase 0 cannot be marked complete while its required identity-clearance decision remains unresolved.
 **Non-goals**: Production gem behavior, analyzer execution, baseline implementation, AI, GitHub integration, MCP, or publication.
-**Plans**: TBD
+**Plans**: 7 plans in 2 waves
+
+**Wave 1** *(parallel, non-overlapping foundation artifacts)*
+- [ ] `00-01-PLAN.md` — Identity evidence, Apache-2.0, NOTICE, and trademark boundary
+- [ ] `00-02-PLAN.md` — README, product definition, philosophy, competitive position, and architecture
+- [ ] `00-03-PLAN.md` — Analyzer license registry and Ruby/Rails support proposal
+- [ ] `00-04-PLAN.md` — Finding/configuration schemas, synthetic examples, and CLI contract
+- [ ] `00-05-PLAN.md` — Threat model and information firewall
+- [ ] `00-06-PLAN.md` — Fifteen foundation ADRs
+
+**Wave 2** *(blocked on all Wave 1 plans)*
+- [ ] `00-07-PLAN.md` — Public roadmap, planning-state convergence, and offline foundation validation
 
 ### Phase 1: Trustworthy Core
 **Goal**: Developers can run one offline command path that turns safely collected RuboCop evidence into a deterministic, fail-closed gate and stable human or machine output.
