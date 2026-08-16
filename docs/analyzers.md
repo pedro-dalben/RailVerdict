@@ -53,3 +53,51 @@ This is a proposed implementation order, not a support claim. Each entry remains
 2. **Minitest and RSpec Core:** Phase 2 test-result normalization with an owned Minitest protocol and stored RSpec JSON fixtures.
 3. **SimpleCov:** Phase 2 public coverage ingestion; production changed-code scope remains owned by Phase 4.
 4. **bundler-audit:** Phase 2 external dependency evidence with explicit advisory-database identity and refresh separation.
+
+## Ruby and Rails Support Proposal
+
+Everything in this section is a **proposal**, not current compatibility evidence. No lane or adapter is supported until every named synthetic lane and lower/current adapter fixture passes. The implementation must record exact Ruby, Rails, analyzer, plugin, and artifact versions in its evidence rather than infer compatibility from these ranges.
+
+### Dated Maintenance Evidence
+
+As observed on 2026-08-16, the official [Ruby branch status](https://www.ruby-lang.org/en/downloads/branches/) lists Ruby 4.0 and 3.4 in normal maintenance, Ruby 3.3 in security maintenance with expected end of life on 2027-03-31, and Ruby 3.2 as end of life on 2026-04-01. That dated upstream state supports a proposed RailVerdict runtime floor of Ruby `>= 3.3`; it does not prove RailVerdict runs on any line.
+
+The official [Rails upgrade guide](https://guides.rubyonrails.org/upgrading_ruby_on_rails.html) records that Rails 8.0 and 8.1 require Ruby 3.2 or newer, while the [Rails maintenance policy](https://guides.rubyonrails.org/maintenance_policy.html) defines upstream bug-fix and security windows. RailVerdict therefore proposes Rails `>= 8.0` only as a target application context. RailVerdict must not depend on Rails at runtime, and it adds no Rails, Railties, or ActiveSupport runtime dependency.
+
+### Five Deliberate Synthetic Lanes
+
+The matrix is deliberately non-Cartesian. It tests the proposed floor, current core, newest core, and two Rails boundaries without multiplying combinations that have no distinct contract purpose.
+
+| Lane | Ruby | Rails target context | Future proof required |
+|---|---:|---:|---|
+| Core minimum | Ruby 3.3 | None | The same offline core contract suite passes at the proposed Ruby floor. |
+| Core current | Ruby 3.4 | None | The same offline core contract suite passes on the current development line. |
+| Core newest | Ruby 4.0 | None | The same offline core contract suite passes on the newest proposed line. |
+| Rails lower boundary | Ruby 3.3 | Rails 8.0 | A synthetic Rails 8.0 application passes the lower adapter and context fixtures. |
+| Rails current boundary | Ruby 4.0 | Rails 8.1 | A synthetic Rails 8.1 application passes the current adapter and context fixtures. |
+
+Passing the three core lanes would prove only the tested core contract on those exact interpreters. Passing the two Rails lanes would prove only the tested synthetic application context and named adapter fixtures. Neither result implies compatibility with an untested Ruby, Rails, analyzer, plugin, operating system, database, or application combination.
+
+### Pre-1.0 Drop Policy
+
+The proposed project policy is to drop an end-of-life Ruby series in the next documented minor RailVerdict release while the project remains pre-1.0. This is a RailVerdict recommendation, not an upstream fact. Any drop requires release notes, updated contract evidence, and a refreshed maintenance snapshot; no range changes silently.
+
+## Adapter Dispositions and Roadmap Ownership
+
+All entries remain external under the target-project process boundary in [ARCHITECTURE.md](../ARCHITECTURE.md#external-process-boundary). The [roadmap](../ROADMAP.md) owns implementation and proof; this registry authorizes neither package installation nor adapter support.
+
+| Tool or capability | Current disposition | Roadmap owner and proof gate |
+|---|---|---|
+| RuboCop | Proposed first adapter | [Phase 1](../ROADMAP.md#phase-1-trustworthy-core) proves one narrow vertical path; [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) proves the proposed lower/current range and failure corpus. |
+| rubocop-rails | Proposed RuboCop capability metadata, not a second process | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) proves paired versions, plugin identity, configuration provenance, and one-run behavior. |
+| Minitest | Proposed test-evidence adapter | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) owns the RailVerdict reporter protocol, lower/current fixtures, and incomplete-suite semantics. |
+| RSpec Core | Proposed test-evidence adapter | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) owns lower/current JSON fixtures and incomplete-suite semantics. |
+| SimpleCov | Proposed public-coverage ingestion | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) proves public schema freshness and pure calculations; [Phase 4](../ROADMAP.md#phase-4-git-diff-and-pull-request-readiness) alone may activate trustworthy production Git changed scope. |
+| bundler-audit | Proposed dependency-evidence adapter | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) proves JSON translation, advisory-database identity, explicit refresh separation, and failure behavior. |
+| Undercover | Deferred for overlap | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) explicitly excludes duplicate changed-line machinery; reconsider only after unique value, current Ruby syntax, and a fixture-stable contract are demonstrated. |
+| RubyCritic | Deferred for overlap and opaque aggregation | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) explicitly excludes the overlapping aggregate; reconsider only if unique raw findings can be consumed without making its score gate authority. |
+| Brakeman | HOLD; excluded from the technical shortlist and from supported or advertised integration claims | [Phase 2](../ROADMAP.md#phase-2-evidence-ecosystem) keeps it unsupported until maintainers record a written legal/product decision on permitted use, disclosure, distribution, and service boundaries, followed by contract fixtures. |
+| Prosopite | Deferred to runtime-evidence research | [Phase 5](../ROADMAP.md#phase-5-rails-aware-intelligence) may research it only after a non-destructive Rails/database lifecycle, isolation limits, and a structured logger contract are proven. |
+| strong_migrations | Deferred; never auto-run | [Phase 5](../ROADMAP.md#phase-5-rails-aware-intelligence) or later research requires a disposable database or upstream non-mutating mode plus structured evidence before reconsideration. |
+
+Every observed version, license text, commercial-use screening note, native output contract, and proposed range must be refreshed from the named official sources when its owning phase begins and immediately before release.
