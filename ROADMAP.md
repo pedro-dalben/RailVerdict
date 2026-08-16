@@ -46,7 +46,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Requirements:** CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, CORE-12, CORE-13, CORE-14
 **Success Criteria** (what must be TRUE):
 
-  1. A developer can run `railverdict init`, `doctor`, `check`, `baseline create`, and `findings`, and `check` works offline with AI, accounts, telemetry, and hosted services absent.
+  1. A developer can run `railverdict init`, `doctor`, `check`, and `findings`, and `check` works offline with AI, accounts, telemetry, and hosted services absent. The Phase 1 CLI exposes `baseline create` as an explicit deferred boundary; Phase 3 owns its actual baseline write.
   2. A developer receives useful path-specific errors for unknown configuration and can inspect the effective strict configuration plus the immutable repository, revision, Rails, analyzer, tool-version, and deterministic inputs captured in `RunContext`.
   3. External commands run only through executable-plus-argv execution with a verified directory, bounded concurrent output, monotonic timeout, minimal environment, process-group cleanup, reaping, and temporary-file cleanup.
   4. RuboCop evidence is version-checked and normalized into provenance-bearing canonical findings, while every unavailable, unsupported, timed-out, signaled, failed, truncated, parse-failed, or malformed required run remains incomplete and cannot yield a trustworthy PASS.

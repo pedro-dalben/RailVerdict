@@ -15,6 +15,7 @@
     "severity",
     "confidence",
     "state",
+    "evidence_ref",
     "location",
     "message"
   ],
@@ -24,11 +25,13 @@
     },
     "id": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "fingerprint": {
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Opaque deterministic evidence identity; exact canonicalization is owned by the baseline phase."
     },
     "origin": {
       "enum": [
@@ -40,15 +43,18 @@
     },
     "analyzer": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "rule_id": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "category": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 256
     },
     "severity": {
       "enum": [
@@ -68,6 +74,7 @@
     },
     "state": {
       "enum": [
+        "observed",
         "introduced",
         "existing",
         "resolved",
@@ -77,12 +84,19 @@
         "waived"
       ]
     },
+    "evidence_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Opaque reference into the producing AnalyzerResult's native evidence, never analyzer-specific fields."
+    },
     "location": {
       "$ref": "#/$defs/location"
     },
     "message": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "maxLength": 4096
     }
   },
   "additionalProperties": false,
@@ -97,6 +111,7 @@
         "path": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 4096,
           "pattern": "^(?!/)(?!.*\\\\)(?!.*//)(?!(?:\\.{1,2})(?:/|$))(?!.*\\/(?:\\.{1,2})(?:/|$))[^\\u0000-\\u001f/]+(?:/[^\\u0000-\\u001f/]+)*$"
         },
         "start_line": {
@@ -108,6 +123,7 @@
           "minimum": 1
         }
       },
+      "description": "If both line fields are present, runtime validation must enforce end_line >= start_line; Draft 2020-12 cannot express this invariant without overcomplicating the location shape.",
       "additionalProperties": false,
       "unevaluatedProperties": false
     }

@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "completion_status": "complete",
+  "gate": "PASS",
+  "policy_status": "pass",
+  "findings": [
+    {
+      "id": "RV-SYNTHETIC-001",
+      "fingerprint": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "severity": "medium",
+      "state": "observed",
+      "blocking": false
+    }
+  ],
+  "analyzer_results": [
+    {
+      "analyzer": "example_analyzer",
+      "tool_version": "1.0.0",
+      "invocation": {
+        "executable": "example-analyzer",
+        "argv": ["--format", "json"]
+      },
+      "execution_status": "succeeded",
+      "evidence_status": "complete",
+      "finding_ids": ["RV-SYNTHETIC-001"]
+    }
+  ],
+  "operational_failures": [],
+  "decision_reasons": [
+    {
+      "code": "no_blocking_findings",
+      "message": "Synthetic evidence contains no blocking findings."
+    }
+  ]
+}

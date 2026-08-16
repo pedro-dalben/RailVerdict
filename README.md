@@ -26,6 +26,7 @@ There is no published gem, CLI, analyzer integration, GitHub adapter, MCP adapte
 
 - [Finding schema](schemas/finding-v1.schema.json) and [Finding example](examples/finding-v1.json)
 - [Configuration schema](schemas/configuration-v1.schema.json) and [configuration example](examples/configuration-v1.yml)
+- [Verification result schema](schemas/result-v1.schema.json) and [result example](examples/result-v1.json)
 
 These are pre-implementation drafts, not compatibility or support promises.
 

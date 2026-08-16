@@ -12,17 +12,18 @@ gate decisions, and reporters are pure projections of an existing result.
 
 ## Draft Schema Surface
 
-Both schemas use JSON Schema Draft 2020-12 and are independently versioned.
-Their domain-based identifiers are draft identifiers; they do not prove domain
-ownership or authorize publication.
+All three schemas use JSON Schema Draft 2020-12 and are independently
+versioned. Their domain-based identifiers are draft identifiers; they do not
+prove domain ownership or authorize publication.
 
 | Contract | Draft schema | Draft example | Independent version | Status |
 |---|---|---|---|---|
 | Finding evidence | [`finding-v1.schema.json`](../schemas/finding-v1.schema.json) | [`finding-v1.json`](../examples/finding-v1.json) | `schema_version: "1.0"` | Draft / unimplemented |
 | Parsed configuration | [`configuration-v1.schema.json`](../schemas/configuration-v1.schema.json) | [`.railverdict.yml` example](../examples/configuration-v1.yml) | `version: 1` | Draft / unimplemented |
+| Verification result | [`result-v1.schema.json`](../schemas/result-v1.schema.json) | [`result-v1.json`](../examples/result-v1.json) | `schema_version: "1.0"` | Draft / unimplemented |
 
 Each draft schema declares its own `$schema` and absolute, versioned `$id`.
-Every `$ref` is an internal `#/...` fragment, so validating either document
+Every `$ref` is an internal `#/...` fragment, so validating any document
 requires no mutable remote schema. Every root and nested object rejects unknown
 fields. This strict behavior is draft / unimplemented and will become a
 compatibility rule only after its owning implementation phase proves it.
@@ -31,9 +32,30 @@ compatibility rule only after its owning implementation phase proves it.
 
 The draft Finding contract describes analyzer-independent evidence. It requires
 an origin, analyzer and native rule identity, category, severity, confidence,
-lifecycle state, full SHA-256 fingerprint, message, and repository-relative
-location. Location paths use `/`, cannot be absolute, cannot contain `.` or `..`
-segments, and cannot contain backslashes or empty segments.
+lifecycle state, full SHA-256 fingerprint, an opaque native-evidence reference,
+message, and repository-relative location. `evidence_ref` links to the
+producing `AnalyzerResult` without adding analyzer-specific fields to
+`Finding`. Location paths use `/`, cannot be absolute, cannot contain `.` or
+`..` segments, and cannot contain backslashes or empty segments. Runtime
+validation must reject a line range whose `end_line` precedes `start_line`.
+
+`fingerprint` is an opaque deterministic identity over canonical evidence. The
+same semantic evidence must produce the same digest independent of ordering,
+display formatting, timestamps, process IDs, or absolute paths. Phase 1 may use
+a documented draft payload; Phase 3 owns the final payload, algorithm migration,
+collision vectors, and baseline compatibility rules.
+
+`origin: ai` identifies an advisory observation produced by an AI path. It is
+not required evidence, cannot create a deterministic gate decision, and must be
+kept distinguishable from deterministic or runtime evidence. A future AI
+implementation should prefer a separate `AIAnalysis` attachment when no Finding
+is needed.
+
+`state: observed` is the standalone-run state and is the only state Phase 1 may
+emit without baseline or diff context. `introduced`, `existing`, `resolved`,
+`changed`, and `moved` require comparison context owned by Phase 3. `suppressed`
+and `waived` are later derived policy classifications, not analyzer execution
+results.
 
 A Finding cannot carry `blocking`, `PASS`, `WARN`, `FAIL`, a policy action, or
 another gate-authority field. Analyzer input therefore cannot decide whether a
@@ -51,9 +73,49 @@ safe YAML loader and then validate the resulting strings, integers, booleans,
 maps, and arrays against the JSON Schema.
 
 The small draft surface contains only `version`, policy `mode`, and the explicit
-strict analyzer map shown in the synthetic example. Defaults, precedence,
-runtime loading, error paths, and support remain draft / unimplemented until
-Phase 1 defines and proves them.
+strict analyzer map shown in the synthetic example. The initial loader reads one
+project `.railverdict.yml` file only; no environment, user, or secondary
+configuration source overrides it. UTF-8 is required. Duplicate YAML keys,
+aliases, object tags, permitted classes, symbols, and invalid encodings are
+rejected. Unknown keys fail with their property path. `enabled: false` with
+`required: true` is invalid; disabled analyzers must not be required.
+
+Configuration validation errors report the source path and nested property path
+without echoing secret values. A missing file is an explicit configuration
+failure, not an implicit default. Phase 1 may use documented defaults only when
+they are represented in the effective configuration; Phase 3 owns policy-mode
+semantics beyond the minimal Phase 1 fail-closed behavior.
+
+## Draft Result Contract
+
+`AnalyzerResult` records what an external process did: executable and argv,
+tool version when known, execution status, evidence completeness, finding IDs,
+and an operational failure when execution did not succeed. `succeeded` with
+`complete` means the analyzer returned parseable evidence; `unavailable`,
+`unsupported`, `timed_out`, `signaled`, `failed`, `parse_failed`, `truncated`,
+and `malformed` are incomplete evidence states. A successful analyzer finding
+is not an operational failure, and an operational failure is never normalized
+as zero findings.
+
+Its versioned fields are `invocation`, `execution_status`, `evidence_status`,
+`finding_ids`, and optional `failure` metadata.
+
+`GateResult` is the top-level `result-v1` envelope. It contains the overall
+completion state, deterministic gate state, policy evaluation state, finding
+summaries with derived blocking presentation, analyzer results, operational
+failures, and decision reasons. `gate: INCOMPLETE` with
+`policy_status: not_evaluated` is an explicit fail-closed result, not a fourth
+policy outcome; it maps to draft exit `2`. Complete results use `PASS`, `WARN`,
+or `FAIL` and policy states `pass`, `warn`, or `fail`. The result schema is
+versioned independently from the Finding and configuration schemas.
+
+The top-level fields are `completion_status`, `gate`, `policy_status`,
+`findings`, `analyzer_results`, `operational_failures`, and
+`decision_reasons`.
+
+The result schema does not grant analyzers, AI, reporters, GitHub, or MCP gate
+authority. Only deterministic policy may derive blocking presentation and the
+completed gate state.
 
 ## Draft CLI Surface
 
@@ -66,7 +128,7 @@ claim.
 | `railverdict init` | `--config PATH`, `--force` | May write the explicitly requested configuration; overwrite requires explicit `--force` | Draft / unimplemented |
 | `railverdict doctor` | `--config PATH`, `--format console\|json` | Read-only observation; never installs or mutates tools | Draft / unimplemented |
 | `railverdict check` | `--config PATH`, `--format console\|json`, `--changed`, `--base REV` | Read-only verification; never creates or updates a baseline | Draft / unimplemented |
-| `railverdict baseline create` | `--config PATH`, `--output PATH`, `--format console\|json` | Explicit future baseline write only after a complete trustworthy run | Draft / unimplemented |
+| `railverdict baseline create` | `--config PATH`, `--output PATH`, `--format console\|json` | Phase 1 exposes the boundary and rejects or defers the operation explicitly; Phase 3 owns the actual atomic baseline write | Draft / unimplemented |
 | `railverdict findings` | `--config PATH`, `--format console\|json` | Read-only projection of normalized findings | Draft / unimplemented |
 
 The global options `--help` and `--version` are also Draft / unimplemented.

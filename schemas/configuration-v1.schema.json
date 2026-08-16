@@ -55,7 +55,18 @@
         }
       },
       "additionalProperties": false,
-      "unevaluatedProperties": false
+      "unevaluatedProperties": false,
+      "not": {
+        "required": ["enabled", "required"],
+        "properties": {
+          "enabled": {
+            "const": false
+          },
+          "required": {
+            "const": true
+          }
+        }
+      }
     }
   }
 }

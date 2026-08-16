@@ -51,12 +51,12 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Wave 1** *(parallel, non-overlapping foundation artifacts)*
 
-- [ ] `00-01-PLAN.md` — Identity evidence, Apache-2.0, NOTICE, and trademark boundary
-- [ ] `00-02-PLAN.md` — README, product definition, philosophy, competitive position, and architecture
-- [ ] `00-03-PLAN.md` — Analyzer license registry and Ruby/Rails support proposal
-- [ ] `00-04-PLAN.md` — Finding/configuration schemas, synthetic examples, and CLI contract
-- [ ] `00-05-PLAN.md` — Threat model and information firewall
-- [ ] `00-06-PLAN.md` — Fifteen foundation ADRs
+- [x] `00-01-PLAN.md` — Identity evidence, Apache-2.0, NOTICE, and trademark boundary
+- [x] `00-02-PLAN.md` — README, product definition, philosophy, competitive position, and architecture
+- [x] `00-03-PLAN.md` — Analyzer license registry and Ruby/Rails support proposal
+- [x] `00-04-PLAN.md` — Finding/configuration schemas, synthetic examples, and CLI contract
+- [x] `00-05-PLAN.md` — Threat model and information firewall
+- [x] `00-06-PLAN.md` — Fifteen foundation ADRs
 
 **Wave 2** *(blocked on all Wave 1 plans)*
 
@@ -69,7 +69,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Requirements**: CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, CORE-12, CORE-13, CORE-14
 **Success Criteria** (what must be TRUE):
 
-  1. A developer can run `railverdict init`, `doctor`, `check`, `baseline create`, and `findings`, and `check` works offline with AI, accounts, telemetry, and hosted services absent.
+   1. A developer can run `railverdict init`, `doctor`, `check`, and `findings`, and `check` works offline with AI, accounts, telemetry, and hosted services absent. The Phase 1 CLI exposes `baseline create` as an explicit deferred boundary; Phase 3 owns its actual baseline write.
   2. A developer receives useful path-specific errors for unknown configuration and can inspect the effective strict configuration plus the immutable repository, revision, Rails, analyzer, tool-version, and deterministic inputs captured in `RunContext`.
   3. External commands run only through executable-plus-argv execution with a verified directory, bounded concurrent output, monotonic timeout, minimal environment, process-group cleanup, reaping, and temporary-file cleanup.
   4. RuboCop evidence is version-checked and normalized into provenance-bearing canonical findings, while every unavailable, unsupported, timed-out, signaled, failed, truncated, parse-failed, or malformed required run remains incomplete and cannot yield a trustworthy PASS.

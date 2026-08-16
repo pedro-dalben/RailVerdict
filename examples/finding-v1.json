@@ -8,7 +8,8 @@
   "category": "maintainability",
   "severity": "medium",
   "confidence": "high",
-  "state": "introduced",
+  "state": "observed",
+  "evidence_ref": "native-evidence-001",
   "location": {
     "path": "app/services/catalog_importer.rb",
     "start_line": 12,

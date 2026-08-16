@@ -49,12 +49,12 @@ The names below describe proposed responsibilities, not implemented classes or p
 | `Configuration` | Strict data loading, validation, defaults, effective-value provenance | Executable configuration or hidden policy overrides |
 | `RunContext` | Repository root, revision scope, Rails/tool metadata, deterministic inputs | Mutable global state |
 | Analyzer adapter | Availability/version checks, argv construction, native-output parsing | Policy, baselines, reporting |
-| `AnalyzerResult` | Complete invocation facts and evidence status | Gate authority |
+| `AnalyzerResult` | Complete invocation facts, execution status, and evidence status | Gate authority |
 | Process boundary | Executable-plus-argv lifecycle, bounded I/O, timeout, cleanup | Analyzer-specific exit interpretation |
 | `Finding` and normalization | Analyzer-independent evidence with origin and provenance | Blocking or `PASS`/`WARN`/`FAIL` authority |
 | Fingerprint, baseline, and waiver work | Versioned identity, comparison facts, explicit exceptions | Silent baseline mutation or evidence removal |
 | Policy evaluation | Evidence-to-decision rules and the sole creation of `GateResult` | Analyzer execution, AI judgment, presentation |
-| `GateResult` | Immutable completed or incomplete run result | Rendering, transport, provider credentials |
+| `GateResult` | Immutable completed or incomplete run result serialized by the versioned result contract | Rendering, transport, provider credentials |
 | Console and JSON reporters | Pure projection of `GateResult` | Mutation, policy, network access |
 | `AIAnalysis` | Optional schema-validated advisory content | Gate changes or code editing |
 | `RepairPacket` | Deterministic bounded evidence and argv verification commands | Applying repairs or granting permissions |

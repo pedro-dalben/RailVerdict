@@ -34,7 +34,7 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 
 ### Trustworthy Core
 
-- [ ] **CORE-01**: A developer can run `railverdict init`, `doctor`, `check`, `baseline create`, and `findings` through one lowercase executable.
+- [ ] **CORE-01**: One lowercase executable exposes `init`, `doctor`, `check`, `findings`, and the explicit `baseline create` boundary; Phase 1 rejects or defers baseline creation, while Phase 3 owns its actual atomic write.
 - [ ] **CORE-02**: A developer can run `railverdict check` offline with AI disabled and without an account, telemetry, or hosted RailVerdict service.
 - [ ] **CORE-03**: Configuration is loaded as data, validated against a versioned strict schema, rejects unknown keys with useful paths, and exposes effective values.
 - [ ] **CORE-04**: `RunContext` records the repository root, revision scope, Ruby/Rails context, selected analyzers, tool versions, and deterministic inputs without mutable global state.
@@ -269,4 +269,4 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 
 ---
 *Requirements defined: 2026-08-16*
-*Last updated: 2026-08-16 after Plan 00-07 close-out*
+*Last updated: 2026-08-16 after Phase 00 remediation pass*

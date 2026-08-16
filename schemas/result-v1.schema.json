@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/result/v1.schema.json",
+  "title": "RailVerdict Verification Result v1 (Draft / Unimplemented)",
+  "description": "Draft versioned machine envelope for analyzer execution, deterministic policy, findings, and incomplete evidence.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "completion_status",
+    "gate",
+    "policy_status",
+    "findings",
+    "analyzer_results",
+    "operational_failures",
+    "decision_reasons"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "completion_status": {
+      "enum": [
+        "complete",
+        "incomplete",
+        "interrupted"
+      ]
+    },
+    "gate": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "INCOMPLETE"
+      ]
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "not_evaluated"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding_summary"
+      }
+    },
+    "analyzer_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/analyzer_result"
+      }
+    },
+    "operational_failures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/operational_failure"
+      }
+    },
+    "decision_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/decision_reason"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "completion_status": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "gate": {
+            "enum": ["PASS", "WARN", "FAIL"]
+          },
+          "policy_status": {
+            "enum": ["pass", "warn", "fail"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "completion_status": {
+            "enum": ["incomplete", "interrupted"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "gate": {
+            "const": "INCOMPLETE"
+          },
+          "policy_status": {
+            "const": "not_evaluated"
+          },
+          "operational_failures": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "finding_summary": {
+      "type": "object",
+      "required": [
+        "id",
+        "fingerprint",
+        "severity",
+        "state",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "severity": {
+          "enum": ["info", "low", "medium", "high", "critical"]
+        },
+        "state": {
+          "enum": [
+            "observed",
+            "introduced",
+            "existing",
+            "resolved",
+            "changed",
+            "moved",
+            "suppressed",
+            "waived"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "analyzer_result": {
+      "type": "object",
+      "required": [
+        "analyzer",
+        "invocation",
+        "execution_status",
+        "evidence_status",
+        "finding_ids"
+      ],
+      "properties": {
+        "analyzer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "invocation": {
+          "$ref": "#/$defs/invocation"
+        },
+        "execution_status": {
+          "enum": [
+            "succeeded",
+            "unavailable",
+            "unsupported",
+            "timed_out",
+            "signaled",
+            "failed",
+            "parse_failed",
+            "truncated",
+            "malformed"
+          ]
+        },
+        "evidence_status": {
+          "enum": ["complete", "incomplete"]
+        },
+        "finding_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "failure": {
+          "$ref": "#/$defs/failure"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "execution_status": {
+                "const": "succeeded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_status": {
+                "const": "complete"
+              }
+            },
+            "not": {
+              "required": ["failure"]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "execution_status": {
+                "enum": [
+                  "unavailable",
+                  "unsupported",
+                  "timed_out",
+                  "signaled",
+                  "failed",
+                  "parse_failed",
+                  "truncated",
+                  "malformed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": ["failure"],
+            "properties": {
+              "evidence_status": {
+                "const": "incomplete"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "invocation": {
+      "type": "object",
+      "required": ["executable", "argv"],
+      "properties": {
+        "executable": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "argv": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "failure": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "enum": [
+            "unavailable",
+            "unsupported",
+            "timed_out",
+            "signaled",
+            "failed",
+            "parse_failed",
+            "truncated",
+            "malformed"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "operational_failure": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "enum": [
+            "unavailable",
+            "unsupported",
+            "timed_out",
+            "signaled",
+            "failed",
+            "parse_failed",
+            "truncated",
+            "malformed",
+            "configuration",
+            "interrupted"
+          ]
+        },
+        "analyzer": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "decision_reason": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}
