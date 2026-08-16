@@ -87,6 +87,28 @@ module RailVerdict
         )
       end
 
+      def incomplete_result(operational_failures:, analyzer_results: [], findings: [], code: "required_evidence_incomplete", message: "Required evidence is incomplete; policy was not evaluated.")
+        GateResult.new(
+          completion_status: "incomplete",
+          gate: "INCOMPLETE",
+          policy_status: "not_evaluated",
+          findings: summaries(findings, blocking: false),
+          analyzer_results: analyzer_results,
+          operational_failures: operational_failures,
+          decision_reasons: [{ "code" => code, "message" => message }]
+        )
+      end
+
+      def interrupted_result(analyzer_results: [], findings: [])
+        incomplete_result(
+          analyzer_results: analyzer_results,
+          findings: findings,
+          operational_failures: [{ "code" => "interrupted", "message" => "Execution was interrupted after child-process cleanup." }],
+          code: "interrupted",
+          message: "Execution was interrupted; no trustworthy gate was produced."
+        )
+      end
+
       def summaries(findings, blocking:)
         findings.sort_by(&:sort_key).map do |finding|
           {

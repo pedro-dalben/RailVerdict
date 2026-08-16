@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require "json"
 
 module RailVerdict
   class CLI
@@ -73,7 +74,17 @@ module RailVerdict
         opts.on("--force") { options[:force] = true }
       end
       parse!(parser, argv)
-      not_implemented("init")
+      exit_code, message = Init.write(
+        root: @working_directory,
+        config_path: options[:config],
+        force: options[:force]
+      )
+      if exit_code.zero?
+        @stdout.puts message
+      else
+        @stderr.puts "railverdict init: #{message}"
+      end
+      exit_code
     end
 
     def command_doctor(argv)
@@ -85,7 +96,17 @@ module RailVerdict
       end
       parse!(parser, argv)
       validate_format!(options[:format])
-      not_implemented("doctor")
+      outcome = Doctor.execute(
+        repository_root: @working_directory,
+        config_path: options[:config]
+      )
+      if options[:format] == "json"
+        @stdout.write(JSON.generate(outcome.report))
+        @stdout.write("\n")
+      else
+        @stdout.write(render_doctor_console(outcome.report))
+      end
+      outcome.exit_code
     end
 
     def command_check(argv)
@@ -104,7 +125,10 @@ module RailVerdict
         return EXIT_NO_GATE
       end
 
-      not_implemented("check")
+      outcome, interrupted = execute_check(options)
+      return EXIT_NO_GATE unless render_result(outcome.result, options[:format])
+
+      exit_code_for(outcome.result, interrupted: interrupted)
     end
 
     def command_baseline(argv)
@@ -133,7 +157,18 @@ module RailVerdict
       end
       parse!(parser, argv)
       validate_format!(options[:format])
-      not_implemented("findings")
+      outcome, interrupted = execute_check(options)
+      if options[:format] == "json"
+        @stdout.write(JSON.generate(FindingsCommand.document(outcome)))
+        @stdout.write("\n")
+      else
+        @stdout.write(FindingsCommand.console(outcome))
+      end
+      @stderr.puts "railverdict findings: required evidence is incomplete" if outcome.result.incomplete?
+      return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
+      return EXIT_NO_GATE if outcome.result.incomplete?
+
+      EXIT_OK
     end
 
     def parse!(parser, argv)
@@ -149,6 +184,55 @@ module RailVerdict
       return if FORMATS.include?(format)
 
       raise RailVerdict::UsageError, "invalid --format #{format.inspect}; expected console or json"
+    end
+
+    def execute_check(options)
+      interrupted = false
+      previous = Signal.trap("INT") do
+        interrupted = true
+        RailVerdict::ProcessRunner.registry.terminate_all
+      end
+      outcome = Check.execute(
+        repository_root: @working_directory,
+        config_path: options[:config],
+        interrupted: -> { interrupted }
+      )
+      [outcome, interrupted]
+    ensure
+      Signal.trap("INT", previous) if previous
+    end
+
+    def render_result(result, format)
+      rendered = if format == "json"
+        Reporters::JsonReporter.render(result)
+      else
+        Reporters::Console.render(result)
+      end
+      @stdout.write(rendered)
+      true
+    rescue RailVerdict::Error => error
+      @stderr.puts "railverdict: #{error.message}"
+      false
+    end
+
+    def exit_code_for(result, interrupted: false)
+      return EXIT_INTERRUPTED if interrupted || result.completion_status == "interrupted"
+      return EXIT_NO_GATE if result.completion_status != "complete"
+      return EXIT_POLICY_FAIL if result.gate == "FAIL"
+
+      EXIT_OK
+    end
+
+    def render_doctor_console(report)
+      lines = ["RailVerdict doctor", "", "Ruby: #{report['ruby_version'] || 'unknown'}"]
+      lines << "Target Ruby: #{report['target_ruby_version']}" if report.key?("target_ruby_version")
+      lines << "Rails: #{report['rails_version']}" if report.key?("rails_version")
+      configuration = report.fetch("configuration")
+      lines << "Configuration: #{configuration['valid'] ? 'valid' : 'invalid'}"
+      report.fetch("analyzers", {}).each do |name, details|
+        lines << "#{name}: #{details['status']}#{details['version'] ? " (#{details['version']})" : ''}"
+      end
+      lines.join("\n") + "\n"
     end
 
     def not_implemented(command)

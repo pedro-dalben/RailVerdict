@@ -51,9 +51,9 @@ module RailVerdict
         Probe.new(status: "malformed", message: bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
         command = @command_resolver.call(repository_root)
-        probe_result = probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
+        probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
         version_invocation = invocation_for(command, ["--version"])
 
         unless probe_result.status == "succeeded"
