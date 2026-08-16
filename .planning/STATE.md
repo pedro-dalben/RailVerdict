@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Completed 00-04-PLAN.md
-last_updated: "2026-08-16T06:51:16.694Z"
+stopped_at: Completed 00-05-PLAN.md
+last_updated: "2026-08-16T07:06:03.158Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
-Progress: [██████░░░░] 57%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████░░░░] 57%
 | Phase 00 P02 | 5 min | 2 tasks | 4 files |
 | Phase 00 P03 | 7 min | 2 tasks | 1 files |
 | Phase 00 P04 | 7 min | 2 tasks | 5 files |
+| Phase 00 P05 | 11 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,10 @@ Recent decisions affecting current work:
 - [Phase 00]: Use recursively closed schemas with local-only references. — Strict offline validation rejects unknown input at every object boundary.
 - [Phase 00]: Keep Finding evidence separate from gate authority. — Only future deterministic policy output may own blocking and PASS/WARN/FAIL decisions.
 - [Phase 00]: Limit the draft CLI to five exact command surfaces and exits 0/1/2/130. — A small deterministic stdout/stderr contract is enough for Phase 1 and agent consumers.
+- [Phase 00]: Block every unresolved HIGH threat at its owning phase or release gate until its required control is evidenced; HIGH risks cannot be accepted. — False PASS, credential exposure, and release compromise cannot remain open at an owning gate.
+- [Phase 00]: Treat executable-plus-argv and process lifecycle controls as risk reduction, never as an operating-system sandbox. — Hostile analyzers and tests retain caller authority over host resources.
+- [Phase 00]: Use applicable ASVS 5.0.0 Level 1 requirements as a control catalog without certification or mislabeling Level 2 controls. — RailVerdict is a local CLI and documentary mappings must preserve the standard's actual levels and scope.
+- [Phase 00]: Keep private detection input outside Git and distinguish passed, failed, not run, and not applicable release surfaces. — Non-echoing evidence must not expose the detection corpus or turn absent scans and artifacts into false assurance.
 
 ### Pending Todos
 
@@ -104,6 +109,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T06:51:02.294Z
-Stopped at: Completed 00-04-PLAN.md
+Last session: 2026-08-16T07:06:03.154Z
+Stopped at: Completed 00-05-PLAN.md
 Resume file: None
