@@ -30,7 +30,7 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 - [x] **FND-11**: The threat model identifies assets, trust boundaries, adversaries, false-PASS risks, subprocess risks, AI risks, fork risks, supply-chain risks, and required controls.
 - [x] **FND-12**: A public information-firewall policy requires synthetic fixtures, English-only repository prose, and a provenance scan across tree, history, package, archives, media, and release artifacts.
 - [x] **FND-13**: The proposed repository structure keeps one gem and defers directories or abstractions that have no Phase 1 behavior.
-- [ ] **FND-14**: The Phase 0 through Phase 9 roadmap maps every v1 requirement once, preserves dependency order, and records observable exit criteria.
+- [x] **FND-14**: The Phase 0 through Phase 9 roadmap maps every v1 requirement once, preserves dependency order, and records observable exit criteria.
 
 ### Trustworthy Core
 
@@ -188,7 +188,7 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | FND-11 | Phase 0 | Complete |
 | FND-12 | Phase 0 | Complete |
 | FND-13 | Phase 0 | Complete |
-| FND-14 | Phase 0 | Pending |
+| FND-14 | Phase 0 | Complete |
 | CORE-01 | Phase 1 | Pending |
 | CORE-02 | Phase 1 | Pending |
 | CORE-03 | Phase 1 | Pending |
@@ -269,4 +269,4 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 
 ---
 *Requirements defined: 2026-08-16*
-*Last updated: 2026-08-16 after Phase 0 research synthesis*
+*Last updated: 2026-08-16 after Plan 00-07 close-out*

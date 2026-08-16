@@ -39,7 +39,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Phase 0 may complete its documented foundation when the identity decision, the accurately unresolved external gate, every foundation artifact, and the no-production boundary are mutually consistent. Publication, package or repository reservation, domain action, and public branding remain blocked until documented launch-jurisdiction evidence and qualified trademark review explicitly clear them.
 **Non-goals**: Production gem behavior, analyzer execution, baseline implementation, AI, GitHub integration, MCP, or publication.
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 - [x] 00-01-PLAN.md
 - [x] 00-02-PLAN.md
@@ -47,7 +47,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - [x] 00-04-PLAN.md
 - [x] 00-05-PLAN.md
 - [x] 00-06-PLAN.md
-- [ ] 00-07-PLAN.md
+- [x] 00-07-PLAN.md
 
 **Wave 1** *(parallel, non-overlapping foundation artifacts)*
 
@@ -60,7 +60,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Wave 2** *(blocked on all Wave 1 plans)*
 
-- [ ] `00-07-PLAN.md` — Public roadmap, planning-state convergence, and offline foundation validation
+- [x] `00-07-PLAN.md` — Public roadmap, planning-state convergence, and offline foundation validation
 
 ### Phase 1: Trustworthy Core
 
@@ -216,7 +216,7 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Product, Naming and Legal Foundation | 6/7 | In Progress|  |
+| 0. Product, Naming and Legal Foundation | 7/7 | Ready for verification |  |
 | 1. Trustworthy Core | 0/TBD | Not started | - |
 | 2. Evidence Ecosystem | 0/TBD | Not started | - |
 | 3. Fingerprints, Baselines and Policies | 0/TBD | Not started | - |
