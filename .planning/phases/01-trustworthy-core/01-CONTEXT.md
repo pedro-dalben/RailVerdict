@@ -73,9 +73,14 @@ reopening Phase 00 decisions.
    `rv:<first 20 hex chars of the fingerprint digest>`; identical fingerprints
    deduplicate since they are the same semantic evidence.
 8. **Minimal child environment.** Analyzer children receive only an allowlist
-   (`PATH`, `HOME`, `GEM_HOME`, `GEM_PATH`, `RUBYLIB`, `RUBYOPT`, `LANG`,
-   `BUNDLE_GEMFILE`, `BUNDLE_PATH`, `BUNDLE_WITH`, `BUNDLE_WITHOUT`) plus
+   (`PATH`, `HOME`, `GEM_HOME`, `GEM_PATH`, `RUBYLIB`, `RUBYOPT`, `LANG`) plus
    forced `LC_ALL=C.UTF-8` and `TZ=UTC` for deterministic execution inputs.
+   Every other parent variable is explicitly deleted before spawn. `BUNDLE_*`
+   variables are deliberately excluded: a target project's `bundle exec` must
+   derive from its own Gemfile, never from RailVerdict's bundler context. A
+   child Ruby boot may still re-add bundler variables through an inherited
+   `RUBYOPT`; that is a property of the child interpreter boot, not of the
+   spawn environment.
 9. **Deferred boundaries.** `baseline create` parses its draft options and
    exits `2` with an explicit Phase 3 deferral message. `check --changed` and
    `--base` parse and exit `2` with an explicit Phase 4 ownership message.
