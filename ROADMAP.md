@@ -28,7 +28,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Maintainers can make implementation decisions from an internally consistent, research-backed RailVerdict foundation without adding production core code.
 **Depends on**: Nothing (first phase)
-**Requirements**: FND-01, FND-02, FND-03, FND-04, FND-05, FND-06, FND-07, FND-08, FND-09, FND-10, FND-11, FND-12, FND-13, FND-14
+**Requirements:** FND-01, FND-02, FND-03, FND-04, FND-05, FND-06, FND-07, FND-08, FND-09, FND-10, FND-11, FND-12, FND-13, FND-14
 **Success Criteria** (what must be TRUE):
 
   1. Maintainers can review dated package, repository, domain, product-collision, and preliminary trademark evidence for RailVerdict and see that publication stays blocked until the documented launch-jurisdiction and qualified trademark reviews are cleared.
@@ -37,36 +37,13 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
   4. Contributors can understand the deterministic-first product, four one-way layers, fifteen foundation ADRs, threat model, synthetic-only information firewall, English-only policy, and minimal one-gem structure from the repository documents.
   5. Adapter and automation authors can validate the draft Finding and configuration schemas, understand unknown-field behavior and the proposed CLI/stdout/stderr/exit contracts, and trace all 85 v1 requirements through this Phase 0–9 roadmap.
 
-**Exit gate**: Phase 0 may complete its documented foundation when the identity decision, the accurately unresolved external gate, every foundation artifact, and the no-production boundary are mutually consistent. Publication, package or repository reservation, domain action, and public branding remain blocked until documented launch-jurisdiction evidence and qualified trademark review explicitly clear them.
+**Exit gate:** Phase 0 may complete its documented foundation when the identity decision, the accurately unresolved external gate, every foundation artifact, and the no-production boundary are mutually consistent. Publication, package or repository reservation, domain action, and public branding remain blocked until documented launch-jurisdiction evidence and qualified trademark review explicitly clear them.
 **Non-goals**: Production gem behavior, analyzer execution, baseline implementation, AI, GitHub integration, MCP, or publication.
-**Plans**: 6/7 plans executed
-
-- [x] 00-01-PLAN.md
-- [x] 00-02-PLAN.md
-- [x] 00-03-PLAN.md
-- [x] 00-04-PLAN.md
-- [x] 00-05-PLAN.md
-- [x] 00-06-PLAN.md
-- [ ] 00-07-PLAN.md
-
-**Wave 1** *(parallel, non-overlapping foundation artifacts)*
-
-- [ ] `00-01-PLAN.md` — Identity evidence, Apache-2.0, NOTICE, and trademark boundary
-- [ ] `00-02-PLAN.md` — README, product definition, philosophy, competitive position, and architecture
-- [ ] `00-03-PLAN.md` — Analyzer license registry and Ruby/Rails support proposal
-- [ ] `00-04-PLAN.md` — Finding/configuration schemas, synthetic examples, and CLI contract
-- [ ] `00-05-PLAN.md` — Threat model and information firewall
-- [ ] `00-06-PLAN.md` — Fifteen foundation ADRs
-
-**Wave 2** *(blocked on all Wave 1 plans)*
-
-- [ ] `00-07-PLAN.md` — Public roadmap, planning-state convergence, and offline foundation validation
-
 ### Phase 1: Trustworthy Core
 
 **Goal**: Developers can run one offline command path that turns safely collected RuboCop evidence into a deterministic, fail-closed gate and stable human or machine output.
 **Depends on**: Phase 0
-**Requirements**: CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, CORE-12, CORE-13, CORE-14
+**Requirements:** CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, CORE-09, CORE-10, CORE-11, CORE-12, CORE-13, CORE-14
 **Success Criteria** (what must be TRUE):
 
   1. A developer can run `railverdict init`, `doctor`, `check`, `baseline create`, and `findings`, and `check` works offline with AI, accounts, telemetry, and hosted services absent.
@@ -83,7 +60,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Developers receive normalized, provenance-rich evidence from the committed test, lint, coverage, and dependency adapter set without weakening core failure semantics.
 **Depends on**: Phase 1
-**Requirements**: EVID-01, EVID-02, EVID-03, EVID-04, EVID-05, EVID-06, EVID-07, EVID-08, EVID-09, EVID-10
+**Requirements:** EVID-01, EVID-02, EVID-03, EVID-04, EVID-05, EVID-06, EVID-07, EVID-08, EVID-09, EVID-10
 **Success Criteria** (what must be TRUE):
 
   1. Minitest and RSpec users receive normalized suite identity, counts, statuses, duration, seed, assertions where available, and failure locations, while zero-test, filtered, load-error, partial, and unexpected-skip runs remain visible to policy.
@@ -100,7 +77,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Legacy Rails projects can record trusted existing debt and deterministically block newly introduced regressions without silently changing that record.
 **Depends on**: Phase 2
-**Requirements**: DEBT-01, DEBT-02, DEBT-03, DEBT-04, DEBT-05, DEBT-06, DEBT-07, DEBT-08, DEBT-09, DEBT-10
+**Requirements:** DEBT-01, DEBT-02, DEBT-03, DEBT-04, DEBT-05, DEBT-06, DEBT-07, DEBT-08, DEBT-09, DEBT-10
 **Success Criteria** (what must be TRUE):
 
   1. Maintainers can inspect a versioned canonical fingerprint payload and full SHA-256 identity whose regression vectors cover unrelated edits, line and logical moves, renames, duplicates, copies, collisions, and algorithm migrations.
@@ -117,7 +94,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Developers and pull-request workflows can enforce the same deterministic changed-scope gate from trustworthy local Git facts.
 **Depends on**: Phase 3
-**Requirements**: GIT-01, GIT-02, GIT-03, GIT-04, GIT-05, GIT-06, GIT-07, GIT-08
+**Requirements:** GIT-01, GIT-02, GIT-03, GIT-04, GIT-05, GIT-06, GIT-07, GIT-08
 **Success Criteria** (what must be TRUE):
 
   1. A developer can resolve repository root, HEAD, an explicit or configured base, merge base, NUL-safe changed paths and lines, additions, deletions, binaries, conflicts, and renames from local Git.
@@ -133,7 +110,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Consumers can inspect bounded, deterministic Rails context for a finding with explicit confidence and provenance.
 **Depends on**: Phase 4
-**Requirements**: RAIL-01, RAIL-02, RAIL-03, RAIL-04
+**Requirements:** RAIL-01, RAIL-02, RAIL-03, RAIL-04
 **Success Criteria** (what must be TRUE):
 
   1. A Rails project reports detected Ruby and Rails versions, test framework, database adapter, dependencies, application structure, and selected Git scope through documented conventions.
@@ -148,7 +125,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Users can opt into bounded AI explanation or investigation without changing deterministic verification or silently transmitting sensitive material.
 **Depends on**: Phase 5
-**Requirements**: AI-01, AI-02, AI-03, AI-04, AI-05, AI-06, AI-07, AI-08
+**Requirements:** AI-01, AI-02, AI-03, AI-04, AI-05, AI-06, AI-07, AI-08
 **Success Criteria** (what must be TRUE):
 
   1. The same deterministic inputs produce the same gate with AI off, available, unavailable, or returning different advisory content.
@@ -165,7 +142,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: External coding agents can understand a failed gate, make a repair under their existing authority, and verify the result through stable machine contracts.
 **Depends on**: Phase 6
-**Requirements**: AGNT-01, AGNT-02, AGNT-03, AGNT-04, AGNT-05
+**Requirements:** AGNT-01, AGNT-02, AGNT-03, AGNT-04, AGNT-05
 **Success Criteria** (what must be TRUE):
 
   1. A coding agent can identify a failed check and its exit meaning from versioned JSON without parsing ANSI output or prose logs.
@@ -181,7 +158,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: MCP-compatible consumers can query the proven RailVerdict services without gaining a duplicate verification or editing engine.
 **Depends on**: Phase 7
-**Requirements**: MCP-01, MCP-02, MCP-03
+**Requirements:** MCP-01, MCP-02, MCP-03
 **Success Criteria** (what must be TRUE):
 
   1. Maintainers can demonstrate that CLI, Finding, GateResult, and repair-packet contracts are stable enough before the MCP transport is enabled.
@@ -196,7 +173,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Goal**: Users can install and trust RailVerdict 1.0 with documented compatibility, complete public-safe evidence, and a verifiable build-to-publication chain.
 **Depends on**: Phase 8
-**Requirements**: REL-01, REL-02, REL-03, REL-04, REL-05, REL-06, REL-07, REL-08, REL-09
+**Requirements:** REL-01, REL-02, REL-03, REL-04, REL-05, REL-06, REL-07, REL-08, REL-09
 **Success Criteria** (what must be TRUE):
 
   1. Users and adapter authors can rely on documented 1.0 compatibility and migration policies for findings, configuration, results, baselines, waivers, fingerprints, analyzers, reporters, AI providers, repair packets, exits, and stored formats.
@@ -209,20 +186,10 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Non-goals**: Paid or hosted dependencies, long-lived routine publishing keys, rebuilding after verification, private-derived fixtures, untested compatibility promises, or expanding v1 analyzer scope during release hardening.
 **Plans**: TBD
 
-## Progress
+## Dependency Order
 
-**Execution Order:**
-Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9.
+Phases execute in numeric dependency order:
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 0. Product, Naming and Legal Foundation | 6/7 | In Progress|  |
-| 1. Trustworthy Core | 0/TBD | Not started | - |
-| 2. Evidence Ecosystem | 0/TBD | Not started | - |
-| 3. Fingerprints, Baselines and Policies | 0/TBD | Not started | - |
-| 4. Git Diff and Pull Request Readiness | 0/TBD | Not started | - |
-| 5. Rails-Aware Intelligence | 0/TBD | Not started | - |
-| 6. Optional AI Intelligence | 0/TBD | Not started | - |
-| 7. Agent Repair Workflow | 0/TBD | Not started | - |
-| 8. MCP | 0/TBD | Not started | - |
-| 9. 1.0 Hardening | 0/TBD | Not started | - |
+`0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9`
+
+Later phases consume earlier contracts without changing their authority boundaries.

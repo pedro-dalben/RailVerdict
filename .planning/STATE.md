@@ -102,7 +102,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 0]: Publication remains blocked on documented launch-jurisdiction checks and qualified trademark review for RailVerdict; Phase 0 records this unresolved gate without inventing clearance.
+- [Phase 0]: Phase 0 may complete its documented foundation while publication remains blocked on documented launch-jurisdiction checks and qualified trademark review for RailVerdict; the foundation records this unresolved gate without inventing clearance.
 - [Phase 2]: Brakeman cannot be advertised as supported until its current license and product-use boundaries receive a written decision.
 
 ## Deferred Items
