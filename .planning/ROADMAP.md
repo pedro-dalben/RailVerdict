@@ -11,7 +11,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - Integer phases 0 through 9 are planned milestone work.
 - Decimal phases are reserved for urgent insertions and execute between their surrounding integers.
 
-- [ ] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
+- [x] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
 - [ ] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
 - [ ] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
 - [ ] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
@@ -216,8 +216,8 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Product, Naming and Legal Foundation | 7/7 | Ready for verification |  |
-| 1. Trustworthy Core | 0/TBD | Not started | - |
+| 0. Product, Naming and Legal Foundation | 7/7 | Independently verified | 2026-08-16 |
+| 1. Trustworthy Core | 0/6 | In progress | - |
 | 2. Evidence Ecosystem | 0/TBD | Not started | - |
 | 3. Fingerprints, Baselines and Policies | 0/TBD | Not started | - |
 | 4. Git Diff and Pull Request Readiness | 0/TBD | Not started | - |
