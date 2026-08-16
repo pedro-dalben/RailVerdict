@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "rail_verdict"
+
+exit RailVerdict::CLI.new.run(ARGV)
