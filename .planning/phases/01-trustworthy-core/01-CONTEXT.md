@@ -73,7 +73,7 @@ reopening Phase 00 decisions.
    `rv:<first 20 hex chars of the fingerprint digest>`; identical fingerprints
    deduplicate since they are the same semantic evidence.
 8. **Minimal child environment.** Analyzer children receive only an allowlist
-   (`PATH`, `HOME`, `GEM_HOME`, `GEM_PATH`, `RUBYLIB`, `RUBYOPT`, `LANG`) plus
+   (`PATH`, `HOME`, `GEM_HOME`, `GEM_PATH`, `LANG`) plus
    forced `LC_ALL=C.UTF-8` and `TZ=UTC` for deterministic execution inputs.
    Every other parent variable is explicitly deleted before spawn. `BUNDLE_*`
    variables are deliberately excluded: a target project's `bundle exec` must
