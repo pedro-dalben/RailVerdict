@@ -1,14 +1,14 @@
-# LineClear
+# RailVerdict
 
 ## What This Is
 
-LineClear is a fully open-source, local-first verification framework for Ruby on Rails applications. It collects evidence from established quality tools, normalizes that evidence into stable findings, applies project policy and historical baselines, and returns a deterministic merge gate that humans, CI systems, and coding agents can consume.
+RailVerdict is a fully open-source, local-first verification framework for Ruby on Rails applications. It collects evidence from established quality tools, normalizes that evidence into stable findings, applies project policy and historical baselines, and returns a deterministic merge gate that humans, CI systems, and coding agents can consume.
 
-The working identity is provisional until Phase 0 completes package, repository, and trademark collision checks. The product is not a SaaS and does not depend on accounts, telemetry, hosted services, or AI.
+Phase 0 rejected the working name LineClear after finding avoidable software, GitHub, and trademark collision risk. The selected identity is RailVerdict: gem `rail_verdict`, Ruby namespace `RailVerdict`, CLI `railverdict`, and configuration `.railverdict.yml`. Publication remains blocked until the documented jurisdictional and qualified trademark review is complete. The product is not a SaaS and does not depend on accounts, telemetry, hosted services, or AI.
 
 ## Core Value
 
-Given the same repository state, configuration, analyzer versions, and baseline, LineClear must produce the same evidence-backed PASS, WARN, or FAIL decision regardless of whether AI is configured.
+Given the same repository state, configuration, analyzer versions, and baseline, RailVerdict must produce the same evidence-backed PASS, WARN, or FAIL decision regardless of whether AI is configured.
 
 ## Requirements
 
@@ -19,7 +19,7 @@ Given the same repository state, configuration, analyzer versions, and baseline,
 ### Active
 
 - [ ] Establish a research-backed product, naming, licensing, trademark, architecture, security, schema, CLI, and roadmap foundation before production implementation.
-- [ ] Provide a local `LineClear check` interface that emits human-readable output and versioned machine-readable JSON without network or AI dependencies.
+- [ ] Provide a local `railverdict check` interface that emits human-readable output and versioned machine-readable JSON without network or AI dependencies.
 - [ ] Normalize analyzer and test output into a versioned, analyzer-independent Finding contract with explicit evidence origin.
 - [ ] Execute external analyzers safely with timeouts, bounded output, explicit failure semantics, version detection, and no shell interpolation.
 - [ ] Support fingerprint-based baselines and deterministic advisory, no-new-debt, and strict policies.
@@ -31,15 +31,15 @@ Given the same repository state, configuration, analyzer versions, and baseline,
 
 ### Out of Scope
 
-- SaaS, hosted dashboards, accounts, billing, subscriptions, hosted databases, and commercial-only tiers — LineClear is a local-first open-source tool.
-- A custom analyzer, vulnerability scanner, test framework, LLM, editor, or autonomous code-editing agent — LineClear orchestrates mature tools and verifies repairs.
+- SaaS, hosted dashboards, accounts, billing, subscriptions, hosted databases, and commercial-only tiers — RailVerdict is a local-first open-source tool.
+- A custom analyzer, vulnerability scanner, test framework, LLM, editor, or autonomous code-editing agent — RailVerdict orchestrates mature tools and verifies repairs.
 - A custom GitHub App, MCP adapter, AI repair mode, or quality score in the initial trustworthy core — these depend on stable CLI and schema contracts.
 - Mandatory AI, telemetry, network access, code upload, or privileged fork workflows — these violate deterministic and privacy boundaries.
 - IntegrarPlus-derived code, data, identifiers, architecture, fixtures, metrics, or operational details — provenance leakage is a release blocker.
 
 ## Context
 
-Coding agents reduce the cost and time required to produce Rails code, shifting the bottleneck toward trustworthy verification. Existing tools provide valuable but fragmented signals: tests, lint, security, coverage, maintainability, migration safety, dependency health, and runtime observations. LineClear's product value is the stable verification model that correlates those signals with a versioned baseline and explicit policy.
+Coding agents reduce the cost and time required to produce Rails code, shifting the bottleneck toward trustworthy verification. Existing tools provide valuable but fragmented signals: tests, lint, security, coverage, maintainability, migration safety, dependency health, and runtime observations. RailVerdict's product value is the stable verification model that correlates those signals with a versioned baseline and explicit policy.
 
 The planned architecture has four one-way layers: evidence collection, deterministic verification core, optional intelligence, and agent consumers. Evidence owns facts; the core owns normalization and policy; intelligence explains or investigates; agents consume structured results and act externally.
 
@@ -72,6 +72,7 @@ The initial research set includes Minitest, RSpec, RuboCop, rubocop-rails, Simpl
 | GitHub and MCP remain adapters | Core contracts must work locally and remain platform-independent | — Pending |
 | Apache-2.0 plus separate trademark policy | Preserve genuine open-source use while protecting official project identity | — Pending |
 | Horizontal project structure | Contract and infrastructure layers must stabilize before higher-level adapters consume them | — Pending |
+| Rename LineClear to RailVerdict before publication | LineClear had avoidable exact-name software, GitHub, and trademark collision signals; RailVerdict's checked package/repository/domain surfaces were clear on 2026-08-16 | — Pending qualified trademark review |
 
 ## Evolution
 
@@ -91,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current evidence.
 
 ---
-*Last updated: 2026-08-16 after initialization*
+*Last updated: 2026-08-16 after Phase 0 naming research*
