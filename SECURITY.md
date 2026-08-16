@@ -114,3 +114,97 @@ ASVS V13 Configuration, V14 Data Protection, and V16 Security Logging and Error 
 - A deterministic result is trustworthy only for its declared evidence, versions, limits, repository scope, and policy. Optional evidence remains visibly absent.
 - Secret scanning, schemas, checksums, and attestations each prove a narrow property; none substitutes for provenance review, dependency review, or qualified legal judgment.
 - Phase 4 must reopen this model before adding public-fork CI. Phase 6 must reopen it before remote transmission. Phase 9 must reopen it before building or publishing any release artifact.
+
+## Information Firewall
+
+The information firewall protects public provenance, language consistency, and non-disclosure across the repository and every future release surface. It is a publication control, not a claim that automated scanning can prove authorship or language semantics.
+
+### Allowed public provenance
+
+Public material must be freshly authored for RailVerdict or derived from a source whose reuse is explicitly documented and permitted. Examples, fixtures, screenshots, sample output, schemas, and demonstrations must be synthetic, generic, and created from scratch using public-domain concepts such as a library, book catalog, store, issue tracker, or project board. Public examples must not be sanitized or renamed copies of a private system.
+
+### Prohibited provenance
+
+The repository, its history, generated artifacts, caches, reports, and release materials must not contain private:
+
+- source code, data, credentials, configuration, environment values, or database content;
+- names, identifiers, domain terms, customer or user details, or partner details;
+- business rules, data shapes, architecture, infrastructure, security findings, or operational procedures;
+- fixtures, metrics, timestamps tied to private operations, screenshots, images, media, or metadata;
+- logs, prompts, model context, model responses, issues, pull requests, commit text, paths, branches, internal URLs, or repository details;
+- replicas, translations, summaries, transformations, or other derived material that preserves distinctive private structure or meaning.
+
+No private value may be committed for use as a detector, example, test case, exception, explanation, or scan proof. Renaming, redacting, hashing selected fields, or removing credentials does not make a private artifact synthetic.
+
+### English-only public content
+
+English-only applies to source code, identifiers, comments, logs, messages, documentation, schemas, examples, configuration keys, scripts, workflows, templates, issue and pull-request templates, commits, release notes, changelogs, reports, and artifact metadata.
+
+An internationalization exception is allowed only after an actual fixture needs it. Each excepted file must be listed individually in a reviewed manifest with its path, purpose, language, owner, and review date. A directory, extension, generated-file class, or free-form glob cannot be exempted. No such manifest or exception is implied by this policy.
+
+Language heuristics are defense in depth, not complete language proof. ASCII-only non-English prose, mixed identifiers, transliteration, generated metadata, and semantic drift can evade automated detection; manual review remains required.
+
+### Required scan surfaces
+
+| Surface | Required scope | Phase 0 evidence state | Phase 9 release obligation |
+|---|---|---|---|
+| Tracked tree | Every tracked public file at the exact candidate revision, including source, documentation, schemas, examples, templates, configuration, and repository metadata | Required now; `not run` when the external private pattern corpus is unavailable | Rescan the exact protected release revision. |
+| Git history | Every reachable object across all Git refs, including deleted or renamed content and commit/tag metadata | Required now; `not run` when the external private pattern corpus is unavailable | Rescan all refs immediately before publication. |
+| Generated gem | The exact `.gem` contents, filenames, metadata, packaged docs, licenses, and embedded files | `not applicable` while no gem exists; never `passed` by absence | Scan the build-once gem and bind the report to its digest. |
+| Source and release archives | Every source archive, release archive, compressed member, filename, and archive metadata | `not applicable` while no archive exists | Scan each exact archive and its expanded bounded contents. |
+| Images and media metadata | Image/audio/video/document content, filenames, embedded text, comments, thumbnails, geolocation, authorship, and other metadata | Classify anything present in the tree/history; absent future media is `not applicable` | Scan every release-hosted media asset and its metadata. |
+| Documentation and release notes | Public docs, generated docs, API/reference output, changelogs, release notes, and publication descriptions | Repository documentation is included in tree/history review; release notes are `not applicable` until created | Scan the exact rendered and packaged documentation and notes. |
+| CI caches and CI artifacts | Cache keys/manifests plus every retained artifact, report, log bundle, coverage export, package, and downloaded handoff | `not applicable` until these surfaces exist; do not infer cleanliness from no workflow | Enumerate and scan every artifact used or retained by release CI; uninspectable caches cannot support publication. |
+| Installed-artifact manifest | Files, paths, modes, metadata, and digest produced by installing the exact candidate gem in a clean location | `not applicable` while no installable gem exists | Compare the installed manifest and digest chain with the tested and published artifact. |
+
+“Not applicable” means the named artifact class does not exist for that candidate. “Not run” means the surface exists or is required but the scanner, private corpus, access, or review evidence is missing. Neither state is a pass. A required surface may be marked `passed` only when its exact revision or digest, scanner version, external corpus version, results, exceptions, and reviewer are recorded with zero unresolved matches.
+
+### External private-pattern input
+
+The private detection corpus is maintainer-controlled input stored outside Git, outside generated artifacts, outside CI caches shared with untrusted jobs, and outside public reports. It must not be embedded in command lines, process listings, source files, fixtures, workflow definitions, logs, or exception records. Access is limited to the reviewers performing the scan.
+
+A non-echoing scan interface must accept the repository or artifact target, the external pattern file, and an explicit surface list as separate inputs. It must:
+
+1. enumerate the requested surface before scanning and report inaccessible or missing coverage;
+2. scan exact bytes and safely extracted bounded archive/media content without invoking repository code;
+3. never print a pattern, matching value, matching line, surrounding context, secret, or unsafe path;
+4. fail closed on scanner errors, decoding failures, unsupported files, extraction limits, or incomplete history;
+5. return only the safe report fields defined below.
+
+The scanner must not copy the private corpus into a temporary directory under the repository or retain it in a build artifact. If temporary external storage is unavoidable, it requires restrictive permissions and verified cleanup, while the report records only that protected input was supplied.
+
+### Non-echoing report contract
+
+A public or retained review report is limited to:
+
+- scan date and exact repository revision or protected ref;
+- scanner name/version and an opaque private-corpus version identifier;
+- every requested surface and its `passed`, `failed`, `not run`, or `not applicable` state;
+- counts by safe category and surface;
+- a repository-relative path only when the path itself reveals no private value; otherwise an opaque local review reference;
+- artifact type, filename only when safe, digest, and installed-manifest digest;
+- narrow exception identifier, safe rationale, owner, review date, and expiry or revalidation event;
+- reviewer identity or approved review role and final decision.
+
+Reports must never print or persist matched values, private patterns, raw matching context, credentials, unsafe paths, full child output, or a copy of the private corpus. Exception records cannot allow a raw value or pattern into Git. Detailed investigation remains in a protected local channel and does not become public release evidence.
+
+### Status and publication rules
+
+- Every unresolved provenance match blocks publication. Missing required surface coverage, a missing private corpus, a scanner failure, an unreviewed exception, or a required surface marked `not run` also blocks publication.
+- A future artifact that does not yet exist is `not applicable`, not passed. Once a release candidate creates that artifact, it becomes required and must be scanned.
+- Current Phase 0 policy can be complete while the private-corpus scan remains `not run`; it cannot claim that the private-information gate passed. Phase 9 owns complete artifact enforcement.
+- A suspected real credential is revoked or rotated before content cleanup or history rewriting. Cleanup cannot assume existing clones, caches, logs, or provider copies are recalled.
+- Evidence is preserved as safe metadata even when publication is blocked. A failed or unresolved review cannot be deleted, relabeled as clean, or replaced by a narrower successful scan.
+- Publication also remains subject to the separate identity and qualified legal-review gate; passing this firewall would not grant publication authority by itself.
+
+Secret scanning is defense in depth, not a complete provenance review or a substitute for the external private corpus. Secret detectors miss non-credential private material and unsupported formats. Likewise, language heuristics support review but do not prove English-only semantics.
+
+### Maintainer review procedure
+
+1. Freeze the candidate revision and enumerate every required surface, including all Git refs and any gem, archive, media, documentation, release-note, CI, or installed-artifact output.
+2. Record absent future surfaces as `not applicable`; record missing access, corpus, scanner, or artifact evidence as `not run`.
+3. Run secret scanning, language checks, and the external private-pattern scan independently. None substitutes for another.
+4. Review every safe category/count result and any protected local match without moving values into the repository or report.
+5. Revoke or rotate any real credential first; then resolve content, history, cache, artifact, and provider copies as far as possible.
+6. Rebuild changed artifacts once, rescan every affected surface, and retain the new digest chain without erasing prior blocked evidence.
+7. Authorize publication only when every required surface is `passed`, every exception is narrow and current, zero matches remain unresolved, and all separate legal, dependency, security, and release gates are satisfied.
