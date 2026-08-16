@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Completed 00-03-PLAN.md
-last_updated: "2026-08-16T06:41:19.759Z"
+stopped_at: Completed 00-04-PLAN.md
+last_updated: "2026-08-16T06:51:16.694Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 57
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
-Progress: [███░░░░░░░] 29%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [███░░░░░░░] 29%
 | Phase 00 P01 | 5 min | 2 tasks | 4 files |
 | Phase 00 P02 | 5 min | 2 tasks | 4 files |
 | Phase 00 P03 | 7 min | 2 tasks | 1 files |
+| Phase 00 P04 | 7 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Recent decisions affecting current work:
 - [Phase 00]: Keep every analyzer external and target-project controlled. — The registry is evidence only and authorizes neither installation nor support.
 - [Phase 00]: Treat the Ruby >= 3.3, Rails >= 8.0, and five-lane matrix as proposals. — Support begins only after the named lanes and lower/current adapter fixtures pass.
 - [Phase 00]: Keep Brakeman on HOLD and outside the adapter shortlist. — Written legal/product review must resolve its current license and product-use boundary first.
+- [Phase 00]: Use recursively closed schemas with local-only references. — Strict offline validation rejects unknown input at every object boundary.
+- [Phase 00]: Keep Finding evidence separate from gate authority. — Only future deterministic policy output may own blocking and PASS/WARN/FAIL decisions.
+- [Phase 00]: Limit the draft CLI to five exact command surfaces and exits 0/1/2/130. — A small deterministic stdout/stderr contract is enough for Phase 1 and agent consumers.
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T06:41:19.754Z
-Stopped at: Completed 00-03-PLAN.md
+Last session: 2026-08-16T06:51:02.294Z
+Stopped at: Completed 00-04-PLAN.md
 Resume file: None

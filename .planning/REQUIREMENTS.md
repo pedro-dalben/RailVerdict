@@ -25,8 +25,8 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 - [x] **FND-06**: Maintainers have a documented Ruby and Rails support proposal tied to official maintenance status and synthetic compatibility lanes.
 - [x] **FND-07**: Contributors can understand the product definition, deterministic-first philosophy, four-layer architecture, non-goals, and dependency direction from repository documentation.
 - [ ] **FND-08**: Initial ADRs record the fifteen product, architecture, licensing, AI, GitHub, MCP, and information-firewall decisions required by the foundation brief.
-- [ ] **FND-09**: Finding and configuration contracts have versioned JSON Schema drafts, valid examples, and explicit unknown-field behavior.
-- [ ] **FND-10**: The CLI contract documents commands, options, stdout/stderr separation, deterministic output, and stable proposed exit semantics before implementation.
+- [x] **FND-09**: Finding and configuration contracts have versioned JSON Schema drafts, valid examples, and explicit unknown-field behavior.
+- [x] **FND-10**: The CLI contract documents commands, options, stdout/stderr separation, deterministic output, and stable proposed exit semantics before implementation.
 - [ ] **FND-11**: The threat model identifies assets, trust boundaries, adversaries, false-PASS risks, subprocess risks, AI risks, fork risks, supply-chain risks, and required controls.
 - [ ] **FND-12**: A public information-firewall policy requires synthetic fixtures, English-only repository prose, and a provenance scan across tree, history, package, archives, media, and release artifacts.
 - [x] **FND-13**: The proposed repository structure keeps one gem and defers directories or abstractions that have no Phase 1 behavior.
@@ -183,8 +183,8 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | FND-06 | Phase 0 | Complete |
 | FND-07 | Phase 0 | Complete |
 | FND-08 | Phase 0 | Pending |
-| FND-09 | Phase 0 | Pending |
-| FND-10 | Phase 0 | Pending |
+| FND-09 | Phase 0 | Complete |
+| FND-10 | Phase 0 | Complete |
 | FND-11 | Phase 0 | Pending |
 | FND-12 | Phase 0 | Pending |
 | FND-13 | Phase 0 | Complete |
