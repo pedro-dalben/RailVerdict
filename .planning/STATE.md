@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Completed 00-02-PLAN.md
-last_updated: "2026-08-16T06:29:16.114Z"
+stopped_at: Completed 00-03-PLAN.md
+last_updated: "2026-08-16T06:41:19.759Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
@@ -57,6 +57,7 @@ Progress: [███░░░░░░░] 29%
 *Updated after each plan completion*
 | Phase 00 P01 | 5 min | 2 tasks | 4 files |
 | Phase 00 P02 | 5 min | 2 tasks | 4 files |
+| Phase 00 P03 | 7 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,9 @@ Recent decisions affecting current work:
 - [Phase 00]: Label competitor capabilities as dated observations and RailVerdict differentiation as project inference. — The repository has research evidence but no basis for unsupported superiority or adoption claims.
 - [Phase 00]: Reserve GateResult authority for deterministic policy. — Evidence records facts while intelligence, reporters, GitHub, coding agents, and MCP remain downstream consumers.
 - [Phase 00]: Keep the Phase 1 one-gem and one-process tree proposed and absent. — Create paths only when an owning Phase 1 behavior requires them.
+- [Phase 00]: Keep every analyzer external and target-project controlled. — The registry is evidence only and authorizes neither installation nor support.
+- [Phase 00]: Treat the Ruby >= 3.3, Rails >= 8.0, and five-lane matrix as proposals. — Support begins only after the named lanes and lower/current adapter fixtures pass.
+- [Phase 00]: Keep Brakeman on HOLD and outside the adapter shortlist. — Written legal/product review must resolve its current license and product-use boundary first.
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T06:28:18.867Z
-Stopped at: Completed 00-02-PLAN.md
+Last session: 2026-08-16T06:41:19.754Z
+Stopped at: Completed 00-03-PLAN.md
 Resume file: None

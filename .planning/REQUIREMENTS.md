@@ -21,8 +21,8 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 - [x] **FND-02**: The selected identity has one documented mapping for project name, gem name, Ruby namespace, CLI executable, configuration filename, repository identity, and schema namespace.
 - [x] **FND-03**: Publication remains blocked until unresolved launch-jurisdiction and qualified trademark review gates are explicitly cleared.
 - [x] **FND-04**: Users can exercise all core rights granted by Apache-2.0, while a separate trademark policy prevents misleading claims of official status or endorsement.
-- [ ] **FND-05**: Maintainers have a dated third-party analyzer registry containing homepage, license, commercial-use considerations, installation, bundling status, supported-version approach, and output format.
-- [ ] **FND-06**: Maintainers have a documented Ruby and Rails support proposal tied to official maintenance status and synthetic compatibility lanes.
+- [x] **FND-05**: Maintainers have a dated third-party analyzer registry containing homepage, license, commercial-use considerations, installation, bundling status, supported-version approach, and output format.
+- [x] **FND-06**: Maintainers have a documented Ruby and Rails support proposal tied to official maintenance status and synthetic compatibility lanes.
 - [x] **FND-07**: Contributors can understand the product definition, deterministic-first philosophy, four-layer architecture, non-goals, and dependency direction from repository documentation.
 - [ ] **FND-08**: Initial ADRs record the fifteen product, architecture, licensing, AI, GitHub, MCP, and information-firewall decisions required by the foundation brief.
 - [ ] **FND-09**: Finding and configuration contracts have versioned JSON Schema drafts, valid examples, and explicit unknown-field behavior.
@@ -179,8 +179,8 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | FND-02 | Phase 0 | Complete |
 | FND-03 | Phase 0 | Complete |
 | FND-04 | Phase 0 | Complete |
-| FND-05 | Phase 0 | Pending |
-| FND-06 | Phase 0 | Pending |
+| FND-05 | Phase 0 | Complete |
+| FND-06 | Phase 0 | Complete |
 | FND-07 | Phase 0 | Complete |
 | FND-08 | Phase 0 | Pending |
 | FND-09 | Phase 0 | Pending |
