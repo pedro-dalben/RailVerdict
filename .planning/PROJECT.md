@@ -14,7 +14,7 @@ Given the same repository state, configuration, analyzer versions, and baseline,
 
 ### Validated
 
-(None yet — ship to validate)
+(None yet — Phase 00 remediation requires another independent verification)
 
 ### Active
 
@@ -35,7 +35,7 @@ Given the same repository state, configuration, analyzer versions, and baseline,
 - A custom analyzer, vulnerability scanner, test framework, LLM, editor, or autonomous code-editing agent — RailVerdict orchestrates mature tools and verifies repairs.
 - A custom GitHub App, MCP adapter, AI repair mode, or quality score in the initial trustworthy core — these depend on stable CLI and schema contracts.
 - Mandatory AI, telemetry, network access, code upload, or privileged fork workflows — these violate deterministic and privacy boundaries.
-- IntegrarPlus-derived code, data, identifiers, architecture, fixtures, metrics, or operational details — provenance leakage is a release blocker.
+- IntegrarPlus-derived code, data, identifiers, architecture, fixtures, metrics, or operational details are prohibited; the literal name is allowed only in authorized high-level historical attribution or provenance-policy documentation. Any actual private detail remains a release blocker.
 
 ## Context
 
@@ -72,7 +72,7 @@ The initial research set includes Minitest, RSpec, RuboCop, rubocop-rails, Simpl
 | GitHub and MCP remain adapters | Core contracts must work locally and remain platform-independent | — Pending |
 | Apache-2.0 plus separate trademark policy | Preserve genuine open-source use while protecting official project identity | — Pending |
 | Horizontal project structure | Contract and infrastructure layers must stabilize before higher-level adapters consume them | — Pending |
-| Rename LineClear to RailVerdict before publication | LineClear had avoidable exact-name software, GitHub, and trademark collision signals; RailVerdict's checked package/repository/domain surfaces were clear on 2026-08-16 | — Pending qualified trademark review |
+| Rename LineClear to RailVerdict before publication | LineClear had avoidable exact-name software, GitHub, and trademark collision signals; RailVerdict's dated package/repository/domain checks returned no exact record at that time, which is technical evidence rather than legal clearance | — Pending qualified trademark review |
 
 ## Evolution
 
@@ -92,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current evidence.
 
 ---
-*Last updated: 2026-08-16 after Phase 0 naming research*
+*Last updated: 2026-08-16 after Phase 00 remediation pass*

@@ -1,8 +1,8 @@
 # Phase 0: Product, Naming and Legal Foundation - Pattern Map
 
 **Mapped:** 2026-08-16
-**Files classified:** 29 public artifacts (14 shared artifacts plus 15 separate ADRs)
-**Research analogs found:** 24 / 29
+**Files classified:** 31 public artifacts (16 shared artifacts plus 15 separate ADRs)
+**Research analogs found:** 26 / 31
 **Scope:** Documentation, legal text, draft contracts, synthetic examples, and validation evidence only
 
 ## Boundary
@@ -23,8 +23,8 @@ All data-flow labels below describe document flow, not runtime execution.
 | `LICENSE` | legal text | rights grant | None in repository; decision only at `00-CONTEXT.md:23` | none | FND-04 |
 | `NOTICE` | legal notice | attribution | None in repository | none | FND-04 |
 | `TRADEMARKS.md` | legal policy | permitted/prohibited use | None in repository; boundary only at `00-CONTEXT.md:23` | none | FND-04 |
-| `docs/naming-and-identity.md` | evidence record | evidence -> decision -> open gate | `.planning/research/FEATURES.md:16-67`; `.planning/PROJECT.md:7,75` | partial | FND-01, FND-02, FND-03 |
-| `docs/analyzers-and-support.md` | registry/proposal | dated facts -> disposition | `.planning/research/STACK.md:23-45,95-145` | exact-content | FND-05, FND-06 |
+| `docs/foundation.md` | evidence record | evidence -> decision -> open gate | `.planning/research/FEATURES.md:16-67`; `.planning/PROJECT.md:7,75` | partial | FND-01, FND-02, FND-03 |
+| `docs/analyzers.md` | registry/proposal | dated facts -> disposition | `.planning/research/STACK.md:23-45,95-145` | exact-content | FND-05, FND-06 |
 | `ARCHITECTURE.md` | architecture documentation | dependency/reference | `.planning/research/ARCHITECTURE.md:18-103,154-285` | exact-content | FND-07, FND-13 |
 | `docs/contracts.md` | public contract documentation | draft request/response | `.planning/research/ARCHITECTURE.md:154-285,382-403` | partial | FND-09, FND-10 |
 | `SECURITY.md` | threat model and information-firewall policy | threat -> control -> evidence | `.planning/research/PITFALLS.md:16-110,128-181` | exact-content | FND-11, FND-12 |
@@ -33,21 +33,21 @@ All data-flow labels below describe document flow, not runtime execution.
 | `schemas/configuration-v1.schema.json` | JSON Schema | validation/config | `.planning/research/ARCHITECTURE.md:200-212,258-285` | partial | FND-09 |
 | `examples/finding-v1.json` | synthetic example | validation fixture | No concrete example in repository | none | FND-09 |
 | `examples/configuration-v1.yml` | synthetic example | validation fixture | No concrete example in repository | none | FND-09 |
-| `docs/adr/0001-deterministic-evidence-before-merge.md` | decision record | evidence -> gate decision | `.planning/PROJECT.md:9-11`; `.planning/research/PITFALLS.md:8-14` | partial | FND-08 |
-| `docs/adr/0002-rails-first-scope.md` | decision record | scope decision | `.planning/PROJECT.md:3-5,32-38` | partial | FND-08 |
-| `docs/adr/0003-local-first-fully-open-source.md` | decision record | scope/licensing decision | `.planning/PROJECT.md:3-7,48-59` | partial | FND-08 |
-| `docs/adr/0004-external-analyzer-processes.md` | decision record | request-response/process | `.planning/research/STACK.md:95-145` | partial | FND-08 |
-| `docs/adr/0005-canonical-finding.md` | decision record | transform/contract | `.planning/research/ARCHITECTURE.md:154-170` | partial | FND-08 |
-| `docs/adr/0006-policy-owned-gate-authority.md` | decision record | evidence -> policy -> result | `.planning/research/ARCHITECTURE.md:46-53,185-198` | partial | FND-08 |
-| `docs/adr/0007-fingerprint-baselines-and-no-new-debt.md` | decision record | comparison/classification | `.planning/research/ARCHITECTURE.md:214-228,314-359` | partial | FND-08 |
-| `docs/adr/0008-safe-subprocess-boundary.md` | decision record | request-response/process | `.planning/research/ARCHITECTURE.md:288-312`; `.planning/research/PITFALLS.md:71-81` | partial | FND-08 |
-| `docs/adr/0009-one-gem-structure.md` | decision record | repository structure | `.planning/research/ARCHITECTURE.md:8-10,75-103` | partial | FND-08, FND-13 |
-| `docs/adr/0010-apache-2.0-and-trademark-separation.md` | decision record | rights/policy decision | `00-CONTEXT.md:19-23`; `.planning/research/SUMMARY.md:38-49` | partial | FND-08, FND-04 |
-| `docs/adr/0011-optional-advisory-ai.md` | decision record | event/read-only advice | `.planning/research/ARCHITECTURE.md:405-429` | partial | FND-08 |
-| `docs/adr/0012-provider-independent-ai-boundary.md` | decision record | provider adapter boundary | `.planning/research/ARCHITECTURE.md:233-243,405-429` | partial | FND-08 |
-| `docs/adr/0013-github-as-an-adapter.md` | decision record | projection/adapter | `.planning/research/ARCHITECTURE.md:431-441` | partial | FND-08 |
-| `docs/adr/0014-mcp-after-stable-contracts.md` | decision record | request-response/adapter | `.planning/research/ARCHITECTURE.md:443-447` | partial | FND-08 |
-| `docs/adr/0015-synthetic-public-provenance-and-english-only-content.md` | decision record | file-I/O/release gate | `.planning/research/PITFALLS.md:104-110,128-145` | partial | FND-08, FND-12 |
+| `docs/adr/0001-deterministic-pass-fail.md` | decision record | evidence -> gate decision | `.planning/PROJECT.md:9-11`; `.planning/research/PITFALLS.md:8-14` | partial | FND-08 |
+| `docs/adr/0002-external-analyzer-execution.md` | decision record | Rails-first external process boundary | `.planning/PROJECT.md:3-5,32-38` | partial | FND-08 |
+| `docs/adr/0003-canonical-finding.md` | decision record | transform/contract | `.planning/research/ARCHITECTURE.md:154-170` | partial | FND-08 |
+| `docs/adr/0004-versioned-schemas.md` | decision record | machine contracts | `.planning/research/ARCHITECTURE.md:156-170` | partial | FND-08 |
+| `docs/adr/0005-fingerprint-baseline.md` | decision record | identity/baseline boundary | `.planning/research/ARCHITECTURE.md:214-228,314-359` | partial | FND-08 |
+| `docs/adr/0006-no-new-debt.md` | decision record | adoption/policy boundary | `.planning/research/ARCHITECTURE.md:46-53,185-198` | partial | FND-08 |
+| `docs/adr/0007-advisory-ai.md` | decision record | advisory intelligence | `.planning/research/ARCHITECTURE.md:405-429` | partial | FND-08 |
+| `docs/adr/0008-remote-ai-explicit-opt-in.md` | decision record | provider boundary | `.planning/research/ARCHITECTURE.md:233-243,405-429` | partial | FND-08 |
+| `docs/adr/0009-github-as-an-adapter.md` | decision record | downstream adapter/one-gem boundary | `.planning/research/ARCHITECTURE.md:431-441` | partial | FND-08, FND-13 |
+| `docs/adr/0010-cli-and-json-canonical.md` | decision record | automation interface | `.planning/research/ARCHITECTURE.md:382-403` | partial | FND-08 |
+| `docs/adr/0011-mcp-as-an-adapter.md` | decision record | request-response adapter | `.planning/research/ARCHITECTURE.md:443-447` | partial | FND-08 |
+| `docs/adr/0012-third-party-license-review.md` | decision record | license/release review | `.planning/research/STACK.md:95-145` | partial | FND-08 |
+| `docs/adr/0013-information-firewall.md` | decision record | provenance/language gate | `.planning/research/PITFALLS.md:104-110,128-145` | partial | FND-08, FND-12 |
+| `docs/adr/0014-apache-2-license.md` | decision record | local-first open-source rights | `00-CONTEXT.md:19-23`; `.planning/research/SUMMARY.md:38-49` | partial | FND-08, FND-04 |
+| `docs/adr/0015-separate-trademark-policy.md` | decision record | identity/source-confusion policy | `00-CONTEXT.md:19-23` | partial | FND-08, FND-03, FND-04 |
 
 ## Pattern Assignments
 
@@ -89,7 +89,7 @@ Keep these claims verbatim in meaning:
 
 The separation rule comes from `00-CONTEXT.md:23` and `.planning/research/SUMMARY.md:49`; the actual wording needs qualified review because no repository analog exists.
 
-### `docs/naming-and-identity.md` (evidence record)
+### `docs/foundation.md` (evidence record)
 
 **Analogs:** `.planning/research/FEATURES.md:16-67`, `.planning/PROJECT.md:7,75`, and `00-CONTEXT.md:19-23`
 
@@ -123,7 +123,7 @@ Required sections:
 
 **Cross-links:** `TRADEMARKS.md`, ADR 0010, README publication status, and the Phase 9 revalidation gate in `ROADMAP.md`.
 
-### `docs/analyzers-and-support.md` (registry/proposal)
+### `docs/analyzers.md` (registry/proposal)
 
 **Analog:** `.planning/research/STACK.md:23-45,95-145`
 
@@ -368,11 +368,11 @@ If no suitable Draft 2020-12 validator is already available in the execution env
 
 | Requirement | Evidence Artifact(s) |
 |---|---|
-| FND-01 | `docs/naming-and-identity.md` dated evidence tables |
-| FND-02 | `docs/naming-and-identity.md` canonical mapping |
+| FND-01 | `docs/foundation.md` dated evidence tables |
+| FND-02 | `docs/foundation.md` canonical mapping |
 | FND-03 | naming document, README status, and roadmap publication gate |
 | FND-04 | `LICENSE`, `NOTICE`, `TRADEMARKS.md`, ADR 0010 |
-| FND-05 | analyzer registry in `docs/analyzers-and-support.md` |
+| FND-05 | analyzer registry in `docs/analyzers.md` |
 | FND-06 | Ruby/Rails proposal and synthetic lanes in the same document |
 | FND-07 | `README.md`, `ARCHITECTURE.md`, ADRs 0001-0003 |
 | FND-08 | fifteen separate ADR files listed above |

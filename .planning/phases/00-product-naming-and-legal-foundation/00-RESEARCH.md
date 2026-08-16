@@ -50,7 +50,7 @@ The phase can record RailVerdict as the selected identity, but public use remain
 - Require executable-plus-argv process boundaries, bounded I/O, timeouts, process-tree cleanup, minimal environment, explicit incomplete evidence, least-privilege CI, build-once publication, and opt-in remote AI with inspection and redaction.
 - Treat source repositories, analyzer output, Git metadata, pull requests, model input, and model output as untrusted data.
 - Permit only synthetic public fixtures and examples. Require English-only repository prose and release-time provenance scanning across tree, history, gem, archives, media metadata, documentation, release notes, and CI artifacts.
-- Never copy private IntegrarPlus code, data, names, identifiers, architecture, fixtures, metrics, screenshots, logs, or operational details into the project.
+- An authorized high-level historical attribution may name IntegrarPlus as the private Rails application experience that partly motivated RailVerdict. The literal name may also appear in provenance-policy documentation to define this exception. Never copy any private IntegrarPlus source, data, model/controller/service names, schema, business rule, domain, infrastructure, fixture, metric, screenshot, log, prompt, path, branch, URL, security detail, credential, environment value, or operational information.
 
 #### Roadmap and phase gate
 - Preserve the approved Phase 0 through Phase 9 order and map every v1 requirement to exactly one phase with observable success and exit criteria.
@@ -183,31 +183,32 @@ TRADEMARKS.md                   # separate source-confusion and endorsement poli
 docs/
 ├── foundation.md               # dated naming evidence, identity map, publication gate
 ├── analyzers.md                # Ruby/Rails proposal and analyzer/license registry
-├── contracts.md                # schema semantics and draft CLI/stream/exit contract
-├── security-model.md           # assets, actors, boundaries, threats, controls, ASVS map
-├── information-firewall.md     # synthetic/English/private-provenance policy and scan scope
-└── adr/
-    ├── 0001-deterministic-evidence-before-merge.md
-    ├── 0002-rails-first-scope.md
-    ├── 0003-local-first-fully-open-source.md
-    ├── 0004-external-analyzer-processes.md
-    ├── 0005-canonical-finding.md
-    ├── 0006-policy-owned-gate-authority.md
-    ├── 0007-fingerprint-baselines-and-no-new-debt.md
-    ├── 0008-safe-subprocess-boundary.md
-    ├── 0009-one-gem-structure.md
-    ├── 0010-apache-2-license-and-trademark-separation.md
-    ├── 0011-optional-advisory-ai.md
-    ├── 0012-provider-independent-ai-boundary.md
-    ├── 0013-github-as-an-adapter.md
-    ├── 0014-mcp-after-stable-contracts.md
-    └── 0015-synthetic-public-provenance-and-english-only.md
+├── contracts.md                # schema semantics and draft CLI/result contract
+├── SECURITY.md                 # threats, controls, and information firewall
+└── adr/                        # exactly fifteen grouped foundation decisions
+    ├── 0001-deterministic-pass-fail.md
+    ├── 0002-external-analyzer-execution.md
+    ├── 0003-canonical-finding.md
+    ├── 0004-versioned-schemas.md
+    ├── 0005-fingerprint-baseline.md
+    ├── 0006-no-new-debt.md
+    ├── 0007-advisory-ai.md
+    ├── 0008-remote-ai-explicit-opt-in.md
+    ├── 0009-github-as-an-adapter.md
+    ├── 0010-cli-and-json-canonical.md
+    ├── 0011-mcp-as-an-adapter.md
+    ├── 0012-third-party-license-review.md
+    ├── 0013-information-firewall.md
+    ├── 0014-apache-2-license.md
+    └── 0015-separate-trademark-policy.md
 schemas/
 ├── finding-v1.schema.json
-└── configuration-v1.schema.json
+├── configuration-v1.schema.json
+└── result-v1.schema.json
 examples/
 ├── finding-v1.json
-└── configuration-v1.json
+├── configuration-v1.yml
+└── result-v1.json
 script/
 └── validate-foundation          # phase-only validation; not the product CLI
 .planning/ROADMAP.md             # existing canonical 85-requirement phase map
@@ -229,8 +230,7 @@ Do not create `lib/`, `exe/`, `bin/railverdict`, `rail_verdict.gemspec`, `Gemfil
 | `TRADEMARKS.md` | Accurate nominative references, fork/modified-product renaming, no false official status, sponsorship, or endorsement; legal-contact/review status | Restrictions on running, modifying, redistributing, selling, consulting, or integrating the software | Must not narrow `LICENSE`; align with ADR 0010. |
 | `docs/analyzers.md` | Dated platform proposal and all eleven analyzer registry entries with the fields below | Support claims without fixture lanes; mandatory Brakeman; analyzer bundling | Versions/URLs/licenses match registry evidence; dispositions match roadmap. |
 | `docs/contracts.md` | Draft labels, schema field semantics, strict unknown behavior, CLI commands/options, ordering, streams, exits, migration warning | Runtime guarantees or “supported” language before tests | Links to both schemas/examples; no `blocking` input on Finding. |
-| `docs/security-model.md` | Assets, actors, trust boundaries, false-PASS/control matrix, subprocess non-sandbox disclaimer, AI/fork/supply-chain threats, ASVS mapping | Claims that ProcessRunner or CI fully sandboxes hostile code | Controls match ADRs and later roadmap ownership. |
-| `docs/information-firewall.md` | Synthetic-only rule, English-only scope, prohibited private provenance categories, every scan surface, external secret pattern input, non-echoing reports, exception process | Private names/values used as public examples, broad directory exemptions | Align with ADR 0015 and release requirement REL-08. |
+| `SECURITY.md` | Assets, actors, trust boundaries, false-PASS/control matrix, subprocess non-sandbox disclaimer, AI/fork/supply-chain threats, ASVS mapping, and information firewall | Claims that ProcessRunner or CI fully sandboxes hostile code | Controls match ADRs and later roadmap ownership. |
 | ADRs | Title, status, date, context, decision, consequences, deferred work, related requirements/docs | Claims that deferred behavior exists | Exactly fifteen files/titles; accepted decision is distinct from implementation status. |
 | Schemas/examples | Draft 2020-12 dialect, stable versioned `$id`, strict objects, valid synthetic data | External `$ref` requiring network, analyzer-specific policy fields, real/private data | Both examples validate offline; unknown-field mutations fail. |
 | `script/validate-foundation` | Focused subchecks for schema, links, identity, ADRs, roadmap, language/provenance scope, and no-production assertion | Network access, package installation, product CLI behavior | Default run invokes every automated subcheck and exits nonzero on failure. |
@@ -466,7 +466,7 @@ Each ADR uses `Status: Accepted`, `Decision date: 2026-08-16`, and `Implementati
 | 0014 MCP after stable contracts | MCP is read-only/thin and follows stable CLI/domain contracts | MCP-01..03 | Phase 8 |
 | 0015 Synthetic public provenance and English-only | Public material is synthetic/English and release-scanned | FND-12, REL-02, REL-08 | Phase 0 policy and Phase 9 enforcement |
 
-The original brief’s ADR list used different grouping. The locked context above is authoritative; do not create a second set or add “versioned schemas,” “CLI/JSON,” or “third-party license review” as extra ADRs. Those obligations are covered by ADRs 0004–0006 and the public contract/registry documents. [VERIFIED: 00-CONTEXT.md]
+The locked context names decision topics, not a one-topic-per-file naming rule. The final fifteen-file set intentionally groups related topics without creating a duplicate ADR set: Rails-first scope is explicit in ADR 0002; policy-owned gate authority in ADR 0001 and ADR 0006; safe subprocess execution in ADR 0002; one-gem architecture in ADR 0009; provider-independent AI in ADR 0008; local-first/open-source operation in ADR 0014; and the remaining topic-to-file assignments are listed above. The integrated validator checks these topic anchors. [RECONCILED: 00-CONTEXT.md and final ADR set]
 
 ## Draft Schema and CLI Contracts
 
@@ -874,7 +874,7 @@ The script is validation tooling only. It must not share code with the future Ra
 
 - [ ] `script/validate-foundation` — one dependency-free phase validator with the subcommands above.
 - [ ] `schemas/finding-v1.schema.json` and `schemas/configuration-v1.schema.json` — Draft 2020-12 contracts.
-- [ ] `examples/finding-v1.json` and `examples/configuration-v1.json` — synthetic valid instances.
+- [ ] `examples/finding-v1.json`, `examples/configuration-v1.yml`, and `examples/result-v1.json` — synthetic valid instances.
 - [ ] External private-pattern input path and reviewer procedure — never commit the pattern values.
 - [ ] Publication-gate record — initially unresolved; later qualified clearance remains human/external and is not automatable.
 

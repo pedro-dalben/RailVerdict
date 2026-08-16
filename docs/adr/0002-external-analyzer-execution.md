@@ -14,6 +14,10 @@ Mature analyzers have independent installation, version, license, output, and fa
 
 RailVerdict will execute analyzers as external processes from the target-project bundle and record their exact identity and result. It will not vendor, bundle, silently install, or reimplement those analyzers. Executable-plus-argv isolation reduces command-injection risk but is not an OS sandbox. Brakeman remains on HOLD and outside the supported shortlist until the required written legal/product review resolves its current license and product-use boundary.
 
+This execution boundary serves a Rails-first product scope: RailVerdict may
+consume Rails-relevant evidence without becoming a generic analyzer or taking a
+Rails runtime dependency in the core.
+
 ## Consequences
 
 - Target projects control analyzer installation and versions.

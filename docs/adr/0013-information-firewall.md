@@ -21,6 +21,11 @@ RailVerdict uses a synthetic, English-only information firewall for public mater
 - Passed, failed, not run, and not applicable surfaces remain distinct.
 - Credential matches require rotation or revocation before repository cleanup.
 
+The literal name `IntegrarPlus` is allowed only in an authorized concise
+historical attribution or in provenance-policy documentation defining that
+exception. No private technical, operational, domain, or personal information
+may accompany it; all public examples and fixtures remain synthetic.
+
 ## Deferred Work
 
 Phase 9 owns enforcement across the generated gem, archives, media, documentation, release notes, CI artifacts, installed artifacts, and the complete release candidate. Phase 0 records policy and current evidence honestly without private pattern values.

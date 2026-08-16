@@ -14,6 +14,10 @@ RailVerdict must remain genuinely open source and usable in personal, commercial
 
 RailVerdict software uses the unmodified Apache-2.0 license. NOTICE remains factual and informational, while owner and copyright facts remain unknown unless supported by evidence; they are not invented to make the legal files appear complete.
 
+The open-source license supports RailVerdict's local-first operation: core
+verification must remain usable without an account, hosted service, telemetry,
+network access, or AI provider.
+
 ## Consequences
 
 - No custom source-availability, noncommercial, or no-resale restriction is added.

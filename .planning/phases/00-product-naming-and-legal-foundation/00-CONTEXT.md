@@ -51,12 +51,14 @@ The phase can record RailVerdict as the selected identity, but public use remain
 - Require executable-plus-argv process boundaries, bounded I/O, timeouts, process-tree cleanup, minimal environment, explicit incomplete evidence, least-privilege CI, build-once publication, and opt-in remote AI with inspection and redaction.
 - Treat source repositories, analyzer output, Git metadata, pull requests, model input, and model output as untrusted data.
 - Permit only synthetic public fixtures and examples. Require English-only repository prose and release-time provenance scanning across tree, history, gem, archives, media metadata, documentation, release notes, and CI artifacts.
-- Never copy private IntegrarPlus code, data, names, identifiers, architecture, fixtures, metrics, screenshots, logs, or operational details into the project.
+- An authorized high-level historical attribution may name IntegrarPlus as the private Rails application experience that partly motivated RailVerdict. The literal name may also appear in provenance-policy documentation to define this exception. Never copy any private IntegrarPlus source, data, model/controller/service names, schema, business rule, domain, infrastructure, fixture, metric, screenshot, log, prompt, path, branch, URL, security detail, credential, environment value, or operational information.
 
 ### Roadmap and phase gate
 - Preserve the approved Phase 0 through Phase 9 order and map every v1 requirement to exactly one phase with observable success and exit criteria.
 - Phase 2 may define and fixture-test changed-line coverage calculations against injected line sets; production Git-scoped changed coverage belongs to Phase 4.
 - Phase 0 ends only when its artifacts are mutually consistent, every FND requirement is evidenced, the identity decision and remaining publication blocker are explicit, and no production core implementation exists.
+
+The fifteen ADR files may group related topics. The final accepted mapping must explicitly cover every topic above without creating duplicate records; the mapping in `00-RESEARCH.md` and the integrated validator are authoritative for that reconciliation.
 
 ### the agent's Discretion
 - Group closely related requirements into the fewest clear public documents without omitting any requested artifact or ADR.

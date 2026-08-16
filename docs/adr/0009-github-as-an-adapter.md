@@ -14,6 +14,9 @@ Local verification must work independently of GitHub. Pull-request annotations, 
 
 GitHub is a downstream adapter over local Git facts and the core `GateResult`; it is not a second verification engine or gate. It may project canonical findings and policy decisions but cannot recompute scope, policy, evidence completeness, PASS, WARN, or FAIL.
 
+The initial delivery remains one gem and one process. A downstream adapter does
+not justify a second package, daemon, or platform-specific core.
+
 ## Consequences
 
 - The same local gate can serve other CI and automation systems.

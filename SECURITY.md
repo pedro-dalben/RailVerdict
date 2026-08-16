@@ -136,6 +136,18 @@ The repository, its history, generated artifacts, caches, reports, and release m
 
 No private value may be committed for use as a detector, example, test case, exception, explanation, or scan proof. Renaming, redacting, hashing selected fields, or removing credentials does not make a private artifact synthetic.
 
+### Authorized historical attribution exception
+
+RailVerdict may use the literal name `IntegrarPlus` only in a concise,
+high-level historical attribution that says engineering experience with that
+private Rails application partly motivated RailVerdict, or in provenance-policy
+documentation defining this exception. This exception authorizes no source,
+schema, model/controller/service name, business rule, clinical or patient
+detail, production value, URL, path, branch, issue, log, metric, prompt,
+security finding, infrastructure detail, credential, environment value,
+customer/user/employee data, screenshot, or private architecture information.
+Technical examples, schemas, fixtures, and tests remain synthetic.
+
 ### English-only public content
 
 English-only applies to source code, identifiers, comments, logs, messages, documentation, schemas, examples, configuration keys, scripts, workflows, templates, issue and pull-request templates, commits, release notes, changelogs, reports, and artifact metadata.
@@ -192,7 +204,7 @@ Reports must never print or persist matched values, private patterns, raw matchi
 
 - Every unresolved provenance match blocks publication. Missing required surface coverage, a missing private corpus, a scanner failure, an unreviewed exception, or a required surface marked `not run` also blocks publication.
 - A future artifact that does not yet exist is `not applicable`, not passed. Once a release candidate creates that artifact, it becomes required and must be scanned.
-- Current Phase 0 policy can be complete while the private-corpus scan remains `not run`; it cannot claim that the private-information gate passed. Phase 9 owns complete artifact enforcement.
+- Current Phase 0 development can continue while the private-corpus scan remains `not run`; it cannot claim that the private-information gate passed. The missing external corpus is a publication blocker, not a Phase 1 implementation dependency, unless a later security decision explicitly changes that boundary. Phase 9 owns complete artifact enforcement.
 - A suspected real credential is revoked or rotated before content cleanup or history rewriting. Cleanup cannot assume existing clones, caches, logs, or provider copies are recalled.
 - Evidence is preserved as safe metadata even when publication is blocked. A failed or unresolved review cannot be deleted, relabeled as clean, or replaced by a narrower successful scan.
 - Publication also remains subject to the separate identity and qualified legal-review gate; passing this firewall would not grant publication authority by itself.
