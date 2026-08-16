@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Phase 0 plans verified; ready to execute.
-last_updated: "2026-08-16T06:09:35.599Z"
+stopped_at: Completed 00-01-PLAN.md
+last_updated: "2026-08-16T06:19:06.731Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 00
+Plan: 2 of 7
+Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] 14%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: No execution data
 
 *Updated after each plan completion*
+| Phase 00 P01 | 5 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 0]: Phase 0 is documentation and contracts only; production core implementation starts after its exit gate.
 - [Phase 2/4]: Phase 2 may test changed-line coverage against injected line sets; Phase 4 owns production Git-scoped changed-line coverage.
 - [Phase 2]: Brakeman is excluded from the committed adapter shortlist until a written product/legal license decision.
+- [Phase 00]: Use one seven-surface RailVerdict identity mapping internally. — Later contracts need one canonical name, while publication remains provisional.
+- [Phase 00]: Keep publication blocked on launch-jurisdiction searches and qualified trademark review. — Technical registry and domain observations do not establish legal clearance.
+- [Phase 00]: Keep Apache-2.0 rights, NOTICE facts, and trademark source-confusion rules separate. — Trademark presentation rules must not narrow open-source software rights.
 
 ### Pending Todos
 
@@ -87,6 +91,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16
-Stopped at: Phase 0 plans verified; ready to execute.
+Last session: 2026-08-16T06:18:09.363Z
+Stopped at: Completed 00-01-PLAN.md
 Resume file: None

@@ -17,10 +17,10 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 
 ### Foundation
 
-- [ ] **FND-01**: Maintainers have a documented final-name analysis covering RubyGems, GitHub, domains, current product collisions, and preliminary trademark signals.
-- [ ] **FND-02**: The selected identity has one documented mapping for project name, gem name, Ruby namespace, CLI executable, configuration filename, repository identity, and schema namespace.
-- [ ] **FND-03**: Publication remains blocked until unresolved launch-jurisdiction and qualified trademark review gates are explicitly cleared.
-- [ ] **FND-04**: Users can exercise all core rights granted by Apache-2.0, while a separate trademark policy prevents misleading claims of official status or endorsement.
+- [x] **FND-01**: Maintainers have a documented final-name analysis covering RubyGems, GitHub, domains, current product collisions, and preliminary trademark signals.
+- [x] **FND-02**: The selected identity has one documented mapping for project name, gem name, Ruby namespace, CLI executable, configuration filename, repository identity, and schema namespace.
+- [x] **FND-03**: Publication remains blocked until unresolved launch-jurisdiction and qualified trademark review gates are explicitly cleared.
+- [x] **FND-04**: Users can exercise all core rights granted by Apache-2.0, while a separate trademark policy prevents misleading claims of official status or endorsement.
 - [ ] **FND-05**: Maintainers have a dated third-party analyzer registry containing homepage, license, commercial-use considerations, installation, bundling status, supported-version approach, and output format.
 - [ ] **FND-06**: Maintainers have a documented Ruby and Rails support proposal tied to official maintenance status and synthetic compatibility lanes.
 - [ ] **FND-07**: Contributors can understand the product definition, deterministic-first philosophy, four-layer architecture, non-goals, and dependency direction from repository documentation.
@@ -175,10 +175,10 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FND-01 | Phase 0 | Pending |
-| FND-02 | Phase 0 | Pending |
-| FND-03 | Phase 0 | Pending |
-| FND-04 | Phase 0 | Pending |
+| FND-01 | Phase 0 | Complete |
+| FND-02 | Phase 0 | Complete |
+| FND-03 | Phase 0 | Complete |
+| FND-04 | Phase 0 | Complete |
 | FND-05 | Phase 0 | Pending |
 | FND-06 | Phase 0 | Pending |
 | FND-07 | Phase 0 | Pending |
@@ -262,6 +262,7 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | REL-09 | Phase 9 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 85
 - Mapped to phases: 85
 - Unmapped: 0
