@@ -57,7 +57,7 @@ These are the sixteen task IDs actually executed by the seven Phase 0 plans.
 | 00-06-02 | 06 | 1 | FND-08 | T-08, T-09, T-11 | ADRs 0006–0010 preserve no-new-debt, advisory AI, remote opt-in, GitHub, and CLI/JSON boundaries | exact ADR parser | `script/validate-foundation adrs links` | ✅ | ✅ green |
 | 00-06-03 | 06 | 1 | FND-08 | T-12, T-14, T-15 | ADRs 0011–0015 preserve MCP, license review, firewall, Apache-2.0, and trademark boundaries | exact ADR parser + manual legal | `script/validate-foundation adrs legal links` | ✅ | ✅ automated; publication review pending |
 | 00-07-01 | 07 | 2 | FND-14 | T-00-22, T-15 | All 85 v1 IDs map once across ordered Phases 0–9; foundation completion and publication remain distinct | exact roadmap parser | `script/validate-foundation roadmap links` | ✅ | ✅ green |
-| 00-07-02 | 07 | 2 | FND-01–FND-14 | T-00-23, T-00-24 | One fixed-argv offline validator owns every named subcheck, non-echoing provenance, and no-production enforcement | integration | `script/validate-foundation` | ✅ | ✅ green |
+| 00-07-02 | 07 | 2 | FND-01–FND-14 | T-00-23, T-00-24 | One fixed-argv offline validator owns every named subcheck, non-echoing provenance, and no-production enforcement | integration | `script/validate-foundation` | ✅ | ✅ automated; external corpus reports NOT RUN when absent |
 | 00-07-03 | 07 | 2 | FND-01–FND-14 | T-00-25 | Nyquist map, validator-owned whitespace, planning state, and unresolved human gates converge truthfully | phase gate | `script/validate-foundation whitespace && script/validate-foundation && git diff --check` | ✅ | ✅ green; independent phase verification pending |
 
 *Status: ✅ green/automated · publication or manual-review text records evidence that automation cannot supply.*
@@ -122,12 +122,12 @@ Qualified trademark review, factual owner/contact evidence, and the external pri
 - [x] All sixteen actual tasks and both waves have current automated evidence.
 - [x] Every FND-01 through FND-14 owner maps to its sole owning plan and current public artifact.
 - [x] `script/validate-foundation whitespace` passed against the exact public Phase 0 manifest.
-- [x] The full default `script/validate-foundation` suite passed all thirteen subchecks offline.
+- [x] The full default `script/validate-foundation` suite completed all thirteen subchecks offline; provenance reports `NOT RUN` when maintainer input is absent.
 - [x] Focused subchecks preserve requested order, and unknown subchecks fail.
 - [x] `git diff --check` passed as supplemental working-tree evidence only.
 - [x] Wave 0 tooling is complete and `nyquist_compliant: true` remains set.
 - [ ] Qualified trademark/legal publication review is unresolved.
-- [ ] The external private-pattern scan required for publication has not run.
+- [ ] The external private-pattern scan required for publication has not run; the validator reports `NOT RUN`, never `PASS`.
 - [ ] Independent phase verification is pending.
 
 **Execution evidence:** automated Phase 0 convergence passed on 2026-08-16. The documented foundation is ready for independent verification; publication remains blocked.
