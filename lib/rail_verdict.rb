@@ -10,6 +10,10 @@ require_relative "rail_verdict/process_runner"
 require_relative "rail_verdict/contracts/finding"
 require_relative "rail_verdict/contracts/analyzer_result"
 require_relative "rail_verdict/analyzers/rubocop"
+require_relative "rail_verdict/contracts/gate_result"
+require_relative "rail_verdict/verification/policy"
+require_relative "rail_verdict/reporters/console"
+require_relative "rail_verdict/reporters/json_reporter"
 require_relative "rail_verdict/cli"
 
 module RailVerdict
