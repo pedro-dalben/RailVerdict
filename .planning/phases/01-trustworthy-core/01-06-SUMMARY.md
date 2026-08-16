@@ -32,7 +32,8 @@ key-files:
     - docs/contracts.md
 
 key-decisions:
-  - "Child execution excludes RUBYOPT and RUBYLIB so RailVerdict's parent Bundler context cannot hijack target RuboCop resolution."
+- "Child execution excludes RUBYOPT and RUBYLIB so RailVerdict's parent Bundler context cannot hijack target RuboCop resolution."
+- "Interrupt cleanup terminates process groups without preemptive reaping; the active runner owns the single waitpid operation before exit 130."
   - "Findings is a complete-evidence projection and returns exit 0 regardless of policy findings; incomplete evidence remains exit 2."
   - "Phase 0's no-production validator boundary retires when the Phase 1 runtime scaffold exists; its network and namespace checks remain active."
   - "Contracts are marked implemented in Phase 01 while compatibility remains provisional and Phase 3/4 ownership boundaries remain explicit."
