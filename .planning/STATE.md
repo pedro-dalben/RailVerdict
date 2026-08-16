@@ -5,16 +5,16 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Completed 00-05-PLAN.md
-last_updated: "2026-08-16T07:06:03.158Z"
+stopped_at: Completed 00-06-PLAN.md
+last_updated: "2026-08-16T07:16:37.910Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [███████░░░] 71%
 | Phase 00 P03 | 7 min | 2 tasks | 1 files |
 | Phase 00 P04 | 7 min | 2 tasks | 5 files |
 | Phase 00 P05 | 11 min | 2 tasks | 1 files |
+| Phase 00 P06 | 7 min | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,11 @@ Recent decisions affecting current work:
 - [Phase 00]: Treat executable-plus-argv and process lifecycle controls as risk reduction, never as an operating-system sandbox. — Hostile analyzers and tests retain caller authority over host resources.
 - [Phase 00]: Use applicable ASVS 5.0.0 Level 1 requirements as a control catalog without certification or mislabeling Level 2 controls. — RailVerdict is a local CLI and documentary mappings must preserve the standard's actual levels and scope.
 - [Phase 00]: Keep private detection input outside Git and distinguish passed, failed, not run, and not applicable release surfaces. — Non-echoing evidence must not expose the detection corpus or turn absent scans and artifacts into false assurance.
+- [Phase 00]: Reserve deterministic PASS/FAIL authority for policy; incomplete required evidence cannot pass. — Evidence records facts while analyzers, AI, reporters, GitHub, and MCP remain downstream consumers.
+- [Phase 00]: Keep external analyzers target-project controlled and Finding free of policy authority. — External execution avoids silent installation and dependency coupling while canonical evidence stays analyzer-independent.
+- [Phase 00]: Treat schemas, fingerprints, explicit baselines, and no-new-debt policy as independently versioned contracts. — Legacy adoption requires stable identity and reviewable migration without silent baseline mutation.
+- [Phase 00]: Require explicit opt-in and fail-closed controls for remote AI. — Minimized inspectable context, secret scanning, and budgets protect privacy without changing the deterministic gate.
+- [Phase 00]: Keep Apache-2.0 rights, third-party review, the information firewall, and trademark policy as separate release gates. — Unknown legal and provenance facts must remain unresolved rather than being invented or treated as publication clearance.
 
 ### Pending Todos
 
@@ -109,6 +115,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T07:06:03.154Z
-Stopped at: Completed 00-05-PLAN.md
+Last session: 2026-08-16T07:16:37.906Z
+Stopped at: Completed 00-06-PLAN.md
 Resume file: None
