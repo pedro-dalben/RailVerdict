@@ -10,7 +10,7 @@ require "tmpdir"
 require "rail_verdict"
 
 module RailVerdictTestHelpers
-  REPOSITORY_ROOT = File.expand_path(__dir__, "..")
+  REPOSITORY_ROOT = File.expand_path("..", __dir__)
 
   def run_cli(argv, working_directory: Dir.pwd)
     stdout = StringIO.new
