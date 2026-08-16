@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 00
 current_phase_name: product-naming-and-legal-foundation
 status: executing
-stopped_at: Completed 00-01-PLAN.md
-last_updated: "2026-08-16T06:19:06.731Z"
+stopped_at: Completed 00-02-PLAN.md
+last_updated: "2026-08-16T06:29:16.114Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 00 execution started
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 7
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 ## Current Position
 
 Phase: 00 (product-naming-and-legal-foundation) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-08-16 — Phase 00 execution started
 
-Progress: [█░░░░░░░░░] 14%
+Progress: [███░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█░░░░░░░░░] 14%
 
 *Updated after each plan completion*
 | Phase 00 P01 | 5 min | 2 tasks | 4 files |
+| Phase 00 P02 | 5 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,10 @@ Recent decisions affecting current work:
 - [Phase 00]: Use one seven-surface RailVerdict identity mapping internally. — Later contracts need one canonical name, while publication remains provisional.
 - [Phase 00]: Keep publication blocked on launch-jurisdiction searches and qualified trademark review. — Technical registry and domain observations do not establish legal clearance.
 - [Phase 00]: Keep Apache-2.0 rights, NOTICE facts, and trademark source-confusion rules separate. — Trademark presentation rules must not narrow open-source software rights.
+- [Phase 00]: Keep the README as a concise public index with the publication blocker and no runtime implementation claims. — Mutable identity, analyzer, contract, and security facts stay in their owning public documents.
+- [Phase 00]: Label competitor capabilities as dated observations and RailVerdict differentiation as project inference. — The repository has research evidence but no basis for unsupported superiority or adoption claims.
+- [Phase 00]: Reserve GateResult authority for deterministic policy. — Evidence records facts while intelligence, reporters, GitHub, coding agents, and MCP remain downstream consumers.
+- [Phase 00]: Keep the Phase 1 one-gem and one-process tree proposed and absent. — Create paths only when an owning Phase 1 behavior requires them.
 
 ### Pending Todos
 
@@ -91,6 +96,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T06:18:09.363Z
-Stopped at: Completed 00-01-PLAN.md
+Last session: 2026-08-16T06:28:18.867Z
+Stopped at: Completed 00-02-PLAN.md
 Resume file: None
