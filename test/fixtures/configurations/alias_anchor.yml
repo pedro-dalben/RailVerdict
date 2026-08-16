@@ -1,0 +1,7 @@
+version: 1
+mode: strict
+defaults: &defaults
+  enabled: true
+  required: true
+analyzers:
+  rubocop: *defaults

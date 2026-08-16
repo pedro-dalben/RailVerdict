@@ -1,0 +1,6 @@
+version: 1
+mode: advisory
+analyzers:
+  rubocop:
+    enabled: false
+    required: false
