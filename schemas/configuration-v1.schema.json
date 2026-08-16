@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/configuration/v1.schema.json",
+  "title": "RailVerdict Parsed Configuration v1 (Draft / Unimplemented)",
+  "description": "Draft, independently versioned contract for the safely parsed data value of .railverdict.yml. This contract is not implemented.",
+  "type": "object",
+  "required": [
+    "version",
+    "mode",
+    "analyzers"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "mode": {
+      "enum": [
+        "advisory",
+        "no_new_debt",
+        "strict"
+      ]
+    },
+    "analyzers": {
+      "$ref": "#/$defs/analyzers"
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "analyzers": {
+      "type": "object",
+      "required": [
+        "rubocop"
+      ],
+      "properties": {
+        "rubocop": {
+          "$ref": "#/$defs/analyzerSelection"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "analyzerSelection": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "required"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

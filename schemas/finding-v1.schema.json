@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/finding/v1.schema.json",
+  "title": "RailVerdict Finding v1 (Draft / Unimplemented)",
+  "description": "Draft, independently versioned contract for analyzer-independent finding evidence. This contract is not implemented and grants no gate authority.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "fingerprint",
+    "origin",
+    "analyzer",
+    "rule_id",
+    "category",
+    "severity",
+    "confidence",
+    "state",
+    "location",
+    "message"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "origin": {
+      "enum": [
+        "deterministic",
+        "runtime",
+        "ai",
+        "custom"
+      ]
+    },
+    "analyzer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severity": {
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "confidence": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "state": {
+      "enum": [
+        "introduced",
+        "existing",
+        "resolved",
+        "changed",
+        "moved",
+        "suppressed",
+        "waived"
+      ]
+    },
+    "location": {
+      "$ref": "#/$defs/location"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "location": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\\\)(?!.*//)(?!(?:\\.{1,2})(?:/|$))(?!.*\\/(?:\\.{1,2})(?:/|$))[^\\u0000-\\u001f/]+(?:/[^\\u0000-\\u001f/]+)*$"
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "id": "RV-SYNTHETIC-001",
+  "fingerprint": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "origin": "deterministic",
+  "analyzer": "example_analyzer",
+  "rule_id": "Example/LongMethod",
+  "category": "maintainability",
+  "severity": "medium",
+  "confidence": "high",
+  "state": "introduced",
+  "location": {
+    "path": "app/services/catalog_importer.rb",
+    "start_line": 12,
+    "end_line": 28
+  },
+  "message": "Synthetic method exceeds the example policy limit"
+}
