@@ -79,6 +79,11 @@
       "type": "object",
       "additionalProperties": true,
       "unevaluatedProperties": true
+    },
+    "rails_context": {
+      "type": "object",
+      "additionalProperties": true,
+      "unevaluatedProperties": true
     }
   },
   "additionalProperties": false,

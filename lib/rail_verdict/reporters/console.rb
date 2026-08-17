@@ -77,6 +77,17 @@ module RailVerdict
           end
         end
 
+        if result.rails_context
+          rc = result.rails_context
+          entries = rc["entries"] || []
+          detected = rc["detected"] || {}
+          lines << ""
+          lines << format("Rails context: %d entries (%s, %s)",
+            entries.length,
+            sanitize(detected["rails_version"] || "no rails"),
+            sanitize(rc["scope"] || "unknown"))
+        end
+
         lines << ""
         lines << "Gate: #{result.gate}"
         lines << "Policy: #{result.policy_status}"

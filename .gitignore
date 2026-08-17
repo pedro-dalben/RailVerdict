@@ -3,3 +3,4 @@
 /coverage/
 /.bundle/
 *.gem
+.commandcode/

@@ -15,7 +15,7 @@ module RailVerdict
                 :analyzer_results, :operational_failures, :decision_reasons
 
     def initialize(completion_status:, gate:, policy_status:, findings:, analyzer_results:,
-                   operational_failures:, decision_reasons:, baseline: nil, comparison: nil, git: nil)
+                    operational_failures:, decision_reasons:, baseline: nil, comparison: nil, git: nil, rails_context: nil)
       @completion_status = require_member(completion_status, COMPLETION_STATUSES, "completion_status")
       @gate = require_member(gate, GATES, "gate")
       @policy_status = require_member(policy_status, POLICY_STATUSES, "policy_status")
@@ -26,6 +26,7 @@ module RailVerdict
       @baseline = baseline ? baseline.dup.freeze : nil
       @comparison = comparison ? comparison.dup.freeze : nil
       @git = git ? deep_freeze_git(git) : nil
+      @rails_context = rails_context ? deep_freeze_git(rails_context) : nil
       enforce_state_coupling
       freeze
     end
@@ -40,6 +41,10 @@ module RailVerdict
 
     def git
       @git
+    end
+
+    def rails_context
+      @rails_context
     end
 
     def complete?
@@ -64,6 +69,7 @@ module RailVerdict
       result["baseline"] = @baseline if @baseline
       result["comparison"] = @comparison if @comparison
       result["git"] = @git if @git
+      result["rails_context"] = @rails_context if @rails_context
       result
     end
 

@@ -182,7 +182,15 @@ module RailVerdict
         git_payload = build_git_payload(git_context, root)
       end
 
-      if baseline_meta || comparison || git_payload
+      rails_context_h = nil
+      begin
+        rails_ctx = RailsContext::Context.build(repository_root: root, git_context: git_context)
+        rails_context_h = rails_ctx.to_h
+      rescue StandardError
+        rails_context_h = nil
+      end
+
+      if baseline_meta || comparison || git_payload || rails_context_h
         result = GateResult.new(
           completion_status: result.completion_status,
           gate: result.gate,
@@ -193,7 +201,8 @@ module RailVerdict
           decision_reasons: result.decision_reasons,
           baseline: baseline_meta,
           comparison: comparison,
-          git: git_payload
+          git: git_payload,
+          rails_context: rails_context_h
         )
       elsif git_payload && result.complete?
         result = GateResult.new(
@@ -204,7 +213,8 @@ module RailVerdict
           analyzer_results: result.analyzer_results,
           operational_failures: result.operational_failures,
           decision_reasons: result.decision_reasons,
-          git: git_payload
+          git: git_payload,
+          rails_context: rails_context_h
         )
       elsif git_payload
         result = GateResult.new(
@@ -215,7 +225,19 @@ module RailVerdict
           analyzer_results: result.analyzer_results,
           operational_failures: result.operational_failures,
           decision_reasons: result.decision_reasons,
-          git: git_payload
+          git: git_payload,
+          rails_context: rails_context_h
+        )
+      elsif rails_context_h
+        result = GateResult.new(
+          completion_status: result.completion_status,
+          gate: result.gate,
+          policy_status: result.policy_status,
+          findings: result.findings,
+          analyzer_results: result.analyzer_results,
+          operational_failures: result.operational_failures,
+          decision_reasons: result.decision_reasons,
+          rails_context: rails_context_h
         )
       end
       Outcome.new(result: result, context: context, configuration: configuration, findings: classified_findings.freeze)

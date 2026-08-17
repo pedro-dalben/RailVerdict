@@ -1,0 +1,5 @@
+default: &default
+  adapter: postgresql
+development:
+  <<: *default
+  database: app_development
