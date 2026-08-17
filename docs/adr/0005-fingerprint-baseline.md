@@ -4,7 +4,7 @@ Status: Accepted
 
 Decision date: 2026-08-16
 
-Implementation status: Implemented in Phase 03 plan 03-01 (fingerprint v1 `https://railverdict.dev/fingerprint-payload/v1`, `fingerprint_version: 1`, `algorithm: sha256`). Remaining baseline/waiver work in 03-02..03-06.
+Implementation status: Implemented in Phase 03 (plans 03-01..03-06). Fingerprint v1 `https://railverdict.dev/fingerprint-payload/v1` with `fingerprint_version: 1`, `algorithm: sha256`. See `docs/baselines.md` for baseline/waiver/comparison details.
 
 ## Context
 

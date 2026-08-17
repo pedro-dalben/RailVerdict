@@ -4,7 +4,7 @@ Status: Accepted
 
 Decision date: 2026-08-16
 
-Implementation status: Not started
+Implementation status: Implemented in Phase 03 (plans 03-02..03-06). See `docs/baselines.md` for baseline/comparison/policy semantics.
 
 ## Context
 

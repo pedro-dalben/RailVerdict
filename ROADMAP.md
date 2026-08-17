@@ -14,7 +14,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - [x] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
 - [x] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
 - [x] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
-- [ ] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
+- [x] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
 - [ ] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
 - [ ] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph.
 - [ ] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate.
@@ -102,7 +102,14 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic legacy fixture can create a reviewed baseline, retain existing findings, classify a new regression, and fail only according to its selected policy while baseline and waiver compatibility cases remain explicit.
 **Non-goals**: AST identity unless regression evidence requires it, wildcard or permanent waivers, automatic baseline updates, GitHub policy, or an opaque quality score.
-**Plans**: TBD
+**Plans**: 6/6 plans executed
+
+- [x] `03-01` — Fingerprint v1 canonical payload and regression vectors (DEBT-01, DEBT-02)
+- [x] `03-02` — Versioned baseline schema and atomic baseline create/read (DEBT-03, DEBT-04, DEBT-10)
+- [x] `03-03` — Baseline comparison and lifecycle classification (DEBT-05)
+- [x] `03-04` — Real advisory/no_new_debt/strict policy semantics (DEBT-06, DEBT-07)
+- [x] `03-05` — Exact-fingerprint waivers with UTC expiry (DEBT-08, DEBT-09, DEBT-10)
+- [x] `03-06` — End-to-end legacy adoption, safety, determinism, and phase close
 
 ### Phase 4: Git Diff and Pull Request Readiness
 

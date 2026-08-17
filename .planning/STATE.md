@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
-current_phase_name: evidence-ecosystem
+current_phase: 03
+current_phase_name: fingerprints-baselines-policies
 status: complete
-stopped_at: "Phase 02 Evidence Ecosystem complete; Phase 03 not started"
+stopped_at: "Phase 03 Fingerprints, Baselines and Policies complete"
 last_updated: "2026-08-17T00:00:00-03:00"
 last_activity: 2026-08-17
-last_activity_desc: Phase 02 Evidence Ecosystem implemented and verified
+last_activity_desc: Phase 03 Fingerprints, Baselines and Policies implemented and verified
 progress:
   total_phases: 10
-  completed_phases: 3
-  total_plans: 19
-  completed_plans: 19
+  completed_phases: 4
+  total_plans: 25
+  completed_plans: 25
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 02 — evidence-ecosystem
+**Current focus:** Phase 03 — fingerprints-baselines-policies
 
 ## Current Position
 
-Phase: 02 (evidence-ecosystem) — COMPLETE
+Phase: 03 (fingerprints-baselines-policies) — COMPLETE
 Plans: 6/6
-Status: Phase 02 implemented and verified 2026-08-17; Phase 03 not started
-Last activity: 2026-08-17 — evidence ecosystem complete
+Status: Phase 03 Fingerprints, Baselines and Policies complete 2026-08-17; Phase 04 not started
+Last activity: 2026-08-17 — fingerprints, baselines and policies complete
 
 Progress: [██████████] 100%
 
@@ -106,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase 02]: Implement Minitest + RSpec adapters on top of the proven AnalyzerResult/Finding contracts with an owned Minitest reporter.
 - [Phase 02]: Treat zero-test, stale-coverage, and empty-suite cases as `incomplete_evidence` so required incomplete evidence cannot become PASS; optional failures remain non-blocking.
 - [Phase 02]: Record RuboCop plugin and config digest in `evidence_summary`; never invoke `bundler-audit update`; keep Brakeman on HOLD.
+- [Phase 03]: Implement fingerprint v1 canonical payload, versioned baseline with atomic create, deterministic comparison (introduced/existing/resolved/changed/moved), advisory/no_new_debt/strict policy, and exact-fingerprint waivers with UTC expiry; check remains read-only, incomplete still wins.
 
 ### Pending Todos
 

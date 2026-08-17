@@ -94,6 +94,10 @@ failure, not an implicit default. Phase 1 may use documented defaults only when
 they are represented in the effective configuration; Phase 3 owns policy-mode
 semantics beyond the minimal Phase 1 fail-closed behavior.
 
+## Baseline, Comparison, and Waiver Contracts (Phase 03 Implemented)
+
+Phase 03 adds `schemas/baseline-v1.schema.json`, `schemas/waiver-v1.schema.json`, `schemas/waivers-v1.schema.json`, and `schemas/configuration-v1.2.schema.json` (optional `baseline.path` / `waivers.path`). See `docs/baselines.md` for creation, discovery, comparison states, policy modes, and waiver expiry/orphan semantics. `railverdict check` is read-only; `railverdict baseline create` is the only baseline writer (atomic, refuse-on-incomplete, `--force` required to overwrite). Fingerprint v1 and baseline readers fail closed on unknown versions with explicit migration to `re-create with railverdict baseline create`.
+
 ## Draft Result Contract
 
 `AnalyzerResult` records what an external process did: executable and argv,
@@ -134,8 +138,8 @@ Every command and option below is implemented or explicitly deferred by Phase
 |---|---|---|---|
 | `railverdict init` | `--config PATH`, `--force` | May write the explicitly requested configuration; overwrite requires explicit `--force` | Implemented in Phase 01 |
 | `railverdict doctor` | `--config PATH`, `--format console\|json` | Read-only observation; never installs or mutates tools | Implemented in Phase 01 |
-| `railverdict check` | `--config PATH`, `--format console\|json`, `--changed`, `--base REV` | Read-only verification; changed scope is explicitly deferred to Phase 4; never creates or updates a baseline | Implemented in Phase 01 |
-| `railverdict baseline create` | `--config PATH`, `--output PATH`, `--format console\|json` | Phase 1 exposes the boundary and rejects or defers the operation explicitly; Phase 3 owns the actual atomic baseline write | Implemented boundary in Phase 01 |
+| `railverdict check` | `--config PATH`, `--format console\|json`, `--changed`, `--base REV`, `--baseline PATH`, `--waiver PATH` | Read-only verification; never creates or updates a baseline; baseline/waiver discovered via explicit path, config, or default; changed scope deferred to Phase 4 | Implemented in Phase 03 |
+| `railverdict baseline create` | `--config PATH`, `--output PATH`, `--format console\|json`, `--force` | Atomic baseline write from complete trusted run only; refuses incomplete and refuses silent overwrite; interrupted write leaves old baseline intact | Implemented in Phase 03 |
 | `railverdict findings` | `--config PATH`, `--format console\|json` | Read-only projection of normalized findings | Implemented in Phase 01 |
 
 The global options `--help` and `--version` are implemented in Phase 01.
