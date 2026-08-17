@@ -116,14 +116,14 @@ class TestPolicy < Minitest::Test
     assert result.findings.first.fetch("blocking")
   end
 
-  def test_no_new_debt_is_strict_until_phase_three
+  def test_no_new_debt_is_strict_without_baseline
     result = RailVerdict::Verification::Policy.evaluate(
       configuration: configuration(mode: "no_new_debt"),
       analyzer_results: [analyzer],
       findings: [finding]
     )
     assert_equal "FAIL", result.gate
-    assert_includes result.decision_reasons.map { |reason| reason.fetch("code") }, "no_new_debt_evaluated_as_strict"
+    assert_includes result.decision_reasons.map { |reason| reason.fetch("code") }, "blocking_findings_present"
   end
 
   def test_optional_failure_completes_but_remains_visible

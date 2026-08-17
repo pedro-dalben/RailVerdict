@@ -50,34 +50,80 @@ module RailVerdict
 
         optional_failures = operational_failures.reject { |failure| required_incomplete.include?(failure) }
         mode = configuration.mode
-        strict = mode != "advisory"
-        blocking = strict
-        gate = if findings.empty?
-          "PASS"
-        elsif strict
-          "FAIL"
-        else
-          "WARN"
+
+        if mode == "advisory"
+          gate = findings.empty? ? "PASS" : "WARN"
+          policy_status = gate.downcase
+          reasons = []
+          reasons << if findings.empty?
+                       { "code" => "no_findings_detected", "message" => "All enabled analyzer evidence contains no findings." }
+                     else
+                       { "code" => "advisory_findings_present", "message" => "#{findings.length} findings are advisory and do not block." }
+                     end
+          reasons << { "code" => "optional_evidence_unavailable", "message" => "Optional analyzer evidence was unavailable and was retained as an operational failure." } unless optional_failures.empty?
+          return GateResult.new(
+            completion_status: "complete",
+            gate: gate,
+            policy_status: policy_status,
+            findings: summaries(findings, blocking: false),
+            analyzer_results: analyzer_results,
+            operational_failures: optional_failures,
+            decision_reasons: reasons
+          )
         end
+
+        if mode == "no_new_debt" && comparison
+          counts = comparison.fetch("counts") rescue comparison["counts"] if comparison.is_a?(Hash)
+          counts ||= {}
+          waived_fps = Set.new((comparison.is_a?(Hash) ? (comparison["waived"] || []) : []))
+          introduced_fps = Set.new((comparison.is_a?(Hash) ? (comparison["introduced"] || []) : []))
+          changed_fps = Set.new((comparison.is_a?(Hash) ? (comparison["changed"] || []) : []))
+          moved_fps = Set.new((comparison.is_a?(Hash) ? (comparison["moved"] || []) : []))
+          regression_fps = introduced_fps | changed_fps | moved_fps
+          blocking_findings = findings.select { |finding| regression_fps.include?(finding.fingerprint) && !waived_fps.include?(finding.fingerprint) }
+          existing_count = counts["existing"] || 0
+          gate = blocking_findings.empty? ? "PASS" : "FAIL"
+          policy_status = gate.downcase
+          reasons = []
+          reasons << { "code" => "existing_debt_retained", "message" => "#{existing_count} existing findings retained from baseline." } if existing_count > 0
+          reasons << if blocking_findings.empty?
+                       if findings.empty?
+                         { "code" => "no_findings_detected", "message" => "All enabled analyzer evidence contains no findings." }
+                       else
+                         { "code" => "no_new_debt_pass", "message" => "No introduced regressions detected." }
+                       end
+                     else
+                       { "code" => "introduced_findings_blocking", "message" => "#{blocking_findings.length} introduced findings violate no_new_debt policy." }
+                     end
+          reasons << { "code" => "optional_evidence_unavailable", "message" => "Optional analyzer evidence was unavailable and was retained as an operational failure." } unless optional_failures.empty?
+          summaries_with_state = findings.sort_by(&:sort_key).map do |finding|
+            blocking = regression_fps.include?(finding.fingerprint) && !waived_fps.include?(finding.fingerprint)
+            blocking = false if finding.state == "existing"
+            blocking = false if finding.state == "waived"
+            { "id" => finding.id, "fingerprint" => finding.fingerprint, "severity" => finding.severity, "state" => finding.state, "blocking" => blocking }
+          end
+          return GateResult.new(
+            completion_status: "complete",
+            gate: gate,
+            policy_status: policy_status,
+            findings: summaries_with_state,
+            analyzer_results: analyzer_results,
+            operational_failures: optional_failures,
+            decision_reasons: reasons
+          )
+        end
+
+        strict = true
+        blocking = true
+        gate = findings.empty? ? "PASS" : "FAIL"
         policy_status = gate.downcase
         reasons = []
-        if mode == "no_new_debt"
-          reasons << {
-            "code" => "no_new_debt_evaluated_as_strict",
-            "message" => "no_new_debt is evaluated as strict until Phase 3 baseline comparison exists."
-          }
-        end
         reasons << if findings.empty?
-          { "code" => "no_findings_detected", "message" => "All enabled analyzer evidence contains no findings." }
-        elsif strict
-          { "code" => "blocking_findings_present", "message" => "#{findings.length} findings require policy FAIL." }
-        else
-          { "code" => "advisory_findings_present", "message" => "#{findings.length} findings are advisory and do not block." }
-        end
-        reasons << {
-          "code" => "optional_evidence_unavailable",
-          "message" => "Optional analyzer evidence was unavailable and was retained as an operational failure."
-        } unless optional_failures.empty?
+                     { "code" => "no_findings_detected", "message" => "All enabled analyzer evidence contains no findings." }
+                   else
+                     { "code" => "blocking_findings_present", "message" => "#{findings.length} findings require policy FAIL." }
+                   end
+        reasons << { "code" => "optional_evidence_unavailable", "message" => "Optional analyzer evidence was unavailable and was retained as an operational failure." } unless optional_failures.empty?
 
         GateResult.new(
           completion_status: "complete",

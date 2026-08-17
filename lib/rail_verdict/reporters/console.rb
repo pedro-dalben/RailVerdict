@@ -44,6 +44,25 @@ module RailVerdict
           end
         end
 
+        if result.baseline
+          baseline = result.baseline
+          if baseline["loaded"]
+            lines << ""
+            lines << "Baseline: loaded #{baseline['path']} (v#{baseline['schema_version']}, fp v#{baseline['fingerprint_version']})"
+          else
+            lines << ""
+            lines << "Baseline: none (#{baseline['path']})"
+          end
+        end
+
+        if result.comparison
+          counts = result.comparison["counts"] || {}
+          lines << ""
+          lines << format("Comparison: Introduced: %d  Existing: %d  Resolved: %d  Changed: %d  Moved: %d  Waived: %d",
+            counts["introduced"] || 0, counts["existing"] || 0, counts["resolved"] || 0,
+            counts["changed"] || 0, counts["moved"] || 0, counts["waived"] || 0)
+        end
+
         lines << ""
         lines << "Gate: #{result.gate}"
         lines << "Policy: #{result.policy_status}"
