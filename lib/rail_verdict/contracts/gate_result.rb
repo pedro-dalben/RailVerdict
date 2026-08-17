@@ -8,7 +8,7 @@ module RailVerdict
     POLICY_STATUSES = %w[pass warn fail not_evaluated].freeze
     FAILURE_CODES = %w[
       unavailable unsupported timed_out signaled failed parse_failed truncated
-      malformed configuration interrupted
+      malformed configuration interrupted incomplete_evidence
     ].freeze
 
     attr_reader :completion_status, :gate, :policy_status, :findings,

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/minitest-reporter/v1.schema.json",
+  "title": "RailVerdict Minitest Reporter v1",
+  "description": "Machine contract emitted by the RailVerdict-owned Minitest reporter. Versioned, internal.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "runner",
+    "seed",
+    "tests_total",
+    "assertions",
+    "failures",
+    "errors",
+    "skips",
+    "duration_seconds",
+    "tests"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "runner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "seed": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "tests_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "assertions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failures": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "errors": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "skips": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duration_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "test": {
+      "type": "object",
+      "required": [
+        "class_name",
+        "method_name",
+        "status",
+        "time_seconds"
+      ],
+      "properties": {
+        "class_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "method_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "enum": ["passed", "failed", "errored", "skipped"]
+        },
+        "time_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "failure_message": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "failure_class": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "file": {
+          "type": "string",
+          "maxLength": 1024
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

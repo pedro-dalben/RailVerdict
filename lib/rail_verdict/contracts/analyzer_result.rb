@@ -10,9 +10,9 @@ module RailVerdict
     EVIDENCE_STATUSES = %w[complete incomplete].freeze
 
     attr_reader :analyzer, :invocation, :tool_version, :execution_status,
-                :evidence_status, :finding_ids, :failure
+                :evidence_status, :finding_ids, :failure, :evidence_summary
 
-    def initialize(analyzer:, invocation:, execution_status:, finding_ids:, tool_version: nil, failure: nil)
+    def initialize(analyzer:, invocation:, execution_status:, finding_ids:, tool_version: nil, failure: nil, evidence_summary: nil)
       @analyzer = require_nonempty_string(analyzer, "analyzer", 256).freeze
       @invocation = validate_invocation(invocation)
       @execution_status = validate_execution_status(execution_status)
@@ -20,6 +20,7 @@ module RailVerdict
       @tool_version = tool_version && require_nonempty_string(tool_version, "tool_version", 128).freeze
       @finding_ids = validate_finding_ids(finding_ids)
       @failure = validate_failure(failure)
+      @evidence_summary = validate_evidence_summary(evidence_summary)
       enforce_coupling
       freeze
     end
@@ -37,6 +38,7 @@ module RailVerdict
       result["evidence_status"] = evidence_status
       result["finding_ids"] = finding_ids
       result["failure"] = failure if failure
+      result["evidence_summary"] = evidence_summary if evidence_summary
       result
     end
 
@@ -100,6 +102,25 @@ module RailVerdict
       end
 
       { "code" => code.freeze, "message" => message.dup.freeze }.freeze
+    end
+
+    def validate_evidence_summary(value)
+      return nil if value.nil?
+
+      raise ArgumentError, "evidence_summary must be a Hash" unless value.is_a?(Hash)
+      raise ArgumentError, "evidence_summary is too large" if value.keys.length > 20
+
+      value.each do |key, entry|
+        raise ArgumentError, "evidence_summary keys must be non-empty strings" unless key.is_a?(String) && !key.empty? && key.bytesize <= 128
+        unless entry.is_a?(Integer) || entry.is_a?(Float) || entry.is_a?(String) || entry.nil? || entry == true || entry == false
+          raise ArgumentError, "evidence_summary values must be primitives"
+        end
+
+        entry.bytesize if entry.is_a?(String) && entry.bytesize > 4096
+        raise ArgumentError, "evidence_summary string values too large" if entry.is_a?(String) && entry.bytesize > 4096
+      end
+
+      value.dup.freeze
     end
 
     def require_nonempty_string(value, name, max_length)

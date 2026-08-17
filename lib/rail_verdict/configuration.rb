@@ -5,7 +5,8 @@ require "digest"
 module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
-    CONFIGURATION_VERSION = 1
+    CONFIGURATION_VERSION = 1.1
+    SUPPORTED_VERSIONS = [1, 1.1].freeze
     UTF8_BOM = "\xEF\xBB\xBF".b
 
     attr_reader :version, :mode, :analyzers, :source_path, :digest
@@ -88,11 +89,18 @@ module RailVerdict
     end
 
     def analyzer_enabled?(name)
-      analyzer_selection(name).fetch("enabled")
+      selection = @analyzers[name]
+      return false if selection.nil?
+
+      selection.fetch("enabled")
     end
 
     def analyzer_required?(name)
-      analyzer_selection(name).fetch("required")
+      @analyzers.fetch(name).fetch("required")
+    end
+
+    def analyzer_present?(name)
+      @analyzers.key?(name)
     end
 
     private

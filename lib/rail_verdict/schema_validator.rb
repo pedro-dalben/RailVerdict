@@ -6,6 +6,7 @@ require "json_schemer"
 module RailVerdict
   module SchemaValidator
     CONFIGURATION_SCHEMA = "configuration-v1.schema.json"
+    CONFIGURATION_V11_SCHEMA = "configuration-v1.1.schema.json"
     FINDING_SCHEMA = "finding-v1.schema.json"
     RESULT_SCHEMA = "result-v1.schema.json"
 
@@ -14,7 +15,8 @@ module RailVerdict
     end
 
     def self.validate_configuration(data)
-      validate(data, CONFIGURATION_SCHEMA)
+      schema_name = (data.is_a?(Hash) && data["version"] == 1.1) ? CONFIGURATION_V11_SCHEMA : CONFIGURATION_SCHEMA
+      validate(data, schema_name)
     end
 
     def self.validate_finding(data)

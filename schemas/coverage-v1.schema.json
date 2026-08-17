@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/coverage/v1.schema.json",
+  "title": "SimpleCov public coverage JSON v1 (RailVerdict ingestion)",
+  "description": "Strict internal contract for SimpleCov public coverage.json consumed by RailVerdict. Not a SimpleCov upstream schema replica.",
+  "type": "object",
+  "required": ["version", "timestamp", "files"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^1($|\\.)"
+    },
+    "timestamp": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "command_name": {
+      "type": "string",
+      "maxLength": 512
+    },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/file" }
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "file": {
+      "type": "object",
+      "required": ["filename", "coverage"],
+      "properties": {
+        "filename": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "coverage": {
+          "type": "object",
+          "required": ["lines"],
+          "properties": {
+            "lines": {
+              "type": "array",
+              "items": { "type": ["integer", "null"], "minimum": 0 }
+            }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -6,6 +6,18 @@ module RailVerdict
   module Check
     Outcome = Struct.new(:result, :context, :configuration, :findings, keyword_init: true)
 
+    REGISTRY = {
+      "rubocop" => RailVerdict::Analyzers::RuboCop,
+      "minitest" => RailVerdict::Analyzers::Minitest,
+      "rspec" => RailVerdict::Analyzers::RSpec,
+      "simplecov" => RailVerdict::Analyzers::SimpleCov,
+      "bundler_audit" => RailVerdict::Analyzers::BundlerAudit
+    }.freeze
+
+    def self.registry
+      REGISTRY
+    end
+
     module_function
 
     def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil)
@@ -14,19 +26,36 @@ module RailVerdict
       configuration = Configuration.load(resolved_config)
       return interrupted_outcome if interrupted&.call
 
-      adapter = Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
-      probe = configuration.analyzer_enabled?("rubocop") ? adapter.probe(root, runner: runner, timeout_seconds: analyzer_timeout_seconds) : nil
+      probes = probe_enabled_analyzers(root, configuration, runner: runner, rubocop_command_resolver: rubocop_command_resolver, timeout_seconds: analyzer_timeout_seconds)
+
+      analyzer_versions = probes.transform_values(&:version)
       context = RunContext.build(
         repository_root: root,
         configuration: configuration,
-        analyzer_versions: { "rubocop" => probe&.version },
+        analyzer_versions: analyzer_versions,
         revision_resolver: revision_resolver(root, runner)
       )
       return interrupted_outcome(context: context, configuration: configuration) if interrupted&.call
 
       analyzer_results = []
       findings = []
-      if configuration.analyzer_enabled?("rubocop")
+      configuration.analyzers.each do |name, selection|
+        next unless selection.fetch("enabled")
+
+        adapter_class = REGISTRY[name]
+        unless adapter_class
+          analyzer_results << AnalyzerResult.new(
+            analyzer: name,
+            invocation: { "executable" => name, "argv" => [] },
+            execution_status: "unavailable",
+            finding_ids: [],
+            failure: { "code" => "unavailable", "message" => "analyzer #{name} is not implemented in this build" }
+          )
+          next
+        end
+
+        adapter = build_adapter(name, rubocop_command_resolver)
+        probe = probes[name]
         analyzer_result, analyzer_findings = adapter.run(
           root,
           runner: runner,
@@ -102,5 +131,38 @@ module RailVerdict
       )
     end
     private_class_method :interrupted_outcome
+
+    def build_adapter(name, rubocop_command_resolver)
+      case name
+      when "rubocop"
+        RailVerdict::Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
+      when "minitest"
+        RailVerdict::Analyzers::Minitest.new
+      when "rspec"
+        RailVerdict::Analyzers::RSpec.new
+      when "simplecov"
+        RailVerdict::Analyzers::SimpleCov.new
+      when "bundler_audit"
+        RailVerdict::Analyzers::BundlerAudit.new
+      end
+    end
+    private_class_method :build_adapter
+
+    def probe_enabled_analyzers(root, configuration, runner:, rubocop_command_resolver:, timeout_seconds:)
+      probes = {}
+      configuration.analyzers.each do |name, selection|
+        next unless selection.fetch("enabled")
+
+        adapter_class = REGISTRY[name]
+        next unless adapter_class
+
+        adapter = build_adapter(name, rubocop_command_resolver)
+        next unless adapter
+
+        probes[name] = adapter.probe(root, runner: runner, timeout_seconds: timeout_seconds)
+      end
+      probes
+    end
+    private_class_method :probe_enabled_analyzers
   end
 end

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 01
-current_phase_name: trustworthy-core
+current_phase: 02
+current_phase_name: evidence-ecosystem
 status: complete
-stopped_at: "Phase 01 Trustworthy Core verified; Phase 02 not started"
-last_updated: "2026-08-16T23:30:00-03:00"
-last_activity: 2026-08-16
-last_activity_desc: Phase 01 Trustworthy Core implemented, verified, and closed for development
+stopped_at: "Phase 02 Evidence Ecosystem complete; Phase 03 not started"
+last_updated: "2026-08-17T00:00:00-03:00"
+last_activity: 2026-08-17
+last_activity_desc: Phase 02 Evidence Ecosystem implemented and verified
 progress:
   total_phases: 10
-  completed_phases: 2
-  total_plans: 13
-  completed_plans: 13
+  completed_phases: 3
+  total_plans: 19
+  completed_plans: 19
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 01 — trustworthy-core
+**Current focus:** Phase 02 — evidence-ecosystem
 
 ## Current Position
 
-Phase: 01 (trustworthy-core) — COMPLETE
-Plan: 6 of 6
-Status: Phase 01 independently validated 2026-08-16; Phase 02 not started
-Last activity: 2026-08-16 — trustworthy core verified and phase closed
+Phase: 02 (evidence-ecosystem) — COMPLETE
+Plans: 6/6
+Status: Phase 02 implemented and verified 2026-08-17; Phase 03 not started
+Last activity: 2026-08-17 — evidence ecosystem complete
 
 Progress: [██████████] 100%
 
@@ -49,11 +49,12 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | Phase 00 | 7 | 7 | ~9 min |
 | Phase 01 | 6 | 6 | ~15 min |
+| Phase 02 | 6 | 6 | ~5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: No execution data
+- Last 5 plans: Phase 02 6/6 green
+- Trend: steady
 
 *Updated after each plan completion*
 | Phase 00 P01 | 5 min | 2 tasks | 4 files |
@@ -63,6 +64,7 @@ Progress: [██████████] 100%
 | Phase 00 P05 | 11 min | 2 tasks | 1 files |
 | Phase 00 P06 | 7 min | 3 tasks | 15 files |
 | Phase 00 P07 | 18 min | 3 tasks | 5 files |
+| Phase 02 | 6/6 | evidence ecosystem | Minitest/RSpec/SimpleCov/bundler-audit |
 
 ## Accumulated Context
 
@@ -101,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Keep policy as sole GateResult authority; required incomplete analyzer evidence is always INCOMPLETE and never PASS.
 - [Phase 01]: Exclude parent `RUBYOPT`/`RUBYLIB` from analyzer children so RailVerdict's Bundler context cannot hijack target RuboCop resolution.
 - [Phase 01]: Evaluate `no_new_debt` as strict until Phase 3 baselines exist; do not persist baselines or implement changed scope.
+- [Phase 02]: Implement Minitest + RSpec adapters on top of the proven AnalyzerResult/Finding contracts with an owned Minitest reporter.
+- [Phase 02]: Treat zero-test, stale-coverage, and empty-suite cases as `incomplete_evidence` so required incomplete evidence cannot become PASS; optional failures remain non-blocking.
+- [Phase 02]: Record RuboCop plugin and config digest in `evidence_summary`; never invoke `bundler-audit update`; keep Brakeman on HOLD.
 
 ### Pending Todos
 
@@ -121,6 +126,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-16T23:30:00-03:00
-Stopped at: Phase 01 Trustworthy Core complete; do not start Phase 02 in this session
+Last session: 2026-08-17
+Stopped at: Phase 02 Evidence Ecosystem complete; ready for Phase 03
 Resume file: None

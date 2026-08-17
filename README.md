@@ -6,9 +6,9 @@ RailVerdict is a fully open-source, local-first verification framework for Ruby 
 
 ## Current Status
 
-RailVerdict is a documentation-only foundation in Phase 0. Publication is blocked pending documented searches in every launch jurisdiction, including Brazil, and qualified trademark review; the exact unresolved record is in [the foundation record](docs/foundation.md).
+RailVerdict is in **Phase 02 — Evidence Ecosystem** (offline, deterministic, fail-closed). Publication is still blocked pending documented searches in every launch jurisdiction, including Brazil, and qualified trademark review; the exact unresolved record is in [the foundation record](docs/foundation.md).
 
-There is no published gem, CLI, analyzer integration, GitHub adapter, MCP adapter, AI integration, or other RailVerdict runtime behavior yet. RailVerdict is not a SaaS or hosted service. AI is optional and advisory by design, and it is currently unimplemented.
+Phase 01 (Trustworthy Core) is complete: one deterministic `railverdict check` through `AnalyzerResult` → `Finding` → `Policy` → `GateResult` → `Console`/`JSON` → exit 0/1/2/130. Phase 02 adds independent evidence adapters (Minitest, RSpec, SimpleCov global coverage, bundler-audit) on top of the proven RuboCop path via `configuration-v1.1.schema.json`; changed-line coverage is a pure injected-line-set calculation and production Git scope remains deferred to Phase 04. Brakeman remains on HOLD. There is no SaaS, no telemetry, no network refresh at verification time, and no AI/MCP/GitHub integration in this phase.
 
 ## Foundation
 
@@ -22,13 +22,28 @@ There is no published gem, CLI, analyzer integration, GitHub adapter, MCP adapte
 - [Public roadmap](ROADMAP.md)
 - [Architecture decision records](docs/adr/)
 
-## Draft Schemas and Synthetic Examples
+## Evidence Adapters (Phase 02)
+
+Implemented via external target-project processes; RailVerdict never bundles or installs any of them:
+
+| Adapter | Schema / contract | Supported versions | Docs |
+|---|---:|---:|---|
+| Minitest | `schemas/minitest-reporter-v1.schema.json` (reporter: `exe/railverdict-minitest-reporter.rb`) | `>= 5, < 7` | `docs/analyzers.md` |
+| RSpec | Documented JSON formatter (`--format json`) | `>= 3.13, < 4` | `docs/analyzers.md` |
+| SimpleCov | Public `coverage/coverage.json` v1 (`schemas/coverage-v1.schema.json`) | `>= 1, < 2` | `docs/analyzers.md` |
+| bundler-audit | `check --format json`; `version` for DB revision; never invokes `update` | `>= 0.9.3, < 1` | `docs/analyzers.md` |
+| RuboCop + rubocop-rails | JSON formatter; config digest + lockfile plugin recorded | RuboCop `>= 1.72, < 2`; rubocop-rails `>= 2, < 3` | `docs/analyzers.md` |
+
+Changed-line coverage is the pure `RailVerdict::Coverage::ChangedLineEvaluator` over an injected `LineSet`; production `--changed` belongs to Phase 04. Brakeman is on HOLD. Network advisory-database refresh (`bundle exec bundler-audit update`) is an explicit, separate operation.
+
+## Schemas and Synthetic Examples
 
 - [Finding schema](schemas/finding-v1.schema.json) and [Finding example](examples/finding-v1.json)
-- [Configuration schema](schemas/configuration-v1.schema.json) and [configuration example](examples/configuration-v1.yml)
+- [Configuration schema v1.0](schemas/configuration-v1.schema.json) and [configuration example v1.0](examples/configuration-v1.yml)
+- [Configuration schema v1.1](schemas/configuration-v1.1.schema.json) — adds `minitest`/`rspec`/`simplecov`/`bundler_audit` selections
+- [Minitest reporter schema v1](schemas/minitest-reporter-v1.schema.json)
+- [SimpleCov coverage ingestion schema v1](schemas/coverage-v1.schema.json)
 - [Verification result schema](schemas/result-v1.schema.json) and [result example](examples/result-v1.json)
-
-These are pre-implementation drafts, not compatibility or support promises.
 
 ## Legal
 

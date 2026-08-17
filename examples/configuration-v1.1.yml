@@ -1,0 +1,20 @@
+version: 1.1
+mode: strict
+analyzers:
+  rubocop:
+    enabled: true
+    required: true
+  minitest:
+    enabled: true
+    required: true
+  rspec:
+    enabled: true
+    required: true
+  simplecov:
+    enabled: true
+    required: true
+    coverage_path: coverage/coverage.json
+    freshness_window_seconds: 86400
+  bundler_audit:
+    enabled: true
+    required: true

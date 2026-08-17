@@ -2,6 +2,8 @@
 
 require "json"
 
+require_relative "_shared"
+
 module RailVerdict
   module Analyzers
     class RuboCop
@@ -16,7 +18,7 @@ module RailVerdict
         "fatal" => "critical"
       }.freeze
 
-      Probe = Struct.new(:status, :version, :message, keyword_init: true)
+      Probe = Struct.new(:status, :version, :message, :rubocop_rails_version, :rubocop_config_digest, keyword_init: true)
 
       class MalformedOutput < StandardError; end
 
@@ -44,7 +46,9 @@ module RailVerdict
         return Probe.new(status: "unsupported", message: "RuboCop version could not be parsed") unless version
         return Probe.new(status: "unsupported", version: version, message: "unsupported RuboCop version #{version}") unless SUPPORTED_VERSIONS.satisfied_by?(Gem::Version.new(version))
 
-        Probe.new(status: "succeeded", version: version)
+        provenance = probe_provenance(repository_root)
+
+        Probe.new(status: "succeeded", version: version, rubocop_rails_version: provenance[:rubocop_rails_version], rubocop_config_digest: provenance[:rubocop_config_digest])
       rescue ArgumentError
         Probe.new(status: "unsupported", message: "RuboCop reported an invalid version")
       rescue KeyError, ArgumentError => error
@@ -92,12 +96,14 @@ module RailVerdict
         end
 
         findings = normalize_findings(parsed)
+        evidence_summary = build_evidence_summary(probe_result)
         analyzer_result = AnalyzerResult.new(
           analyzer: ANALYZER_ID,
           tool_version: tool_version,
           invocation: invocation,
           execution_status: "succeeded",
-          finding_ids: findings.map(&:id)
+          finding_ids: findings.map(&:id),
+          evidence_summary: evidence_summary.empty? ? nil : evidence_summary
         )
         [analyzer_result, findings]
       rescue MalformedOutput => error
@@ -115,46 +121,84 @@ module RailVerdict
       end
 
       def invocation_for(command, arguments)
-        {
-          "executable" => command.fetch(:executable),
-          "argv" => command.fetch(:args_prefix).dup.concat(arguments)
-        }
+        Shared.invocation_for(command, arguments)
       end
 
       def parse_version(output)
-        match = output.to_s.match(/\b(\d+\.\d+\.\d+)\b/)
-        match && match[1]
+        Shared.parse_semver(output)
       end
 
       def truncated?(result)
-        result.stdout_truncated || result.stderr_truncated
+        Shared.truncated?(result)
       end
 
       def detail_for(result)
-        detail = result.detail.to_s
-        stderr = result.stderr.to_s.lines.first.to_s.strip
-        bounded_message([detail, stderr].reject(&:empty?).join(": "))
+        Shared.detail_for(result)
       end
 
       def execution_message(result)
         message = result.stderr.to_s.lines.first.to_s.strip
         message = "RuboCop exited with status #{result.exit_code}" if message.empty?
-        bounded_message(message)
+        Shared.bounded_message(message)
       end
 
       def bounded_message(message)
-        message.to_s.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?")[0, 4096]
+        Shared.bounded_message(message)
+      end
+
+      def build_evidence_summary(probe_result)
+        summary = {}
+        if probe_result.respond_to?(:rubocop_rails_version) && probe_result.rubocop_rails_version
+          summary["rubocop_rails_version"] = probe_result.rubocop_rails_version.to_s[0, 64]
+        end
+        if probe_result.respond_to?(:rubocop_config_digest) && probe_result.rubocop_config_digest
+          summary["rubocop_config_digest"] = probe_result.rubocop_config_digest.to_s[0, 64]
+        end
+        summary
+      end
+
+      def probe_provenance(repository_root)
+        rubocop_rails_version = parse_gem_version_from_lockfile(repository_root, "rubocop-rails")
+        rubocop_config_digest = digest_file(File.join(repository_root, ".rubocop.yml"))
+        { rubocop_rails_version: rubocop_rails_version, rubocop_config_digest: rubocop_config_digest }
+      end
+
+      def parse_gem_version_from_lockfile(repository_root, gem_name)
+        lockfile = File.join(repository_root, "Gemfile.lock")
+        return nil unless File.file?(lockfile)
+
+        text = File.binread(lockfile).force_encoding(Encoding::UTF_8)
+        return nil unless text.valid_encoding?
+
+        text.each_line do |line|
+          stripped = line.strip
+          next unless stripped.start_with?("#{gem_name} (")
+
+          match = stripped.match(/\A#{Regexp.escape(gem_name)} \(([^)]+)\)/)
+          return match[1] if match
+        end
+        nil
+      rescue StandardError
+        nil
+      end
+
+      def digest_file(path)
+        return nil unless File.file?(path)
+
+        require "digest"
+        text = File.binread(path)
+        Digest::SHA256.hexdigest(text)
+      rescue StandardError
+        nil
       end
 
       def failure_result(invocation, status, message, tool_version: nil)
-        status = status.to_s
-        AnalyzerResult.new(
-          analyzer: ANALYZER_ID,
-          tool_version: tool_version,
+        Shared.failure_result(
+          analyzer_id: ANALYZER_ID,
           invocation: invocation,
-          execution_status: status,
-          finding_ids: [],
-          failure: { "code" => status, "message" => bounded_message(message.to_s) }
+          status: status,
+          message: message,
+          tool_version: tool_version
         )
       end
 

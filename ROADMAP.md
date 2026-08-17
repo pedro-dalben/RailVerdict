@@ -13,7 +13,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 - [x] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
 - [x] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
-- [ ] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
+- [x] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
 - [ ] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
 - [ ] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
 - [ ] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph.
@@ -78,7 +78,14 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Multiple independent evidence sources normalize through the existing contracts, their complete failure corpora pass, and none can turn incomplete evidence into zero findings or a trustworthy PASS.
 **Non-goals**: Production `--changed` coverage, Brakeman support before written approval, Undercover or RubyCritic overlap, runtime Rails analyzers, or analyzer-specific policy fields.
-**Plans**: TBD
+**Plans**: 6/6 plans executed
+
+- [x] `02-01` — Configuration v1.1, adapter dispatch, shared helpers
+- [x] `02-02` — Minitest adapter + RailVerdict-owned reporter (EVID-01, EVID-03)
+- [x] `02-03` — RSpec adapter + incomplete-suite semantics (EVID-02, EVID-03)
+- [x] `02-04` — SimpleCov ingestion + pure ChangedLineEvaluator (EVID-05, EVID-06)
+- [x] `02-05` — bundler-audit + RuboCop provenance hardening (EVID-04, EVID-07, EVID-09)
+- [x] `02-06` — Multisource e2e + failure-corpus coverage + phase close (EVID-08, EVID-10)
 
 ### Phase 3: Fingerprints, Baselines and Policies
 

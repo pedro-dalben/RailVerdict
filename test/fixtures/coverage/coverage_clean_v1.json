@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "timestamp": 9999999999,
+  "command_name": "Unit Tests",
+  "files": [
+    { "filename": "app/models/book.rb", "coverage": { "lines": [1, 1, null, 1, 0, 1] } },
+    { "filename": "app/models/user.rb", "coverage": { "lines": [1, 1, 1] } }
+  ]
+}

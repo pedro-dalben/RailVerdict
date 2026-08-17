@@ -27,6 +27,9 @@ module RailVerdict
             }
             operational_failures << failure
             required_incomplete << failure if selection.fetch("required")
+          elsif selection.fetch("required") && (failure = incomplete_evidence_failure(analyzer, result))
+            operational_failures << failure
+            required_incomplete << failure
           end
         end
 
@@ -121,6 +124,28 @@ module RailVerdict
         end
       end
       private_class_method :summaries
+
+      def incomplete_evidence_failure(analyzer, result)
+        summary = result.evidence_summary
+        return nil unless summary
+
+        if %w[minitest rspec].include?(analyzer)
+          total = summary["tests_total"]
+          if total.is_a?(Integer) && total == 0
+            return { "code" => "incomplete_evidence", "analyzer" => analyzer, "message" => "#{analyzer} reported zero tests" }
+          end
+        end
+
+        if analyzer == "simplecov"
+          fresh = summary["stale"]
+          if fresh == true || fresh == "true"
+            return { "code" => "incomplete_evidence", "analyzer" => analyzer, "message" => "SimpleCov coverage is stale" }
+          end
+        end
+
+        nil
+      end
+      private_class_method :incomplete_evidence_failure
     end
   end
 end

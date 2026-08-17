@@ -12,14 +12,32 @@ module RailVerdict
       root = File.realpath(repository_root)
       resolved_config = resolve_config_path(root, config_path)
       configuration = Configuration.load(resolved_config)
-      adapter = Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
-      probe = configuration.analyzer_enabled?("rubocop") ? adapter.probe(root, runner: runner) : nil
+      probes = {}
+      configuration.analyzers.each do |name, selection|
+        next unless selection.fetch("enabled")
+
+        adapter = build_adapter(name, rubocop_command_resolver)
+        next unless adapter
+
+        probes[name] = adapter.probe(root, runner: runner)
+      end
+      analyzer_versions = probes.transform_values(&:version)
       context = RunContext.build(
         repository_root: root,
         configuration: configuration,
-        analyzer_versions: { "rubocop" => probe&.version },
+        analyzer_versions: analyzer_versions,
         revision_resolver: ->(_root) { nil }
       )
+      analyzers_report = {}
+      configuration.analyzers.each do |name, selection|
+        probe = probes[name]
+        analyzers_report[name] = {
+          "enabled" => selection.fetch("enabled"),
+          "required" => selection.fetch("required"),
+          "status" => probe&.status || "disabled",
+          "version" => probe&.version
+        }
+      end
       report = {
         "doctor" => "1.0",
         "ruby_version" => context.ruby_version,
@@ -31,14 +49,7 @@ module RailVerdict
           "mode" => configuration.mode,
           "digest" => configuration.digest
         },
-        "analyzers" => {
-          "rubocop" => {
-            "enabled" => configuration.analyzer_enabled?("rubocop"),
-            "required" => configuration.analyzer_required?("rubocop"),
-            "status" => probe&.status || "disabled",
-            "version" => probe&.version
-          }
-        }
+        "analyzers" => analyzers_report
       }
       Outcome.new(report: report, exit_code: 0)
     rescue ConfigurationError => error
@@ -62,6 +73,22 @@ module RailVerdict
       Pathname.new(path).absolute? ? path : File.expand_path(path, root)
     end
     private_class_method :resolve_config_path
+
+    def build_adapter(name, rubocop_command_resolver)
+      case name
+      when "rubocop"
+        RailVerdict::Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
+      when "minitest"
+        RailVerdict::Analyzers::Minitest.new
+      when "rspec"
+        RailVerdict::Analyzers::RSpec.new
+      when "simplecov"
+        RailVerdict::Analyzers::SimpleCov.new
+      when "bundler_audit"
+        RailVerdict::Analyzers::BundlerAudit.new
+      end
+    end
+    private_class_method :build_adapter
 
     def relative_path(path, root)
       Pathname.new(path).relative_path_from(Pathname.new(root)).to_s
