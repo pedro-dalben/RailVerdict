@@ -20,7 +20,7 @@ module RailVerdict
 
     module_function
 
-    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil, baseline_path_override: nil, clock: Time.now.utc)
+    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil, baseline_path_override: nil, waiver_path_override: nil, clock: Time.now.utc)
       root = File.realpath(repository_root)
       resolved_config = resolve_config_path(root, config_path)
       configuration = Configuration.load(resolved_config)
@@ -71,18 +71,43 @@ module RailVerdict
       baseline_meta = nil
       comparison = nil
       classified_findings = findings
+      waivers = []
+      waiver_meta = nil
+      resolved_baseline_path = Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override)
+      resolved_waiver_path = WaiverStore.resolve_path(repository_root: root, configuration: configuration, waiver_override: waiver_path_override)
       begin
-        resolved_baseline_path = Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override)
+        waivers = WaiverStore.read_optional(resolved_waiver_path)
+        waiver_meta = { "loaded" => !waivers.empty?, "path" => resolved_waiver_path, "count" => waivers.length }
+      rescue Waiver::IncompatibleError => error
+        incomplete = Verification::Policy.incomplete_result(
+          analyzer_results: analyzer_results,
+          findings: findings,
+          operational_failures: [{ "code" => "failed", "message" => error.message }],
+          code: "waiver_incompatible",
+          message: error.message
+        )
+        enriched = GateResult.new(completion_status: incomplete.completion_status, gate: incomplete.gate, policy_status: incomplete.policy_status, findings: incomplete.findings, analyzer_results: incomplete.analyzer_results, operational_failures: incomplete.operational_failures, decision_reasons: incomplete.decision_reasons, baseline: nil, comparison: { "counts" => {}, "waiver_error" => error.message })
+        return Outcome.new(result: enriched, context: context, configuration: configuration, findings: findings.freeze)
+      end
+      begin
         if File.file?(resolved_baseline_path)
           loaded = Baseline.read(resolved_baseline_path)
           baseline = loaded
           baseline_meta = { "loaded" => true, "path" => resolved_baseline_path, "schema_version" => Baseline::SCHEMA_VERSION, "fingerprint_version" => Fingerprint::VERSION, "compatible" => true }
-          cmp = Comparison.classify(findings: findings, baseline: loaded)
-          comparison = { "counts" => cmp.counts, "introduced" => cmp.introduced.map(&:fingerprint).sort, "existing" => cmp.existing.map(&:fingerprint).sort, "resolved" => cmp.resolved.map { |entry| entry.fetch("fingerprint") }.sort, "changed" => cmp.changed.map(&:fingerprint).sort, "moved" => cmp.moved.map(&:fingerprint).sort, "waived" => cmp.counts.fetch("waived", 0) == 0 ? [] : cmp.classified_findings.select { |item| item.state == "waived" }.map(&:fingerprint).sort }
+          cmp = Comparison.classify(findings: findings, baseline: loaded, waivers: waivers.map(&:to_h), clock: clock)
+          comparison = { "counts" => cmp.counts, "introduced" => cmp.introduced.map(&:fingerprint).sort, "existing" => cmp.existing.map(&:fingerprint).sort, "resolved" => cmp.resolved.map { |entry| entry.fetch("fingerprint") }.sort, "changed" => cmp.changed.map(&:fingerprint).sort, "moved" => cmp.moved.map(&:fingerprint).sort, "waived" => cmp.counts.fetch("waived", 0) == 0 ? [] : cmp.classified_findings.select { |item| item.state == "waived" }.map(&:fingerprint).sort, "orphaned_waivers" => cmp.orphaned_waivers.map { |w| w["fingerprint"] || w[:fingerprint] }.compact.sort }
+          if waiver_meta
+            comparison["waivers"] = waiver_meta
+          end
           classified_findings = cmp.classified_findings
+        elsif waiver_meta && waiver_meta["count"] > 0
+          cmp = Comparison.classify(findings: findings, baseline: nil, waivers: waivers.map(&:to_h), clock: clock)
+          comparison = { "counts" => cmp.counts, "introduced" => cmp.introduced.map(&:fingerprint).sort, "existing" => cmp.existing.map(&:fingerprint).sort, "resolved" => cmp.resolved.map { |entry| entry.fetch("fingerprint") }.sort, "changed" => cmp.changed.map(&:fingerprint).sort, "moved" => cmp.moved.map(&:fingerprint).sort, "waived" => cmp.counts.fetch("waived", 0) == 0 ? [] : cmp.classified_findings.select { |item| item.state == "waived" }.map(&:fingerprint).sort, "orphaned_waivers" => cmp.orphaned_waivers.map { |w| w["fingerprint"] || w[:fingerprint] }.compact.sort, "waivers" => waiver_meta }
+          classified_findings = cmp.classified_findings
+        elsif waiver_meta
+          comparison = nil
         end
       rescue Baseline::IncompatibleError => error
-        resolved_baseline_path ||= Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override)
         incomplete = Verification::Policy.incomplete_result(
           analyzer_results: analyzer_results,
           findings: findings,

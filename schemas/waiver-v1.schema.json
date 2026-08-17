@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/waiver/v1.schema.json",
+  "title": "RailVerdict Waiver v1",
+  "description": "Exact-fingerprint waiver requiring reason, owner, UTC creation and expiry, optional issue reference.",
+  "type": "object",
+  "required": [
+    "fingerprint",
+    "reason",
+    "owner",
+    "created_at",
+    "expires_at"
+  ],
+  "properties": {
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "issue_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}

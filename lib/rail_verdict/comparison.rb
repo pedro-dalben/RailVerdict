@@ -14,6 +14,17 @@ module RailVerdict
         existing = []
         changed = []
         moved = []
+        if waivers.any?
+          waived, orphaned = apply_waivers(nil, findings, baseline, waivers, clock)
+          if waived.any?
+            current_by_fp = findings.to_h { |finding| [finding.fingerprint, finding] }
+            introduced = introduced.reject { |finding| waived.include?(finding.fingerprint) }
+            waived_findings = waived.map { |fingerprint| current_by_fp[fingerprint] }.compact.map { |finding| restate(finding, "waived") }.sort_by(&:sort_key)
+            classified = (introduced + waived_findings).sort_by(&:sort_key)
+            return build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed, moved: moved, classified_findings: classified, waived: waived_findings, orphaned_waivers: orphaned, baseline: baseline)
+          end
+          return build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed, moved: moved, classified_findings: introduced, waived: [], orphaned_waivers: orphaned, baseline: baseline)
+        end
         return build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed, moved: moved, findings: findings, baseline: baseline, waivers: waivers, clock: clock)
       end
 
@@ -38,26 +49,32 @@ module RailVerdict
         resolved = resolved.reject { |entry| consumed_fps.include?(entry.fetch("fingerprint")) }
       end
 
-      all_grouped = { existing: existing, introduced: introduced, changed: changed.map { |pair| pair[:finding] }, moved: moved.map { |pair| pair[:finding] } }
-      waived, orphaned = apply_waivers(all_grouped, findings, baseline, waivers, clock) if waivers.any?
-      if waived
-        introduced = introduced.reject { |finding| waived.include?(finding.fingerprint) }
+      waived = Set.new
+      orphaned = []
+      if waivers.any?
+        waived, orphaned = apply_waivers(nil, findings, baseline, waivers, clock)
+      end
+      waived_findings = []
+      if waived.any?
         existing = existing.reject { |finding| waived.include?(finding.fingerprint) }
-        changed_findings = changed.map { |pair| pair[:finding] }.reject { |finding| waived.include?(finding.fingerprint) }
-        moved_findings = moved.map { |pair| pair[:finding] }.reject { |finding| waived.include?(finding.fingerprint) }
-        changed = changed.select { |pair| changed_findings.include?(pair[:finding]) }
-        moved = moved.select { |pair| moved_findings.include?(pair[:finding]) }
-        waived_findings = waived.map { |fingerprint| current_by_fp.fetch(fingerprint) }.map { |finding| restate(finding, "waived") }.sort_by(&:sort_key)
+        introduced = introduced.reject { |finding| waived.include?(finding.fingerprint) }
+        changed_pairs = changed
+        moved_pairs = moved
+        changed_findings_tmp = changed_pairs.map { |pair| pair[:finding] }.reject { |finding| waived.include?(finding.fingerprint) }
+        moved_findings_tmp = moved_pairs.map { |pair| pair[:finding] }.reject { |finding| waived.include?(finding.fingerprint) }
+        changed = changed_pairs.select { |pair| changed_findings_tmp.include?(pair[:finding]) }
+        moved = moved_pairs.select { |pair| moved_findings_tmp.include?(pair[:finding]) }
+        waived_findings = waived.map { |fingerprint| current_by_fp[fingerprint] }.compact.map { |finding| restate(finding, "waived") }.sort_by(&:sort_key)
         classified_extra = waived_findings
-      else
-        classified_extra = []
-        orphaned = []
         changed_findings = changed.map { |pair| pair[:finding] }
         moved_findings = moved.map { |pair| pair[:finding] }
+        classified = (existing + introduced + changed_findings + moved_findings + classified_extra).sort_by(&:sort_key)
+        return build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed_findings, moved: moved_findings, classified_findings: classified, waived: classified_extra, orphaned_waivers: orphaned, baseline: baseline)
       end
-
-      classified = (existing + introduced + changed_findings + moved_findings + classified_extra).sort_by(&:sort_key)
-      build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed_findings, moved: moved_findings, classified_findings: classified, waived: classified_extra, orphaned_waivers: orphaned || [], baseline: baseline)
+      changed_findings = changed.map { |pair| pair[:finding] }
+      moved_findings = moved.map { |pair| pair[:finding] }
+      classified = (existing + introduced + changed_findings + moved_findings).sort_by(&:sort_key)
+      build_result(existing: existing, introduced: introduced, resolved: resolved, changed: changed_findings, moved: moved_findings, classified_findings: classified, waived: [], orphaned_waivers: orphaned, baseline: baseline)
     end
 
     def self.build_result(existing:, introduced:, resolved:, changed:, moved:, classified_findings: nil, waived: [], orphaned_waivers: [], baseline: nil, findings: nil, waivers: nil, clock: nil)

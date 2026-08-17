@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/waivers/v1.schema.json",
+  "title": "RailVerdict Waivers v1",
+  "description": "Collection of exact-fingerprint waivers.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "waivers"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/waiver"
+      }
+    }
+  },
+  "$defs": {
+    "waiver": {
+      "type": "object",
+      "required": [
+        "fingerprint",
+        "reason",
+        "owner",
+        "created_at",
+        "expires_at"
+      ],
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "issue_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}
