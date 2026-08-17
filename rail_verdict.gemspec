@@ -16,18 +16,20 @@ Gem::Specification.new do |spec|
   DESCRIPTION
   spec.homepage = "https://railverdict.dev"
   spec.license = "MIT"
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "https://github.com/railverdict/railverdict"
+  spec.metadata["changelog_uri"] = "https://github.com/railverdict/railverdict/blob/master/CHANGELOG.md"
   spec.required_ruby_version = ">= 3.3"
 
-  spec.files = Dir[
-    "lib/**/*.rb",
-    "exe/railverdict",
-    "schemas/*.json",
-    "README.md",
-    "LICENSE",
-    "NOTICE"
-  ]
+  spec_dir = __dir__
+  spec.files = (
+    Dir[File.join(spec_dir, "lib/**/*.rb")].map { |path| path.delete_prefix("#{spec_dir}/") } +
+    Dir[File.join(spec_dir, "exe/*")].map { |path| path.delete_prefix("#{spec_dir}/") } +
+    Dir[File.join(spec_dir, "schemas/*.json")].map { |path| path.delete_prefix("#{spec_dir}/") } +
+    %w[README.md LICENSE NOTICE]
+  ).uniq.sort
   spec.bindir = "exe"
-  spec.executables = ["railverdict"]
+  spec.executables = Dir[File.join(spec_dir, "exe/*")].map { |path| File.basename(path) }.sort
   spec.require_paths = ["lib"]
 
   spec.add_dependency "json_schemer", ">= 2.5", "< 3"
