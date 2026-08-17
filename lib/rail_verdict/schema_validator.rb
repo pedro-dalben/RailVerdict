@@ -16,6 +16,7 @@ module RailVerdict
     BASELINE_SCHEMA = "baseline-v1.schema.json"
     WAIVER_SCHEMA = "waiver-v1.schema.json"
     WAIVERS_SCHEMA = "waivers-v1.schema.json"
+    REPAIR_PACKET_SCHEMA = "repair-packet-v1.schema.json"
 
     def self.schema_dir
       File.expand_path("../../schemas", __dir__)
@@ -58,6 +59,10 @@ module RailVerdict
 
     def self.validate_waivers(data)
       validate(data, WAIVERS_SCHEMA)
+    end
+
+    def self.validate_repair_packet(data)
+      validate(data, REPAIR_PACKET_SCHEMA)
     end
 
     def self.validate(data, schema_name)

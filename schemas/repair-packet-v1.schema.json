@@ -1,0 +1,364 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/repair-packet/v1.schema.json",
+  "title": "RailVerdict RepairPacket v1",
+  "description": "Deterministic, bounded, machine-readable repair assignment. Deterministic evidence first; optional AI advisory separate. Never auto-edits source.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "packet_id",
+    "created_at",
+    "railverdict_version",
+    "source_revision",
+    "target",
+    "verification",
+    "evidence",
+    "git_context",
+    "rails_context",
+    "source_context",
+    "policy",
+    "baseline_state",
+    "waivers_state",
+    "verification_plan",
+    "constraints",
+    "completeness",
+    "success_criteria"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "packet_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "railverdict_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "source_revision": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+    "base_revision": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+    "merge_base": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+    "target": { "$ref": "#/$defs/target" },
+    "verification": { "$ref": "#/$defs/verification" },
+    "evidence": { "$ref": "#/$defs/evidence" },
+    "git_context": { "$ref": "#/$defs/git_context" },
+    "diff_context": { "$ref": "#/$defs/diff_context" },
+    "rails_context": { "$ref": "#/$defs/rails_context" },
+    "source_context": { "$ref": "#/$defs/source_context" },
+    "policy": { "$ref": "#/$defs/policy" },
+    "baseline_state": { "$ref": "#/$defs/baseline_state" },
+    "waivers_state": { "$ref": "#/$defs/waivers_state" },
+    "ai_analysis": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "object" }
+      ]
+    },
+    "verification_plan": { "$ref": "#/$defs/verification_plan" },
+    "constraints": { "$ref": "#/$defs/constraints" },
+    "instructions": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "completeness": { "$ref": "#/$defs/completeness" },
+    "success_criteria": { "$ref": "#/$defs/success_criteria" },
+    "boundary": { "$ref": "#/$defs/boundary" }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "target": {
+      "type": "object",
+      "required": ["finding", "finding_state", "blocking", "severity"],
+      "properties": {
+        "finding": {
+          "type": "object",
+          "required": ["schema_version", "id", "fingerprint", "origin", "analyzer", "rule_id", "category", "severity", "confidence", "state", "evidence_ref", "location", "message"],
+          "properties": {
+            "schema_version": { "const": "1.0" },
+            "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+            "origin": { "enum": ["deterministic", "runtime", "ai", "custom"] },
+            "analyzer": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "rule_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "category": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+            "confidence": { "enum": ["low", "medium", "high"] },
+            "state": { "enum": ["observed", "introduced", "existing", "resolved", "changed", "moved", "suppressed", "waived"] },
+            "evidence_ref": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "location": {
+              "type": "object",
+              "required": ["path"],
+              "properties": {
+                "path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+                "start_line": { "type": "integer", "minimum": 1 },
+                "end_line": { "type": "integer", "minimum": 1 }
+              },
+              "additionalProperties": false,
+              "unevaluatedProperties": false
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "finding_state": { "enum": ["observed", "introduced", "existing", "changed", "moved", "waived"] },
+        "blocking": { "type": "boolean" },
+        "severity": { "enum": ["info", "low", "medium", "high", "critical"] }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["gate", "policy_status", "mode", "decision_reasons", "comparison_counts"],
+      "properties": {
+        "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+        "policy_status": { "enum": ["pass", "warn", "fail", "not_evaluated"] },
+        "mode": { "enum": ["advisory", "no_new_debt", "strict"] },
+        "decision_reasons": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "message": { "type": "string", "minLength": 1, "maxLength": 4096 }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        },
+        "comparison_counts": { "type": "object" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["analyzer", "rule_id", "location", "message"],
+      "properties": {
+        "analyzer": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "tool_version": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "rule_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "location": {
+          "type": "object",
+          "required": ["path"],
+          "properties": {
+            "path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+            "start_line": { "type": "integer", "minimum": 1 },
+            "end_line": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "evidence_summary": { "type": "object" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "git_context": {
+      "type": "object",
+      "required": ["head", "base", "merge_base"],
+      "properties": {
+        "head": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "base": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "merge_base": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 },
+        "changed_file": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["path", "status"],
+              "properties": {
+                "path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+                "status": { "type": "string", "minLength": 1, "maxLength": 32 },
+                "score": { "type": ["integer", "null"] },
+                "old_path": { "type": ["string", "null"] },
+                "new_path": { "type": ["string", "null"] },
+                "binary": { "type": "boolean" }
+              },
+              "additionalProperties": false,
+              "unevaluatedProperties": false
+            }
+          ]
+        },
+        "changed_lines_for_target": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "rename": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["new_path", "old_path"],
+              "properties": {
+                "new_path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+                "old_path": { "type": "string", "minLength": 1, "maxLength": 4096 }
+              },
+              "additionalProperties": false,
+              "unevaluatedProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "diff_context": {
+      "type": "object",
+      "required": ["hunk", "truncated"],
+      "properties": {
+        "hunk": { "type": "string", "maxLength": 16384 },
+        "truncated": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "rails_context": {
+      "type": "object",
+      "required": ["detected", "entry", "related", "truncated"],
+      "properties": {
+        "detected": { "type": "object" },
+        "entry": { "anyOf": [{ "type": "null" }, { "type": "object" }] },
+        "related": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "object" }
+        },
+        "truncated": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "source_context": {
+      "type": "object",
+      "required": ["snippets", "truncated"],
+      "properties": {
+        "snippets": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["path", "content", "truncated"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1, "maxLength": 4096 },
+              "content": { "type": "string", "maxLength": 32768 },
+              "truncated": { "type": "boolean" }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        },
+        "truncated": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "required": ["mode", "configuration_digest"],
+      "properties": {
+        "mode": { "enum": ["advisory", "no_new_debt", "strict"] },
+        "configuration_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "baseline_state": {
+      "type": "object",
+      "required": ["loaded", "path", "digest"],
+      "properties": {
+        "loaded": { "type": "boolean" },
+        "path": { "type": ["string", "null"] },
+        "digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "waivers_state": {
+      "type": "object",
+      "required": ["count", "path"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "path": { "type": ["string", "null"] },
+        "digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "verification_plan": {
+      "type": "object",
+      "required": ["required", "suggested"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/command" }
+        },
+        "suggested": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/command" }
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "command": {
+      "type": "object",
+      "required": ["executable", "argv", "display"],
+      "properties": {
+        "executable": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "argv": { "type": "array", "items": { "type": "string", "maxLength": 4096 } },
+        "display": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "constraints": {
+      "type": "object",
+      "required": ["forbid_baseline_update", "forbid_waiver_creation", "forbid_policy_relaxation", "require_verification"],
+      "properties": {
+        "forbid_baseline_update": { "type": "boolean" },
+        "forbid_waiver_creation": { "type": "boolean" },
+        "forbid_policy_relaxation": { "type": "boolean" },
+        "require_verification": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "completeness": {
+      "type": "object",
+      "required": ["deterministic", "repair_context", "truncated"],
+      "properties": {
+        "deterministic": { "enum": ["complete"] },
+        "repair_context": { "enum": ["complete", "partial", "unavailable"] },
+        "truncated": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "success_criteria": {
+      "type": "object",
+      "required": ["description", "gate_must_be", "target_must_be_fixed", "completion_must_be", "boundary_must_be_unchanged"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "gate_must_be": { "type": "array", "items": { "type": "string" } },
+        "target_must_be_fixed": { "type": "boolean" },
+        "completion_must_be": { "type": "string", "const": "complete" },
+        "boundary_must_be_unchanged": { "type": "boolean" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "boundary": {
+      "type": "object",
+      "required": ["configuration_digest", "baseline_digest", "waivers_digest"],
+      "properties": {
+        "configuration_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "baseline_digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "waivers_digest": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+        "base_revision": { "type": ["string", "null"] },
+        "source_revision": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

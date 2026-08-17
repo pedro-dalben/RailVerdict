@@ -24,6 +24,7 @@ module RailVerdict
         findings         Print normalized findings from the evidence run
         explain          Explain a finding with optional AI
         investigate      Investigate top findings with optional AI
+        repair           Build a deterministic repair packet for a finding
 
       Global options:
         --help           Show this usage
@@ -59,6 +60,8 @@ module RailVerdict
         command_explain(argv.drop(1))
       when "investigate"
         command_investigate(argv.drop(1))
+      when "repair"
+        command_repair(argv.drop(1))
       else
         @stderr.puts "railverdict: unknown command: #{command}"
         @stderr.puts USAGE
@@ -390,6 +393,44 @@ module RailVerdict
           @stdout.puts "Analysis: #{result[:analysis].summary} (confidence: #{result[:analysis].confidence})"
         end
       end
+    end
+
+    def command_repair(argv)
+      finding_ref = argv.first
+      raise RailVerdict::UsageError, "repair requires a finding id or fingerprint" unless finding_ref && !finding_ref.start_with?("-")
+
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", output: nil, changed: false, base: nil, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict repair <finding-id|fingerprint> [--config PATH] [--format console|json] [--output PATH] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--output PATH", String) { |v| options[:output] = v }
+        opts.on("--changed") { options[:changed] = true }
+        opts.on("--base REV", String) { |v| options[:base] = v }
+        opts.on("--baseline PATH", String) { |v| options[:baseline] = v }
+        opts.on("--waiver PATH", String) { |v| options[:waiver] = v }
+      end
+      parse!(parser, argv.drop(1))
+      validate_format!(options[:format])
+      raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
+
+      code, _packet = RailVerdict::Repair::Command.execute(
+        repository_root: @working_directory,
+        config_path: options[:config],
+        finding_ref: finding_ref,
+        format: options[:format],
+        output_path: options[:output],
+        changed: options[:changed],
+        base: options[:base],
+        baseline_override: options[:baseline],
+        waiver_override: options[:waiver],
+        stdout: @stdout,
+        stderr: @stderr
+      )
+      code
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict repair: #{e.message}"
+      EXIT_NO_GATE
     end
 
     def not_implemented(command)

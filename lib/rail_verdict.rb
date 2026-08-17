@@ -50,6 +50,15 @@ require_relative "rail_verdict/intelligence/orchestrator"
 require_relative "rail_verdict/intelligence/provider"
 require_relative "rail_verdict/intelligence/providers/fake_provider"
 require_relative "rail_verdict/intelligence/providers/openai_compat"
+require_relative "rail_verdict/repair/constraints"
+require_relative "rail_verdict/repair/verification_plan"
+require_relative "rail_verdict/repair/boundary"
+require_relative "rail_verdict/repair/diff_context"
+require_relative "rail_verdict/repair/prompt_renderer"
+require_relative "rail_verdict/repair/packet"
+require_relative "rail_verdict/repair/context_assembler"
+require_relative "rail_verdict/repair/verifier"
+require_relative "rail_verdict/repair/command"
 
 module RailVerdict
 end

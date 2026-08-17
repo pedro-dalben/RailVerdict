@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "packet_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "created_at": "2026-08-17T00:00:00Z",
+  "railverdict_version": "0.1.0",
+  "source_revision": "abc1234",
+  "target": {
+    "finding": {
+      "schema_version": "1.0",
+      "id": "rv:aaaaaaaaaaaaaaaaaaaa",
+      "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "origin": "deterministic",
+      "analyzer": "rubocop",
+      "rule_id": "Lint/UselessAssignment",
+      "category": "lint",
+      "severity": "high",
+      "confidence": "high",
+      "state": "introduced",
+      "evidence_ref": "rubocop:1",
+      "location": { "path": "app/models/book.rb", "start_line": 5 },
+      "message": "useless assignment"
+    },
+    "finding_state": "introduced",
+    "blocking": true,
+    "severity": "high"
+  },
+  "verification": {
+    "gate": "FAIL",
+    "policy_status": "fail",
+    "mode": "strict",
+    "decision_reasons": [{ "code": "blocking_findings_present", "message": "blocking findings" }],
+    "comparison_counts": {}
+  },
+  "evidence": {
+    "analyzer": "rubocop",
+    "tool_version": "1.89.0",
+    "rule_id": "Lint/UselessAssignment",
+    "location": { "path": "app/models/book.rb", "start_line": 5 },
+    "message": "useless assignment",
+    "evidence_summary": {}
+  },
+  "git_context": { "head": null, "base": null, "merge_base": null, "changed_file": null, "changed_lines_for_target": [], "rename": null },
+  "diff_context": { "hunk": "", "truncated": false },
+  "rails_context": { "detected": {}, "entry": null, "related": [], "truncated": false },
+  "source_context": { "snippets": [], "truncated": false },
+  "policy": { "mode": "strict", "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+  "baseline_state": { "loaded": false, "path": null, "digest": null },
+  "waivers_state": { "count": 0, "path": null },
+  "verification_plan": {
+    "required": [{ "executable": "bundle", "argv": ["exec", "railverdict", "check"], "display": "bundle exec railverdict check" }],
+    "suggested": []
+  },
+  "constraints": {
+    "forbid_baseline_update": true,
+    "forbid_waiver_creation": true,
+    "forbid_policy_relaxation": true,
+    "require_verification": true
+  },
+  "instructions": [
+    "Do not modify baseline files (.railverdict-baseline.json)."
+  ],
+  "completeness": { "deterministic": "complete", "repair_context": "complete", "truncated": false },
+  "success_criteria": {
+    "description": "Target finding no longer blocking and gate is PASS/WARN with complete verification and unchanged boundary.",
+    "gate_must_be": ["PASS", "WARN"],
+    "target_must_be_fixed": true,
+    "completion_must_be": "complete",
+    "boundary_must_be_unchanged": true
+  },
+  "boundary": {
+    "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "baseline_digest": null,
+    "waivers_digest": null
+  }
+}
