@@ -3,7 +3,7 @@
 **Evidence before merge. Deterministic, offline, fail-closed verification for Ruby on Rails.**
 
 [![Gem Version](https://badge.fury.io/rb/rail_verdict.svg)](https://rubygems.org/gems/rail_verdict)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.3-CC342D.svg)](https://www.ruby-lang.org)
 
 RailVerdict collects evidence from established Ruby/Rails quality tools, normalizes it into versioned canonical findings, applies repository-owned policy and baselines, and returns a deterministic merge gate for **humans, CI, and coding agents**.
@@ -178,6 +178,5 @@ bundle exec rubocop
 
 ## Legal
 
-- **License:** [Apache-2.0](LICENSE) — see [NOTICE](NOTICE)
-- **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md) (software rights and trademark policy are separate)
-- Publication / package reservation remains blocked pending documented launch-jurisdiction searches (including Brazil) and qualified trademark review — see [foundation record](docs/foundation.md).
+- **License:** [MIT](LICENSE) — see [NOTICE](NOTICE)
+- **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md)

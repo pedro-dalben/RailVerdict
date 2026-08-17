@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
     services.
   DESCRIPTION
   spec.homepage = "https://railverdict.dev"
-  spec.license = "Apache-2.0"
+  spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
 
   spec.files = Dir[
