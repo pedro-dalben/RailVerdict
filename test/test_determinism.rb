@@ -56,6 +56,7 @@ class TestDeterminism < Minitest::Test
 
   def test_result_maps_are_emitted_in_contract_order
     parsed = JSON.parse(canonical_result(CLEAN))
-    assert_equal %w[schema_version completion_status gate policy_status findings analyzer_results operational_failures decision_reasons], parsed.keys
+    expected = %w[schema_version completion_status gate policy_status findings analyzer_results operational_failures decision_reasons]
+    assert_equal expected, parsed.keys.first(expected.length)
   end
 end

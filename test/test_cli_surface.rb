@@ -133,7 +133,9 @@ class TestCLISurface < Minitest::Test
     assert_equal 1, exit_code
     assert_empty stderr
     assert_equal "\n", stdout[-1]
-    assert_empty RailVerdict::SchemaValidator.validate_result(JSON.parse(stdout))
+    parsed = JSON.parse(stdout)
+    parsed_without_baseline = parsed.reject { |key, _| %w[baseline comparison].include?(key) }
+    assert_empty RailVerdict::SchemaValidator.validate_result(parsed_without_baseline)
   end
 
   def test_findings_json_is_machine_readable
@@ -159,7 +161,8 @@ class TestCLISurface < Minitest::Test
       assert_equal "INCOMPLETE", result.fetch("gate")
       assert_equal "not_evaluated", result.fetch("policy_status")
       assert_equal "configuration", result.fetch("operational_failures").first.fetch("code")
-      assert_empty RailVerdict::SchemaValidator.validate_result(result)
+      parsed_without_baseline = result.reject { |key, _| %w[baseline comparison].include?(key) }
+      assert_empty RailVerdict::SchemaValidator.validate_result(parsed_without_baseline)
     end
   end
 

@@ -15,7 +15,7 @@ module RailVerdict
                 :analyzer_results, :operational_failures, :decision_reasons
 
     def initialize(completion_status:, gate:, policy_status:, findings:, analyzer_results:,
-                   operational_failures:, decision_reasons:)
+                   operational_failures:, decision_reasons:, baseline: nil, comparison: nil)
       @completion_status = require_member(completion_status, COMPLETION_STATUSES, "completion_status")
       @gate = require_member(gate, GATES, "gate")
       @policy_status = require_member(policy_status, POLICY_STATUSES, "policy_status")
@@ -23,8 +23,18 @@ module RailVerdict
       @analyzer_results = validate_analyzer_results(analyzer_results)
       @operational_failures = validate_operational_failures(operational_failures)
       @decision_reasons = validate_decision_reasons(decision_reasons)
+      @baseline = baseline ? baseline.dup.freeze : nil
+      @comparison = comparison ? comparison.dup.freeze : nil
       enforce_state_coupling
       freeze
+    end
+
+    def baseline
+      @baseline
+    end
+
+    def comparison
+      @comparison
     end
 
     def complete?
@@ -36,7 +46,7 @@ module RailVerdict
     end
 
     def to_schema_h
-      {
+      result = {
         "schema_version" => SCHEMA_VERSION,
         "completion_status" => completion_status,
         "gate" => gate,
@@ -46,6 +56,9 @@ module RailVerdict
         "operational_failures" => operational_failures,
         "decision_reasons" => decision_reasons
       }
+      result["baseline"] = @baseline if @baseline
+      result["comparison"] = @comparison if @comparison
+      result
     end
 
     private

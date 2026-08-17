@@ -5,7 +5,7 @@ module RailVerdict
     module Policy
       module_function
 
-      def evaluate(configuration:, analyzer_results:, findings:)
+      def evaluate(configuration:, analyzer_results:, findings:, comparison: nil, baseline_meta: nil)
         analyzer_results = analyzer_results.sort_by(&:analyzer)
         findings = findings.sort_by(&:sort_key)
         operational_failures = []

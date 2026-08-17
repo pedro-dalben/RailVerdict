@@ -110,13 +110,14 @@ module RailVerdict
     end
 
     def command_check(argv)
-      options = { config: DEFAULT_CONFIG_PATH, format: "console", changed: false, base: nil }
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", changed: false, base: nil, baseline: nil }
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: railverdict check [--config PATH] [--format console|json] [--changed] [--base REV]"
+        opts.banner = "Usage: railverdict check [--config PATH] [--format console|json] [--changed] [--base REV] [--baseline PATH]"
         opts.on("--config PATH", String) { |value| options[:config] = value }
         opts.on("--format FORMAT", String) { |value| options[:format] = value }
         opts.on("--changed") { options[:changed] = true }
         opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
       end
       parse!(parser, argv)
       validate_format!(options[:format])
@@ -224,11 +225,14 @@ module RailVerdict
         interrupted = true
         RailVerdict::ProcessRunner.registry.terminate_all
       end
-      outcome = Check.execute(
+      execute_options = {
         repository_root: @working_directory,
         config_path: options[:config],
         interrupted: -> { interrupted }
-      )
+      }
+      execute_options[:baseline_path_override] = options[:baseline] if options.key?(:baseline) && options[:baseline]
+      execute_options[:baseline_path_override] = options[:output] if options.key?(:output) && options[:output]
+      outcome = Check.execute(**execute_options)
       [outcome, interrupted]
     ensure
       Signal.trap("INT", previous) if previous

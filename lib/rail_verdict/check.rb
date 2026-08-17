@@ -20,7 +20,7 @@ module RailVerdict
 
     module_function
 
-    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil)
+    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil, baseline_path_override: nil, clock: Time.now.utc)
       root = File.realpath(repository_root)
       resolved_config = resolve_config_path(root, config_path)
       configuration = Configuration.load(resolved_config)
@@ -67,12 +67,54 @@ module RailVerdict
       end
       return interrupted_outcome(context: context, configuration: configuration, analyzer_results: analyzer_results, findings: findings) if interrupted&.call
 
+      baseline = nil
+      baseline_meta = nil
+      comparison = nil
+      classified_findings = findings
+      begin
+        resolved_baseline_path = Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override)
+        if File.file?(resolved_baseline_path)
+          loaded = Baseline.read(resolved_baseline_path)
+          baseline = loaded
+          baseline_meta = { "loaded" => true, "path" => resolved_baseline_path, "schema_version" => Baseline::SCHEMA_VERSION, "fingerprint_version" => Fingerprint::VERSION, "compatible" => true }
+          cmp = Comparison.classify(findings: findings, baseline: loaded)
+          comparison = { "counts" => cmp.counts, "introduced" => cmp.introduced.map(&:fingerprint).sort, "existing" => cmp.existing.map(&:fingerprint).sort, "resolved" => cmp.resolved.map { |entry| entry.fetch("fingerprint") }.sort, "changed" => cmp.changed.map(&:fingerprint).sort, "moved" => cmp.moved.map(&:fingerprint).sort, "waived" => cmp.counts.fetch("waived", 0) == 0 ? [] : cmp.classified_findings.select { |item| item.state == "waived" }.map(&:fingerprint).sort }
+          classified_findings = cmp.classified_findings
+        end
+      rescue Baseline::IncompatibleError => error
+        resolved_baseline_path ||= Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override)
+        incomplete = Verification::Policy.incomplete_result(
+          analyzer_results: analyzer_results,
+          findings: findings,
+          operational_failures: [{ "code" => "failed", "message" => error.message }],
+          code: "baseline_incompatible",
+          message: error.message
+        )
+        enriched = GateResult.new(completion_status: incomplete.completion_status, gate: incomplete.gate, policy_status: incomplete.policy_status, findings: incomplete.findings, analyzer_results: incomplete.analyzer_results, operational_failures: incomplete.operational_failures, decision_reasons: incomplete.decision_reasons, baseline: { "loaded" => false, "path" => resolved_baseline_path, "compatible" => false }, comparison: nil)
+        return Outcome.new(result: enriched, context: context, configuration: configuration, findings: findings.freeze)
+      end
+
       result = Verification::Policy.evaluate(
         configuration: configuration,
         analyzer_results: analyzer_results,
-        findings: findings
+        findings: classified_findings,
+        comparison: comparison,
+        baseline_meta: baseline_meta
       )
-      Outcome.new(result: result, context: context, configuration: configuration, findings: findings.freeze)
+      if baseline_meta || comparison
+        result = GateResult.new(
+          completion_status: result.completion_status,
+          gate: result.gate,
+          policy_status: result.policy_status,
+          findings: result.findings,
+          analyzer_results: result.analyzer_results,
+          operational_failures: result.operational_failures,
+          decision_reasons: result.decision_reasons,
+          baseline: baseline_meta,
+          comparison: comparison
+        )
+      end
+      Outcome.new(result: result, context: context, configuration: configuration, findings: classified_findings.freeze)
     rescue ConfigurationError => error
       Outcome.new(
         result: Verification::Policy.incomplete_result(
