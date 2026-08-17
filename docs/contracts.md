@@ -42,9 +42,16 @@ validation must reject a line range whose `end_line` precedes `start_line`.
 
 `fingerprint` is an opaque deterministic identity over canonical evidence. The
 same semantic evidence must produce the same digest independent of ordering,
-display formatting, timestamps, process IDs, or absolute paths. Phase 1 may use
-a documented draft payload; Phase 3 owns the final payload, algorithm migration,
-collision vectors, and baseline compatibility rules.
+display formatting, line numbers, timestamps, process IDs, or absolute paths.
+Fingerprint v1 uses payload `https://railverdict.dev/fingerprint-payload/v1`
+with `fingerprint_version: 1`, `algorithm: sha256`, and canonical keys
+`{payload_schema, fingerprint_version, algorithm, analyzer, rule_id, path, message}`
+sorted and SHA-256 digested to `sha256:<64hex>` (`lib/rail_verdict/fingerprint.rb`).
+Phase 1 draft `v0.1` remains readable for migration divergence tests; new
+baselines must record v1. File rename, path change, or message change produces
+a different digest by design; fingerprints provide no AST or semantic identity,
+and SHA-256 collisions are not handled beyond intentional sharing of identical
+payloads. Incompatible fingerprint versions require explicit migration.
 
 `origin: ai` identifies an advisory observation produced by an AI path. It is
 not required evidence, cannot create a deterministic gate decision, and must be

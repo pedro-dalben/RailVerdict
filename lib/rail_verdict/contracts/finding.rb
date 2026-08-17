@@ -6,7 +6,8 @@ require "json"
 module RailVerdict
   class Finding
     SCHEMA_VERSION = "1.0"
-    FINGERPRINT_PAYLOAD_SCHEMA = "https://railverdict.dev/fingerprint-payload/v0.1"
+    FINGERPRINT_PAYLOAD_SCHEMA = "https://railverdict.dev/fingerprint-payload/v1"
+    LEGACY_FINGERPRINT_PAYLOAD_SCHEMA = "https://railverdict.dev/fingerprint-payload/v0.1"
     FINGERPRINT_PATTERN = /\Asha256:[0-9a-f]{64}\z/
     LOCATION_PATH_PATTERN = %r{
       \A
@@ -29,15 +30,7 @@ module RailVerdict
                 :confidence, :state, :evidence_ref, :location, :message
 
     def self.fingerprint_for(analyzer:, rule_id:, path:, message:)
-      payload = {
-        "payload_schema" => FINGERPRINT_PAYLOAD_SCHEMA,
-        "analyzer" => analyzer.to_s,
-        "message" => message.to_s,
-        "path" => path.to_s,
-        "rule_id" => rule_id.to_s
-      }
-      canonical = payload.keys.sort.to_h { |key| [key, payload.fetch(key)] }
-      "sha256:#{Digest::SHA256.hexdigest(JSON.generate(canonical))}"
+      Fingerprint.hexdigest(analyzer: analyzer, rule_id: rule_id, path: path, message: message)
     end
 
     def self.id_for(fingerprint)
