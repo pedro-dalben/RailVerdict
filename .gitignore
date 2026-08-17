@@ -4,3 +4,4 @@
 /.bundle/
 *.gem
 .commandcode/
+.railverdict/cache/ai/

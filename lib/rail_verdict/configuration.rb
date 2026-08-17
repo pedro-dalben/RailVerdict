@@ -5,8 +5,8 @@ require "digest"
 module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
-    CONFIGURATION_VERSION = 1.2
-    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3].freeze
+    CONFIGURATION_VERSION = 1.4
+    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3, 1.4].freeze
     UTF8_BOM = "\xEF\xBB\xBF".b
 
     attr_reader :version, :mode, :analyzers, :source_path, :digest
@@ -114,6 +114,34 @@ module RailVerdict
 
     def git_base
       @raw_data&.dig("git", "base")
+    end
+
+    def ai_config
+      @raw_data&.dig("ai")
+    end
+
+    def ai_enabled?
+      ai_config&.fetch("enabled", false) == true
+    end
+
+    def ai_mode
+      ai_config&.fetch("mode", "off")
+    end
+
+    def ai_remote_enabled?
+      ai_enabled? && ai_config&.dig("remote", "enabled") == true
+    end
+
+    def ai_remote_trust
+      ai_config&.dig("remote", "trust") || "redacted"
+    end
+
+    def ai_budgets
+      ai_config&.fetch("budgets", {}) || {}
+    end
+
+    def ai_cache_enabled?
+      ai_config&.dig("cache", "enabled") == true
     end
 
     private

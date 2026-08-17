@@ -185,6 +185,14 @@ human prose.
 These four exits are implemented by Phase 01. Later owning phases must preserve
 or explicitly migrate the contract before any 1.0 compatibility claim.
 
+## AIAnalysis Contract (Phase 06)
+
+`schemas/ai-analysis-v1.schema.json` v1.0 defines advisory `AIAnalysis` with `schema_version`, `finding_id`, `fingerprint`, `assessment` (`likely_cause`/`needs_investigation`/`uncertain`), `confidence` (`low`/`medium`/`high`), `summary`, optional `root_cause`, `suggested_fix`, `recommended_tests` (≤20), `evidence_notes` (≤10), and `provenance` (`provider`, `model`, `prompt_version`, `created_at`). `RailVerdict::Intelligence::AIFailure` codes include `disabled`, `provider_unavailable`, `authentication_failed`, `rate_limited`, `timed_out`, `budget_exhausted`, `context_rejected`, `secret_detected`, `response_invalid`, `schema_invalid`. Intelligence is advisory only and never changes `GateResult.gate`/`policy_status`.
+
+Configuration `schemas/configuration-v1.4.schema.json` adds optional top-level `ai` (`enabled`, `mode` `off`/`explain`/`investigate`, `provider`, `model`, `remote` {`enabled`, `trust` `redacted`/`full`}, `budgets` {`max_findings`, `max_requests`, `max_context_bytes`}, `cache` {`enabled`, `max_bytes`}). AI is off by default; remote requires explicit opt-in; `remote trust redacted` is default.
+
+CLI additions: `railverdict explain <finding-id|fingerprint> [--preview-context] [--config PATH] [--format console|json]` and `railverdict investigate [--limit N] [--preview-context]`. `--preview-context` prints the bounded manifest without network.
+
 ## Draft Compatibility Boundary
 
 The schema documents, examples, command names, options, ordering, streams, and

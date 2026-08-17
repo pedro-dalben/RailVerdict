@@ -22,6 +22,8 @@ module RailVerdict
         check            Run verification and print the gate result
         baseline create  Deferred boundary; Phase 3 owns baseline writes
         findings         Print normalized findings from the evidence run
+        explain          Explain a finding with optional AI
+        investigate      Investigate top findings with optional AI
 
       Global options:
         --help           Show this usage
@@ -53,6 +55,10 @@ module RailVerdict
         command_baseline(argv.drop(1))
       when "findings"
         command_findings(argv.drop(1))
+      when "explain"
+        command_explain(argv.drop(1))
+      when "investigate"
+        command_investigate(argv.drop(1))
       else
         @stderr.puts "railverdict: unknown command: #{command}"
         @stderr.puts USAGE
@@ -272,6 +278,118 @@ module RailVerdict
         lines << "#{name}: #{details['status']}#{details['version'] ? " (#{details['version']})" : ''}"
       end
       lines.join("\n") + "\n"
+    end
+
+    def command_explain(argv)
+      finding_ref = argv.first
+      raise RailVerdict::UsageError, "explain requires a finding id or fingerprint" unless finding_ref && !finding_ref.start_with?("-")
+
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", preview: false }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict explain <finding-id|fingerprint> [--config PATH] [--format console|json] [--preview-context]"
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--preview-context") { options[:preview] = true }
+      end
+      parse!(parser, argv.drop(1))
+      validate_format!(options[:format])
+
+      outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
+      return EXIT_INTERRUPTED if interrupted
+
+      if options[:preview]
+        return explain_preview(outcome, finding_ref, options[:format])
+      end
+
+      result = Intelligence::Orchestrator.explain(
+        outcome: outcome,
+        finding_ref: finding_ref,
+        configuration: outcome.configuration
+      )
+      render_intelligence(result, options[:format])
+      EXIT_OK
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict explain: #{e.message}"
+      EXIT_NO_GATE
+    rescue StandardError => e
+      @stderr.puts "railverdict explain: #{e.message}"
+      EXIT_NO_GATE
+    end
+
+    def command_investigate(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", preview: false, limit: 3 }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict investigate [--config PATH] [--format console|json] [--preview-context] [--limit N]"
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--preview-context") { options[:preview] = true }
+        opts.on("--limit N", Integer) { |v| options[:limit] = v }
+      end
+      parse!(parser, argv)
+      validate_format!(options[:format])
+
+      outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
+      return EXIT_INTERRUPTED if interrupted
+
+      if options[:preview]
+        findings = Intelligence::Budget.select_findings(outcome.findings || [], limit: [options[:limit], 3].min)
+        manifests = findings.map do |f|
+          Intelligence::ContextBuilder.build(outcome: outcome, finding_ref: f.id).to_json_hash rescue {}
+        end
+        if options[:format] == "json"
+          @stdout.write(JSON.generate({ "manifests" => manifests }) + "\n")
+        else
+          @stdout.puts "Preview: #{manifests.length} findings selected"
+          manifests.each { |m| @stdout.puts "  #{m['finding_id']} #{m['fingerprint']}" }
+        end
+        return EXIT_OK
+      end
+
+      results = Intelligence::Orchestrator.investigate(
+        outcome: outcome,
+        configuration: outcome.configuration,
+        limit: options[:limit]
+      )
+      results.each { |r| render_intelligence(r, options[:format]) }
+      EXIT_OK
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict investigate: #{e.message}"
+      EXIT_NO_GATE
+    rescue StandardError => e
+      @stderr.puts "railverdict investigate: #{e.message}"
+      EXIT_NO_GATE
+    end
+
+    def explain_preview(outcome, finding_ref, format)
+      manifest = Intelligence::ContextBuilder.build(outcome: outcome, finding_ref: finding_ref)
+      if format == "json"
+        @stdout.write(JSON.generate(manifest.to_json_hash) + "\n")
+      else
+        @stdout.puts "Finding: #{manifest.finding_id}"
+        @stdout.puts "Fingerprint: #{manifest.fingerprint}"
+        @stdout.puts "Snippets: #{manifest.snippets.length}"
+        manifest.snippets.each { |s| @stdout.puts "  #{s['path']}" }
+      end
+      EXIT_OK
+    rescue ArgumentError => e
+      @stderr.puts "railverdict explain: #{e.message}"
+      EXIT_NO_GATE
+    end
+
+    def render_intelligence(result, format)
+      if result[:failure]
+        if format == "json"
+          @stdout.write(JSON.generate({ "failure" => result[:failure].to_h }) + "\n")
+        else
+          @stdout.puts "Intelligence: #{result[:failure].code}: #{result[:failure].message}"
+        end
+      elsif result[:analysis]
+        if format == "json"
+          @stdout.write(JSON.generate(result[:analysis].to_h) + "\n")
+        else
+          @stdout.puts "Analysis: #{result[:analysis].summary} (confidence: #{result[:analysis].confidence})"
+        end
+      end
     end
 
     def not_implemented(command)

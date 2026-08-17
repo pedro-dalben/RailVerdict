@@ -1,0 +1,18 @@
+version: 1.4
+mode: strict
+analyzers:
+  rubocop:
+    enabled: true
+    required: true
+ai:
+  enabled: false
+  mode: "off"
+  remote:
+    enabled: false
+    trust: redacted
+  budgets:
+    max_findings: 3
+    max_requests: 3
+    max_context_bytes: 65536
+  cache:
+    enabled: false

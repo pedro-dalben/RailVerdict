@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/ai-analysis/v1.schema.json",
+  "title": "RailVerdict AIAnalysis v1",
+  "description": "Advisory, bounded AI explanation for a deterministic finding. Never gate authority.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "finding_id",
+    "fingerprint",
+    "assessment",
+    "confidence",
+    "summary",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "finding_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "assessment": { "enum": ["likely_cause", "needs_investigation", "uncertain"] },
+    "confidence": { "enum": ["low", "medium", "high"] },
+    "summary": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "root_cause": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "suggested_fix": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "recommended_tests": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "evidence_notes": {
+      "type": "array",
+      "maxItems": 10,
+      "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+    },
+    "provenance": { "$ref": "#/$defs/provenance" }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "required": ["provider", "model", "prompt_version", "created_at"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "model": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "prompt_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "created_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "const": "1.0" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}
