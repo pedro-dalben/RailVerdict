@@ -64,6 +64,21 @@
       "items": {
         "$ref": "#/$defs/decision_reason"
       }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": true,
+      "unevaluatedProperties": true
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": true,
+      "unevaluatedProperties": true
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": true,
+      "unevaluatedProperties": true
     }
   },
   "additionalProperties": false,

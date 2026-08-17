@@ -108,16 +108,20 @@ module RailVerdict
       return nil if value.nil?
 
       raise ArgumentError, "evidence_summary must be a Hash" unless value.is_a?(Hash)
-      raise ArgumentError, "evidence_summary is too large" if value.keys.length > 20
+      raise ArgumentError, "evidence_summary is too large" if value.keys.length > 30
 
       value.each do |key, entry|
         raise ArgumentError, "evidence_summary keys must be non-empty strings" unless key.is_a?(String) && !key.empty? && key.bytesize <= 128
-        unless entry.is_a?(Integer) || entry.is_a?(Float) || entry.is_a?(String) || entry.nil? || entry == true || entry == false
-          raise ArgumentError, "evidence_summary values must be primitives"
+        if entry.is_a?(Hash) || entry.is_a?(Array)
+          raise ArgumentError, "evidence_summary values must be primitives" unless key.start_with?("changed_") || key == "files"
+        else
+          unless entry.is_a?(Integer) || entry.is_a?(Float) || entry.is_a?(String) || entry.nil? || entry == true || entry == false
+            raise ArgumentError, "evidence_summary values must be primitives"
+          end
+          if entry.is_a?(String) && entry.bytesize > 4096
+            raise ArgumentError, "evidence_summary string values too large"
+          end
         end
-
-        entry.bytesize if entry.is_a?(String) && entry.bytesize > 4096
-        raise ArgumentError, "evidence_summary string values too large" if entry.is_a?(String) && entry.bytesize > 4096
       end
 
       value.dup.freeze

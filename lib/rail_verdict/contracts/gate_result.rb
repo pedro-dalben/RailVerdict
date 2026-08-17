@@ -15,7 +15,7 @@ module RailVerdict
                 :analyzer_results, :operational_failures, :decision_reasons
 
     def initialize(completion_status:, gate:, policy_status:, findings:, analyzer_results:,
-                   operational_failures:, decision_reasons:, baseline: nil, comparison: nil)
+                   operational_failures:, decision_reasons:, baseline: nil, comparison: nil, git: nil)
       @completion_status = require_member(completion_status, COMPLETION_STATUSES, "completion_status")
       @gate = require_member(gate, GATES, "gate")
       @policy_status = require_member(policy_status, POLICY_STATUSES, "policy_status")
@@ -25,6 +25,7 @@ module RailVerdict
       @decision_reasons = validate_decision_reasons(decision_reasons)
       @baseline = baseline ? baseline.dup.freeze : nil
       @comparison = comparison ? comparison.dup.freeze : nil
+      @git = git ? deep_freeze_git(git) : nil
       enforce_state_coupling
       freeze
     end
@@ -35,6 +36,10 @@ module RailVerdict
 
     def comparison
       @comparison
+    end
+
+    def git
+      @git
     end
 
     def complete?
@@ -58,8 +63,29 @@ module RailVerdict
       }
       result["baseline"] = @baseline if @baseline
       result["comparison"] = @comparison if @comparison
+      result["git"] = @git if @git
       result
     end
+
+    def deep_freeze_git(value)
+      case value
+      when Hash
+        value.each do |key, child|
+          key.freeze if key.is_a?(String)
+          deep_freeze_git(child)
+        end
+        value.freeze
+      when Array
+        value.each { |child| deep_freeze_git(child) }
+        value.freeze
+      when String
+        value.freeze
+      else
+        value
+      end
+      value
+    end
+    private :deep_freeze_git
 
     private
 

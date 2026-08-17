@@ -67,18 +67,57 @@ class TestCLISurface < Minitest::Test
     assert_includes stderr, "only `baseline create` exists"
   end
 
-  def test_check_changed_is_a_phase_4_deferral
-    exit_code, stdout, stderr = run_cli(["check", "--changed"])
-    assert_equal 2, exit_code
-    assert_empty stdout
-    assert_includes stderr, "Phase 4"
+  def test_check_changed_without_base_is_incomplete
+    with_tmpdir do |dir|
+      File.write(File.join(dir, ".railverdict.yml"), <<~YAML)
+        version: 1.3
+        mode: strict
+        analyzers:
+          rubocop:
+            enabled: true
+            required: false
+      YAML
+      exit_code, stdout, stderr = run_cli(["check", "--changed", "--format", "json"], working_directory: dir)
+      assert_equal 2, exit_code
+      assert_empty stderr
+      result = JSON.parse(stdout)
+      assert_equal "INCOMPLETE", result.fetch("gate")
+      assert_equal "not_evaluated", result.fetch("policy_status")
+      assert result.fetch("git")
+    end
   end
 
-  def test_check_base_is_a_phase_4_deferral
+  def test_check_base_without_changed_is_usage_error
     exit_code, stdout, stderr = run_cli(["check", "--base", "main"])
     assert_equal 2, exit_code
     assert_empty stdout
-    assert_includes stderr, "Phase 4"
+    assert_includes stderr, "--base requires --changed"
+  end
+
+  def test_check_changed_with_invalid_base_is_incomplete
+    with_tmpdir do |dir|
+      File.write(File.join(dir, ".railverdict.yml"), <<~YAML)
+        version: 1.3
+        mode: strict
+        analyzers:
+          rubocop:
+            enabled: true
+            required: false
+      YAML
+      Dir.chdir(dir) do
+        system("git init -b main -q 2>/dev/null")
+        system("git config user.email 't@t.com' 2>/dev/null")
+        system("git config user.name 'T' 2>/dev/null")
+        File.write(File.join(dir, "a.rb"), "x = 1\n")
+        system("git add . 2>/dev/null")
+        system("git commit -qm init 2>/dev/null")
+      end
+      exit_code, stdout, stderr = run_cli(["check", "--changed", "--base", "not-a-real-ref-xyz", "--format", "json"], working_directory: dir)
+      assert_equal 2, exit_code
+      assert_empty stderr
+      result = JSON.parse(stdout)
+      assert_equal "INCOMPLETE", result.fetch("gate")
+    end
   end
 
   def test_init_creates_refuses_and_forces_configuration

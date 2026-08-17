@@ -122,9 +122,8 @@ module RailVerdict
       end
       parse!(parser, argv)
       validate_format!(options[:format])
-      if options[:changed] || options[:base]
-        @stderr.puts "railverdict check: changed-scope verification (--changed/--base) is owned by Phase 4 and is not available in Phase 1."
-        return EXIT_NO_GATE
+      if options[:base] && !options[:changed]
+        raise RailVerdict::UsageError, "--base requires --changed"
       end
 
       outcome, interrupted = execute_check(options)
@@ -234,6 +233,8 @@ module RailVerdict
       execute_options[:baseline_path_override] = options[:baseline] if options.key?(:baseline) && options[:baseline]
       execute_options[:waiver_path_override] = options[:waiver] if options.key?(:waiver) && options[:waiver]
       execute_options[:baseline_path_override] = options[:output] if options.key?(:output) && options[:output]
+      execute_options[:changed] = options[:changed] if options.key?(:changed)
+      execute_options[:base] = options[:base] if options.key?(:base)
       outcome = Check.execute(**execute_options)
       [outcome, interrupted]
     ensure

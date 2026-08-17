@@ -1,0 +1,71 @@
+# RailVerdict — GitHub Actions pull-request gate
+# This workflow enforces the same deterministic local gate that
+# `railverdict check --changed --base <base>` produces.
+#
+# Security: see docs/github-actions.md for the fork-security model.
+# - Trigger: pull_request only (never pull_request_target)
+# - Permissions: contents:read (minimum)
+# - No secrets.* in the unprivileged verify job
+# - Fork code runs only in the unprivileged job, without publisher/remote-AI credentials
+name: RailVerdict
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Install RailVerdict
+        run: bundle install
+
+      - name: Run RailVerdict (changed scope)
+        run: |
+          bundle exec railverdict check --changed --base ${{ github.event.pull_request.base.sha }} --format json | tee result.json
+          echo "Exit code: $?"
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: railverdict-result
+          path: result.json
+          if-no-files-found: error
+
+      # Optional: annotate findings from the JSON result
+      # - name: Annotate findings
+      #   if: always()
+      #   run: |
+      #     bundle exec ruby -r rail_verdict -e '
+      #       require "json"
+      #       doc = JSON.parse(File.read("result.json"))
+      #       result = RailVerdict::GateResult.new(
+      #         completion_status: doc["completion_status"],
+      #         gate: doc["gate"],
+      #         policy_status: doc["policy_status"],
+      #         findings: doc["findings"],
+      #         analyzer_results: doc["analyzer_results"].map { |h| RailVerdict::AnalyzerResult.new(analyzer: h["analyzer"], invocation: h["invocation"], execution_status: h["execution_status"], finding_ids: h["finding_ids"], tool_version: h["tool_version"], failure: h["failure"], evidence_summary: h["evidence_summary"]) },
+      #         operational_failures: doc["operational_failures"],
+      #         decision_reasons: doc["decision_reasons"]
+      #       )
+      #       findings = JSON.parse(File.read("result.json"))["findings"].map { |f| f.merge(JSON.parse(File.read("result.json"))["findings"].find{|x| x["id"]==f["id"]} || {}) }
+      #       puts RailVerdict::Reporters::GitHubAnnotations.render(result)
+      #     ' >> "$GITHUB_STEP_SUMMARY"
+      #   '

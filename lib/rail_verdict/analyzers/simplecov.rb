@@ -94,7 +94,8 @@ module RailVerdict
           "percent" => executable == 0 ? 100.0 : ((covered.to_f / executable) * 100).round(2),
           "stale" => stale,
           "freshness_window_seconds" => Integer(freshness_window),
-          "coverage_path" => coverage_path.to_s[0, 512]
+          "coverage_path" => coverage_path.to_s[0, 512],
+          "files" => document["files"]
         }
 
         result = AnalyzerResult.new(

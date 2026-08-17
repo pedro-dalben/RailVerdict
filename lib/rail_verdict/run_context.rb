@@ -13,9 +13,9 @@ module RailVerdict
 
     attr_reader :repository_root, :revision, :ruby_version, :target_ruby_version,
                 :rails_version, :analyzers, :analyzer_versions, :configuration_mode,
-                :configuration_digest, :deterministic_inputs
+                :configuration_digest, :deterministic_inputs, :git_context
 
-    def self.build(repository_root:, configuration:, analyzer_versions:, revision_resolver: nil)
+    def self.build(repository_root:, configuration:, analyzer_versions:, revision_resolver: nil, git_context: nil)
       root =
         begin
           File.realpath(repository_root)
@@ -37,7 +37,8 @@ module RailVerdict
         analyzer_versions: analyzer_versions,
         configuration_mode: configuration.mode,
         configuration_digest: configuration.digest,
-        deterministic_inputs: DETERMINISTIC_INPUTS
+        deterministic_inputs: DETERMINISTIC_INPUTS,
+        git_context: git_context
       )
     end
 
@@ -55,7 +56,7 @@ module RailVerdict
 
     def initialize(repository_root:, revision:, ruby_version:, target_ruby_version:, rails_version:,
                    analyzers:, analyzer_versions:, configuration_mode:, configuration_digest:,
-                   deterministic_inputs:)
+                   deterministic_inputs:, git_context: nil)
       @repository_root = repository_root.dup.freeze
       @revision = revision && revision.dup.freeze
       @ruby_version = ruby_version.dup.freeze
@@ -66,7 +67,12 @@ module RailVerdict
       @configuration_mode = configuration_mode.dup.freeze
       @configuration_digest = configuration_digest.dup.freeze
       @deterministic_inputs = deep_freeze(deterministic_inputs.dup)
+      @git_context = git_context
       freeze
+    end
+
+    def changed?
+      !@git_context.nil?
     end
 
     private

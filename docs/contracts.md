@@ -138,15 +138,15 @@ Every command and option below is implemented or explicitly deferred by Phase
 |---|---|---|---|
 | `railverdict init` | `--config PATH`, `--force` | May write the explicitly requested configuration; overwrite requires explicit `--force` | Implemented in Phase 01 |
 | `railverdict doctor` | `--config PATH`, `--format console\|json` | Read-only observation; never installs or mutates tools | Implemented in Phase 01 |
-| `railverdict check` | `--config PATH`, `--format console\|json`, `--changed`, `--base REV`, `--baseline PATH`, `--waiver PATH` | Read-only verification; never creates or updates a baseline; baseline/waiver discovered via explicit path, config, or default; changed scope deferred to Phase 4 | Implemented in Phase 03 |
+| `railverdict check` | `--config PATH`, `--format console\|json`, `--changed`, `--base REV`, `--baseline PATH`, `--waiver PATH` | Read-only verification; never creates or updates a baseline; baseline/waiver discovered via explicit path, config, or default; `--changed` enforces Git changed scope (`--base` > `git.base` > INCOMPLETE), `RunContext` records `git: {head,base,merge_base,changed_files,changed_line_set}` and `changed_line_coverage` via `ChangedLineEvaluator` | Implemented in Phase 04 |
 | `railverdict baseline create` | `--config PATH`, `--output PATH`, `--format console\|json`, `--force` | Atomic baseline write from complete trusted run only; refuses incomplete and refuses silent overwrite; interrupted write leaves old baseline intact | Implemented in Phase 03 |
 | `railverdict findings` | `--config PATH`, `--format console\|json` | Read-only projection of normalized findings | Implemented in Phase 01 |
 
 The global options `--help` and `--version` are implemented in Phase 01.
-Production ownership of `railverdict check --changed` and `--base REV` belongs
-to Phase 4; their appearance here does not claim working Git scope in Phase 1.
-No draft command or option authorizes arbitrary command execution or adds an
-autofix, hosted-platform, or optional-intelligence implementation.
+Phase 04 owns production `railverdict check --changed` and `--base REV` with
+deterministic Git scope, fail-closed base resolution, and reporters in
+`docs/github-actions.md`. No command authorizes arbitrary execution or
+autofix.
 
 ### Draft deterministic ordering
 

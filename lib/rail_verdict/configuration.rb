@@ -6,7 +6,7 @@ module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
     CONFIGURATION_VERSION = 1.2
-    SUPPORTED_VERSIONS = [1, 1.1, 1.2].freeze
+    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3].freeze
     UTF8_BOM = "\xEF\xBB\xBF".b
 
     attr_reader :version, :mode, :analyzers, :source_path, :digest
@@ -110,6 +110,10 @@ module RailVerdict
 
     def waivers_path
       @raw_data&.dig("waivers", "path")
+    end
+
+    def git_base
+      @raw_data&.dig("git", "base")
     end
 
     private

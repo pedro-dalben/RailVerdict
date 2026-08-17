@@ -6,7 +6,7 @@ module RailVerdict
   class Comparison
     Result = Struct.new(:existing, :introduced, :resolved, :changed, :moved, :counts, :classified_findings, :orphaned_waivers, keyword_init: true)
 
-    def self.classify(findings:, baseline:, waivers: [], clock: Time.now.utc)
+    def self.classify(findings:, baseline:, waivers: [], clock: Time.now.utc, rename_map: nil)
       findings = findings.sort_by(&:sort_key)
       if baseline.nil?
         introduced = findings.map { |finding| restate(finding, "introduced") }
@@ -42,7 +42,7 @@ module RailVerdict
       introduced_candidates = introduced_fps.map { |fingerprint| current_by_fp.fetch(fingerprint) }.sort_by(&:sort_key)
 
       resolved_by_key = build_resolved_index(resolved_entries)
-      changed, moved, introduced = partition_introduced(introduced_candidates, resolved_by_key, resolved_entries)
+      changed, moved, introduced = partition_introduced(introduced_candidates, resolved_by_key, resolved_entries, rename_map: rename_map)
       resolved = resolved_entries.map { |entry| { "fingerprint" => entry.fetch("fingerprint"), "analyzer" => entry.fetch("analyzer"), "rule_id" => entry.fetch("rule_id"), "path" => entry.fetch("path"), "message" => entry.fetch("message"), "state" => "resolved" } }
       if changed.any? || moved.any?
         consumed_fps = Set.new((changed + moved).flat_map { |pair| [pair[:resolved].fetch("fingerprint")] })
@@ -118,7 +118,7 @@ module RailVerdict
     end
     private_class_method :build_resolved_index
 
-    def self.partition_introduced(candidates, resolved_by_key, resolved_entries)
+    def self.partition_introduced(candidates, resolved_by_key, resolved_entries, rename_map: nil)
       changed = []
       moved = []
       introduced = []
@@ -129,10 +129,36 @@ module RailVerdict
         if exact_matches.length == 1
           resolved_entry = exact_matches.first
           if resolved_entry.fetch("path") != finding.location.fetch("path")
+            if rename_map
+              new_path = finding.location.fetch("path")
+              expected_old = rename_map[new_path]
+              if expected_old && resolved_entry.fetch("path") == expected_old
+                moved << { finding: restate(finding, "moved"), resolved: resolved_entry }
+                consumed_resolved.add(resolved_entry.fetch("fingerprint"))
+                next
+              elsif expected_old && resolved_entry.fetch("path") != expected_old
+                introduced << restate(finding, "introduced")
+                next
+              end
+            end
             moved << { finding: restate(finding, "moved"), resolved: resolved_entry }
             consumed_resolved.add(resolved_entry.fetch("fingerprint"))
             next
           end
+        elsif rename_map && exact_matches.length > 1
+          new_path = finding.location.fetch("path")
+          expected_old = rename_map[new_path]
+          if expected_old
+            filtered = exact_matches.select { |entry| entry.fetch("path") == expected_old }
+            if filtered.length == 1
+              resolved_entry = filtered.first
+              moved << { finding: restate(finding, "moved"), resolved: resolved_entry }
+              consumed_resolved.add(resolved_entry.fetch("fingerprint"))
+              next
+            end
+          end
+          introduced << restate(finding, "introduced")
+          next
         end
         same_path_key = resolved_entries.select { |entry| entry.fetch("path") == finding.location.fetch("path") && entry.fetch("analyzer") == finding.analyzer && entry.fetch("rule_id") == finding.rule_id }
         same_path_unconsumed = same_path_key.reject { |entry| consumed_resolved.include?(entry.fetch("fingerprint")) }

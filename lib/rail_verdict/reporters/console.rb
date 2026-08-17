@@ -63,6 +63,20 @@ module RailVerdict
             counts["changed"] || 0, counts["moved"] || 0, counts["waived"] || 0)
         end
 
+        if result.git
+          git = result.git
+          if git["error"]
+            lines << ""
+            lines << "Git: error #{sanitize(git.fetch('error'))}: #{sanitize(git.fetch('error_message', ''))}"
+          else
+            changed_count = (git["changed_files"] || []).length
+            lines << ""
+            lines << format("Git: head %s base %s merge-base %s (%d changed files)",
+              sanitize(git["head"].to_s[0, 7]), sanitize(git["base"].to_s[0, 7]), sanitize(git["merge_base"].to_s[0, 7]), changed_count)
+            lines << "Scope: changed" if git["head"] && git["merge_base"]
+          end
+        end
+
         lines << ""
         lines << "Gate: #{result.gate}"
         lines << "Policy: #{result.policy_status}"
