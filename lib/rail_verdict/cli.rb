@@ -10,7 +10,7 @@ module RailVerdict
     EXIT_NO_GATE = 2
     EXIT_INTERRUPTED = 130
 
-    FORMATS = %w[console json].freeze
+    FORMATS = %w[console json sarif].freeze
     DEFAULT_CONFIG_PATH = ".railverdict.yml"
 
     USAGE = <<~USAGE
@@ -124,7 +124,7 @@ module RailVerdict
     def command_check(argv)
       options = { config: DEFAULT_CONFIG_PATH, format: "console", changed: false, base: nil, baseline: nil, waiver: nil }
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: railverdict check [--config PATH] [--format console|json] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.banner = "Usage: railverdict check [--config PATH] [--format console|json|sarif] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]"
         opts.on("--config PATH", String) { |value| options[:config] = value }
         opts.on("--format FORMAT", String) { |value| options[:format] = value }
         opts.on("--changed") { options[:changed] = true }
@@ -228,7 +228,7 @@ module RailVerdict
     def validate_format!(format)
       return if FORMATS.include?(format)
 
-      raise RailVerdict::UsageError, "invalid --format #{format.inspect}; expected console or json"
+      raise RailVerdict::UsageError, "invalid --format #{format.inspect}; expected console, json or sarif"
     end
 
     def execute_check(options)
@@ -256,6 +256,8 @@ module RailVerdict
     def render_result(result, format)
       rendered = if format == "json"
         Reporters::JsonReporter.render(result)
+      elsif format == "sarif"
+        Reporters::Sarif.render_json(result)
       else
         Reporters::Console.render(result)
       end

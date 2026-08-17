@@ -30,8 +30,7 @@ To adopt it, copy `examples/github/railverdict.yml` to
 ## Artifacts
 
 * `result.json` — the versioned machine result (`result-v1`) for agents.
-* A future `--format sarif` reporter can emit `result.sarif` for
-  `github/codeql-action/upload-sarif` without duplicating verification.
+* `railverdict check --format sarif` emits `result.sarif` (`version: 2.1.0`, `tool.driver.name: RailVerdict`) for `github/codeql-action/upload-sarif` without duplicating verification. Example: `bundle exec railverdict check --format sarif > result.sarif`.
 
 Both artifacts are projections of the same `GateResult`; no second gate engine
 is introduced.

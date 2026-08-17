@@ -51,6 +51,17 @@ class TestCLISurface < Minitest::Test
     assert_includes stderr, "invalid --format"
   end
 
+  def test_check_sarif_is_single_sarif_document
+    root = File.join(RailVerdictTestHelpers::REPOSITORY_ROOT, "test", "fixtures", "rails_offense")
+    exit_code, stdout, stderr = run_cli(["check", "--format", "sarif"], working_directory: root)
+    assert_equal 1, exit_code
+    assert_empty stderr
+    assert_equal "\n", stdout[-1]
+    parsed = JSON.parse(stdout)
+    assert_equal "2.1.0", parsed.fetch("version")
+    assert_equal "RailVerdict", parsed.fetch("runs").first.fetch("tool").fetch("driver").fetch("name")
+  end
+
   def test_baseline_create_is_a_pure_deferral_boundary
     with_tmpdir do |dir|
       exit_code, stdout, stderr = run_cli(["baseline", "create", "--config", ".railverdict.yml", "--output", "baseline.json"], working_directory: dir)
