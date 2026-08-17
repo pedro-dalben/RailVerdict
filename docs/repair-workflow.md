@@ -38,4 +38,4 @@ No auto-edit, no permission escalation, no shell interpolation (argv form). Boun
 
 ## MCP
 
-Phase 08 will expose same packet via MCP. No MCP in Phase 07.
+Phase 08 exposes the same packet via MCP: `build_repair_packet` returns the same `RepairPacket v1` validated by `repair-packet-v1.schema.json`, and `verify_repair` classifies `fixed|still_present|changed|moved|regressed|incomplete` with `verification_boundary_changed`. See `docs/mcp.md`.

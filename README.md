@@ -157,7 +157,11 @@ Strict, versioned schemas: `configuration-v1` … `v1.3`, `finding-v1`, `result-
 | Baselines, comparison, waivers | [`docs/baselines.md`](docs/baselines.md) |
 | GitHub Actions & SARIF | [`docs/github-actions.md`](docs/github-actions.md) |
 | Rails-aware context | [`docs/rails-context.md`](docs/rails-context.md) |
+| MCP (agents) | [`docs/mcp.md`](docs/mcp.md) · [`examples/mcp/client_config.json`](examples/mcp/client_config.json) |
+| AI & privacy | [`docs/ai.md`](docs/ai.md) · [`docs/privacy.md`](docs/privacy.md) |
+| Repair workflow | [`docs/repair-workflow.md`](docs/repair-workflow.md) |
 | Security & information firewall | [`SECURITY.md`](SECURITY.md) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
 | Roadmap (Phase 0–9) | [`ROADMAP.md`](ROADMAP.md) |
 | ADRs | [`docs/adr/`](docs/adr/) |
 
