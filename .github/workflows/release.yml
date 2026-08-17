@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      gem-sha: ${{ steps.checksum.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Validate foundations
+        run: bundle exec ruby script/validate-foundation
+      - name: Run tests
+        run: bundle exec rake test
+      - name: Build gem once
+        run: gem build rail_verdict.gemspec
+      - name: Tag/version consistency
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          GEM_VERSION="$(ruby -r ./lib/rail_verdict/version -e 'puts RailVerdict::VERSION')"
+          test "$TAG" = "$GEM_VERSION" || { echo "Tag v$TAG != gem version $GEM_VERSION"; exit 1; }
+      - id: checksum
+        name: Checksum artifact
+        run: |
+          SHA="$(sha256sum rail_verdict-*.gem | awk '{print $1}')"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA"
+          echo "Revision: $(git rev-parse HEAD)"
+      - name: Verify package contents
+        run: |
+          gem spec rail_verdict-*.gem files | tr ',' '\n' | grep -q "exe/railverdict-minitest-reporter.rb"
+          gem spec rail_verdict-*.gem files | tr ',' '\n' | grep -q "lib/rail_verdict/mcp/server.rb"
+      - name: Install and smoke test exact artifact
+        run: |
+          gem install ./rail_verdict-*.gem --no-document
+          railverdict --version
+          railverdict --help | head -n 20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rail-verdict-gem
+          path: rail_verdict-*.gem
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Trusted Publishing via OIDC — no GEM_HOST_API_KEY
+    # Configure at https://rubygems.org/gems/rail_verdict/trusted_publishers
+    # This job is intentionally dry-run safe: it requires the protected environment
+    # and will only publish when explicitly approved.
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: rail-verdict-gem
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: false
+      - name: Verify checksum matches build
+        run: sha256sum rail_verdict-*.gem
+      - name: Publish to RubyGems (Trusted Publishing)
+        uses: rubygems/release-gem@v1
+        with:
+          dry-run: ${{ vars.RELEASE_DRY_RUN != 'false' }}
