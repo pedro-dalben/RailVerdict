@@ -4,7 +4,7 @@ This policy addresses use of the RailVerdict project identity. It does not claim
 
 ## Software Rights Are Unchanged
 
-The [MIT License](LICENSE) governs the software. This policy is not a license condition and does not limit personal or commercial use, use in proprietary or open-source projects, internal use, integration, modification, forks, redistribution, consulting, resale, or any other software right granted by the MIT License.
+The [MIT License](LICENSE) governs the software. This policy is not a software-license condition and does not limit personal or commercial use, use in proprietary or open-source projects, internal use, integration, modification, forks, redistribution, consulting, resale, or any other software right granted by the MIT License.
 
 ## Accurate References
 

@@ -32,7 +32,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Success Criteria** (what must be TRUE):
 
   1. Maintainers can review dated package, repository, domain, product-collision, and preliminary trademark evidence for RailVerdict and see that publication stays blocked until the documented launch-jurisdiction and qualified trademark reviews are cleared.
-  2. Contributors can use one identity mapping for RailVerdict, `rail_verdict`, `RailVerdict`, `railverdict`, `.railverdict.yml`, repository identity, and schema namespace, with Apache-2.0 rights separated from trademark rules.
+  2. Contributors can use one identity mapping for RailVerdict, `rail_verdict`, `RailVerdict`, `railverdict`, `.railverdict.yml`, repository identity, and schema namespace, with MIT rights separated from trademark rules.
   3. Maintainers can inspect a dated analyzer registry and support proposal that document licenses, commercial-use considerations, installation, output, bundling, and version policy; Brakeman is absent from the committed adapter shortlist until a written product/legal decision approves it.
   4. Contributors can understand the deterministic-first product, four one-way layers, fifteen foundation ADRs, threat model, synthetic-only information firewall, English-only policy, and minimal one-gem structure from the repository documents.
   5. Adapter and automation authors can validate the draft Finding and configuration schemas, understand unknown-field behavior and the proposed CLI/stdout/stderr/exit contracts, and trace all 85 v1 requirements through this Phase 0–9 roadmap.

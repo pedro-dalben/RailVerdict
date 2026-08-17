@@ -77,7 +77,7 @@ This differentiation is a project inference and design decision, not a verified 
 - External analyzers remain installed and versioned by the target project.
 - Remote AI, if later implemented, is explicit opt-in, inspectable, minimized, secret-scanned, and fail-closed.
 - Public examples are synthetic, and complete provenance review blocks first publication.
-- Apache-2.0 software rights remain separate from trademark presentation rules.
+- MIT software rights remain separate from trademark presentation rules.
 
 ## Status
 

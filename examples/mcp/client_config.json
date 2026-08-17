@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "railverdict": {
+      "command": "bundle",
+      "args": ["exec", "railverdict", "mcp", "serve", "--repository-root", "."],
+      "description": "RailVerdict stdio MCP adapter — read-only verifier. Use verify -> list_findings -> get_finding -> build_repair_packet -> external edit -> verify_repair."
+    }
+  }
+}

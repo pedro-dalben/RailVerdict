@@ -34,9 +34,9 @@ The complete deterministic gate must work in the repository without an account, 
 
 ## Fully Open Source
 
-RailVerdict uses Apache License 2.0 and keeps the core available without paid or commercial-only tiers.
+RailVerdict uses the MIT License and keeps the core available without paid or commercial-only tiers.
 
-**Practical boundary:** trademark presentation rules cannot narrow software rights to use, modify, fork, redistribute, integrate, or sell services around the software. See [ADR 0014](docs/adr/0014-apache-2-license.md), [ADR 0015](docs/adr/0015-separate-trademark-policy.md), [LICENSE](LICENSE), and [TRADEMARKS.md](TRADEMARKS.md).
+**Practical boundary:** trademark presentation rules cannot narrow software rights to use, modify, fork, redistribute, integrate, or sell services around the software. See [ADR 0014](docs/adr/0014-apache-2-license.md) (historical Apache-2.0 decision superseded by MIT), [ADR 0015](docs/adr/0015-separate-trademark-policy.md), [LICENSE](LICENSE), and [TRADEMARKS.md](TRADEMARKS.md).
 
 ## AI Optional and Advisory
 

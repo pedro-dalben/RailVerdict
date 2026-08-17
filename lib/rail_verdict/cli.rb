@@ -25,6 +25,7 @@ module RailVerdict
         explain          Explain a finding with optional AI
         investigate      Investigate top findings with optional AI
         repair           Build a deterministic repair packet for a finding
+        mcp              MCP adapter (serve)
 
       Global options:
         --help           Show this usage
@@ -62,6 +63,8 @@ module RailVerdict
         command_investigate(argv.drop(1))
       when "repair"
         command_repair(argv.drop(1))
+      when "mcp"
+        command_mcp(argv.drop(1))
       else
         @stderr.puts "railverdict: unknown command: #{command}"
         @stderr.puts USAGE
@@ -430,6 +433,28 @@ module RailVerdict
       code
     rescue RailVerdict::UsageError => e
       @stderr.puts "railverdict repair: #{e.message}"
+      EXIT_NO_GATE
+    end
+
+    def command_mcp(argv)
+      sub = argv.first
+      raise RailVerdict::UsageError, "mcp requires subcommand: serve" unless sub == "serve"
+
+      options = { repository_root: @working_directory }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict mcp serve [--repository-root PATH]"
+        opts.on("--repository-root PATH", String) { |v| options[:repository_root] = v }
+      end
+      parse!(parser, argv.drop(1))
+      require_relative "mcp"
+      server = RailVerdict::MCP::Server.new(repository_root: options[:repository_root])
+      server.serve
+      EXIT_OK
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict mcp: #{e.message}"
+      EXIT_NO_GATE
+    rescue StandardError => e
+      @stderr.puts "railverdict mcp: #{e.message}"
       EXIT_NO_GATE
     end
 

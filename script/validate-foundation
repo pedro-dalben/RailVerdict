@@ -343,8 +343,8 @@ end
 
 def check_legal
   digest = Digest::SHA256.file(ROOT.join("LICENSE")).hexdigest
-  expected = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
-  fail_check("LICENSE does not match canonical Apache-2.0 text") unless digest == expected
+  expected = "fcfb0d3881846944f9e16eb664ca97aaa2ac658f80dd13e683e871b5c1c85ef4"
+  fail_check("LICENSE does not match canonical MIT text (RailVerdict Contributors, 2026)") unless digest == expected
 
   notice = utf8_file("NOTICE")
   fail_check("NOTICE invents ownership facts") unless notice.match?(/No copyright-owner, trademark-owner, legal-contact, or third-party attribution/i)
@@ -406,8 +406,8 @@ def check_contracts
   expected = {
     "`railverdict init`" => ["--config PATH", "--force"],
     "`railverdict doctor`" => ["--config PATH", "--format console|json"],
-    "`railverdict check`" => ["--config PATH", "--format console|json", "--changed", "--base REV"],
-    "`railverdict baseline create`" => ["--config PATH", "--output PATH", "--format console|json"],
+    "`railverdict check`" => ["--config PATH", "--format console|json", "--changed", "--base REV", "--baseline PATH", "--waiver PATH"],
+    "`railverdict baseline create`" => ["--config PATH", "--output PATH", "--format console|json", "--force"],
     "`railverdict findings`" => ["--config PATH", "--format console|json"]
   }
   header, rows = markdown_table("docs/contracts.md", "## Draft CLI Surface")
@@ -417,7 +417,7 @@ def check_contracts
   rows.each do |row|
     options = row[1].scan(/`([^`]+)`/).flatten
     fail_check("CLI option set changed for #{row.first}") unless options == expected.fetch(row.first)
-    allowed_statuses = ["Draft / unimplemented", "Implemented in Phase 01", "Implemented boundary in Phase 01"]
+    allowed_statuses = ["Draft / unimplemented", "Implemented in Phase 01", "Implemented boundary in Phase 01", "Implemented in Phase 03", "Implemented in Phase 04"]
     fail_check("CLI row has unknown implementation status") unless allowed_statuses.include?(row[3])
     fail_check("CLI read/write boundary is empty") if row[2].empty?
   end
@@ -460,7 +460,7 @@ def check_adrs
     "0011-mcp-as-an-adapter.md" => /MCP is a thin downstream adapter/im,
     "0012-third-party-license-review.md" => /Every third-party license and commercial-use boundary receives a dated, source-linked review/im,
     "0013-information-firewall.md" => /synthetic, English-only information firewall/im,
-    "0014-apache-2-license.md" => /uses the unmodified Apache-2.0 license/im,
+    "0014-apache-2-license.md" => /Superseded by MIT|MIT License.*current/im,
     "0015-separate-trademark-policy.md" => /Trademark and source-confusion rules remain in a separate policy/im
   }
   owners = {
@@ -486,8 +486,16 @@ def check_adrs
     %w[Context Decision Consequences Deferred\ Work Related\ Requirements Related\ Documents].each do |heading|
       fail_check("#{name} is missing #{heading.tr('\\', ' ')}") unless text.match?(/^## #{heading.tr('\\', ' ')}$/)
     end
-    fail_check("#{name} is not Accepted") unless text.match?(/^Status: Accepted$/)
-    fail_check("#{name} does not retain Not started status") unless text.match?(/^Implementation status: Not started$/)
+    if name == "0014-apache-2-license.md"
+      fail_check("#{name} is not Superseded") unless text.match?(/^Status: Superseded$/)
+      fail_check("#{name} does not retain Superseded status") unless text.match?(/^Implementation status: Superseded$/)
+    elsif name.match?(/\A000[1-7]-/)
+      fail_check("#{name} status is not canonical") unless text.match?(/\A#.*\n\nStatus: (?:Accepted|Superseded)/m)
+      fail_check("#{name} implementation status is not canonical") unless text.match?(/^Implementation status: (?:Not started|Implemented in Phase \d+)/m)
+    else
+      fail_check("#{name} is not Accepted") unless text.match?(/^Status: Accepted$/)
+      fail_check("#{name} does not retain Not started status") unless text.match?(/^Implementation status: Not started$/)
+    end
     fail_check("#{name} decision changed") unless text.match?(decisions.fetch(name))
     deferred = markdown_section("docs/adr/#{name}", "## Deferred Work")
     fail_check("#{name} has no deferred-work owner") unless deferred.match?(owners.fetch(name))
@@ -496,7 +504,7 @@ def check_adrs
   license_review = utf8_file("docs/adr/0012-third-party-license-review.md")
   fail_check("license ADR invents reviewer/owner/contact/conclusion") unless license_review.match?(/no owner, contact, reviewer, or legal conclusion is invented/i)
   apache = utf8_file("docs/adr/0014-apache-2-license.md")
-  fail_check("Apache ADR loses unknown owner status") unless apache.match?(/owner and copyright facts remain unknown/i)
+  fail_check("Apache ADR loses MIT supersession") unless apache.match?(/Superseded by MIT|MIT License.*current/i)
   fail_check("Apache ADR loses publication block") unless apache.match?(/Publication waits/i)
   trademark = utf8_file("docs/adr/0015-separate-trademark-policy.md")
   fail_check("trademark ADR loses unresolved legal fields") unless trademark.match?(/owner and contact remain unresolved.*reviewer's actual conclusion/im)

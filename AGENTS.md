@@ -13,7 +13,7 @@ Phase 0 rejected the working name LineClear after finding avoidable software, Gi
 ### Constraints
 
 - **Language**: Repository content is English-only except explicit internationalization fixtures — public contracts and collaboration must not mix languages.
-- **License**: Apache License 2.0 with separate NOTICE and trademark policy — no custom source-availability restrictions.
+- **License**: MIT with separate NOTICE and trademark policy — no custom source-availability restrictions.
 - **Architecture**: Deterministic evidence and policy own the default gate — AI cannot reinterpret objective failures.
 - **Adoption**: Existing debt can enter a versioned baseline; new changes cannot silently worsen it — no-new-debt is the recommended mode.
 - **Execution**: Core behavior works offline and invokes external tools with argument arrays, bounded I/O, timeouts, and explicit failures.
