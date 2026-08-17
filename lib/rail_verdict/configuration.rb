@@ -5,8 +5,8 @@ require "digest"
 module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
-    CONFIGURATION_VERSION = 1.1
-    SUPPORTED_VERSIONS = [1, 1.1].freeze
+    CONFIGURATION_VERSION = 1.2
+    SUPPORTED_VERSIONS = [1, 1.1, 1.2].freeze
     UTF8_BOM = "\xEF\xBB\xBF".b
 
     attr_reader :version, :mode, :analyzers, :source_path, :digest
@@ -79,6 +79,7 @@ module RailVerdict
       @version = data.fetch("version")
       @mode = data.fetch("mode").freeze
       @analyzers = deep_freeze(data.fetch("analyzers"))
+      @raw_data = deep_freeze(data.dup)
       @source_path = source_path.dup.freeze
       @digest = Digest::SHA256.hexdigest(bytes).freeze
       freeze
@@ -101,6 +102,14 @@ module RailVerdict
 
     def analyzer_present?(name)
       @analyzers.key?(name)
+    end
+
+    def baseline_path
+      @raw_data&.dig("baseline", "path")
+    end
+
+    def waivers_path
+      @raw_data&.dig("waivers", "path")
     end
 
     private

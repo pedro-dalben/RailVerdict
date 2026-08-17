@@ -56,8 +56,7 @@ class TestCLISurface < Minitest::Test
       exit_code, stdout, stderr = run_cli(["baseline", "create", "--config", ".railverdict.yml", "--output", "baseline.json"], working_directory: dir)
       assert_equal 2, exit_code
       assert_empty stdout
-      assert_includes stderr, "baseline persistence is not implemented in Phase 1"
-      assert_includes stderr, "Phase 3"
+      assert_includes stderr, "refusing to create baseline"
       assert_empty Dir.children(dir)
     end
   end

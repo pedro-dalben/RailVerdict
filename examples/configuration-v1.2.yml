@@ -1,0 +1,10 @@
+version: 1.2
+mode: no_new_debt
+analyzers:
+  rubocop:
+    enabled: true
+    required: true
+baseline:
+  path: .railverdict-baseline.json
+waivers:
+  path: .railverdict-waivers.json

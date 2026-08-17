@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/baseline/v1.schema.json",
+  "title": "RailVerdict Baseline v1",
+  "description": "Versioned baseline of reviewed finding fingerprints with minimal reproducibility metadata. No source, secrets, logs, or prompts.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "fingerprint_version",
+    "algorithm",
+    "payload_schema",
+    "created_at",
+    "created_by",
+    "configuration_digest",
+    "analyzer_versions",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "fingerprint_version": {
+      "const": 1
+    },
+    "algorithm": {
+      "const": "sha256"
+    },
+    "payload_schema": {
+      "const": "https://railverdict.dev/fingerprint-payload/v1"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "created_by": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "configuration_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "analyzer_versions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "unevaluatedProperties": false
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": [
+        "fingerprint",
+        "analyzer",
+        "rule_id",
+        "path",
+        "message",
+        "first_seen"
+      ],
+      "properties": {
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "analyzer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "rule_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "pattern": "^(?!/)(?!.*\\\\)(?!.*//)(?!(?:\\.{1,2})(?:/|$))(?!.*\\/(?:\\.{1,2})(?:/|$))[^\\u0000-\\u001f/]+(?:/[^\\u0000-\\u001f/]+)*$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "first_seen": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/configuration/v1.2.schema.json",
+  "title": "RailVerdict Parsed Configuration v1.2",
+  "description": "Versioned contract for .railverdict.yml with baseline and waivers paths.",
+  "type": "object",
+  "required": [
+    "version",
+    "mode",
+    "analyzers"
+  ],
+  "properties": {
+    "version": {
+      "const": 1.2
+    },
+    "mode": {
+      "enum": [
+        "advisory",
+        "no_new_debt",
+        "strict"
+      ]
+    },
+    "analyzers": {
+      "$ref": "#/$defs/analyzers"
+    },
+    "baseline": {
+      "$ref": "#/$defs/baselineConfig"
+    },
+    "waivers": {
+      "$ref": "#/$defs/waiversConfig"
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "analyzers": {
+      "type": "object",
+      "required": [
+        "rubocop"
+      ],
+      "properties": {
+        "rubocop": {
+          "$ref": "#/$defs/analyzerSelection"
+        },
+        "minitest": {
+          "$ref": "#/$defs/analyzerSelection"
+        },
+        "rspec": {
+          "$ref": "#/$defs/analyzerSelection"
+        },
+        "simplecov": {
+          "$ref": "#/$defs/simplecovSelection"
+        },
+        "bundler_audit": {
+          "$ref": "#/$defs/bundlerAuditSelection"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "analyzerSelection": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "required"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false,
+      "not": {
+        "required": ["enabled", "required"],
+        "properties": {
+          "enabled": {
+            "const": false
+          },
+          "required": {
+            "const": true
+          }
+        }
+      }
+    },
+    "simplecovSelection": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "required"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "coverage_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "freshness_window_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2592000
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false,
+      "not": {
+        "required": ["enabled", "required"],
+        "properties": {
+          "enabled": {
+            "const": false
+          },
+          "required": {
+            "const": true
+          }
+        }
+      }
+    },
+    "bundlerAuditSelection": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "required"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false,
+      "not": {
+        "required": ["enabled", "required"],
+        "properties": {
+          "enabled": {
+            "const": false
+          },
+          "required": {
+            "const": true
+          }
+        }
+      }
+    },
+    "baselineConfig": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "waiversConfig": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

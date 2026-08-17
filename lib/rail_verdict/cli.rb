@@ -135,16 +135,48 @@ module RailVerdict
       subcommand = argv.first
       raise RailVerdict::UsageError, "unknown baseline subcommand: #{subcommand.inspect}; only `baseline create` exists" unless subcommand == "create"
 
-      options = { config: DEFAULT_CONFIG_PATH, output: nil, format: "console" }
+      options = { config: DEFAULT_CONFIG_PATH, output: nil, format: "console", force: false }
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: railverdict baseline create [--config PATH] [--output PATH] [--format console|json]"
+        opts.banner = "Usage: railverdict baseline create [--config PATH] [--output PATH] [--format console|json] [--force]"
         opts.on("--config PATH", String) { |value| options[:config] = value }
         opts.on("--output PATH", String) { |value| options[:output] = value }
         opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--force") { options[:force] = true }
       end
       parse!(parser, argv.drop(1))
       validate_format!(options[:format])
-      @stderr.puts "railverdict baseline create: baseline persistence is not implemented in Phase 1; Phase 3 owns the atomic baseline write."
+
+      outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
+      return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
+      unless outcome.result.completion_status == "complete"
+        @stderr.puts "railverdict baseline create: refusing to create baseline from incomplete run (#{outcome.result.operational_failures.map { |failure| failure.fetch('code') }.join(', ')})"
+        return EXIT_NO_GATE
+      end
+      if outcome.context.nil? || outcome.configuration.nil?
+        @stderr.puts "railverdict baseline create: refusing to create baseline without a complete context"
+        return EXIT_NO_GATE
+      end
+
+      path = Baseline.resolve_path(repository_root: @working_directory, configuration: outcome.configuration, output_override: options[:output])
+      baseline = Baseline.create(
+        findings: outcome.findings,
+        configuration: outcome.configuration,
+        analyzer_versions: outcome.context.analyzer_versions,
+        clock: Time.now.utc
+      )
+      Baseline.write(path: path, baseline: baseline, force: options[:force])
+
+      if options[:format] == "json"
+        @stdout.write(JSON.generate({ "baseline" => baseline.to_h }) + "\n")
+      else
+        @stdout.puts "Baseline created at #{path} (#{baseline.entries.length} entries)"
+      end
+      EXIT_OK
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict baseline create: #{error.message}"
+      EXIT_NO_GATE
+    rescue RailVerdict::Baseline::IncompatibleError, RailVerdict::Error => error
+      @stderr.puts "railverdict baseline create: #{error.message}"
       EXIT_NO_GATE
     end
 
