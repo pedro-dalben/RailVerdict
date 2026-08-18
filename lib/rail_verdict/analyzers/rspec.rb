@@ -142,7 +142,12 @@ module RailVerdict
 
         rule_id = "rspec/example:#{example['id'] || id_for(example, index)}"
         path = normalize_path(example["file_path"] || example["file"] || "spec/unknown_spec.rb")
-        start_line = example["line_number"] || extract_line(example["id"])
+        failure_line, failure_path = failure_location(example, path)
+        start_line = failure_line || example["line_number"] || extract_line(example["id"])
+
+        if failure_path && failure_path != path
+          path = failure_path if failure_path.match?(Finding::LOCATION_PATH_PATTERN)
+        end
 
         severity = "high"
         category = "test"
@@ -174,12 +179,71 @@ module RailVerdict
         raise MalformedOutput, "RSpec example #{index} is malformed: #{error.message}"
       end
 
+      def failure_location(example, default_path)
+        exception = example["exception"]
+        return [nil, nil] unless exception.is_a?(Hash)
+
+        backtrace = exception["backtrace"]
+        return [nil, nil] unless backtrace.is_a?(Array)
+
+        backtrace.each do |frame|
+          next unless frame.is_a?(String) && !frame.empty? && frame.bytesize <= 4096
+
+          stripped = frame.strip
+          next if stripped.empty?
+
+          match = stripped.match(/\A(.+?):(\d+)(?::in |\z)/)
+          next unless match
+
+          raw_path = match[1].to_s.strip
+          raw_line = match[2].to_s
+          next if raw_path.empty?
+
+          normalized = normalize_path_for_backtrace(raw_path)
+          next unless normalized
+
+          repository_relative = normalized.delete_prefix("./")
+          next unless repository_relative.match?(Finding::LOCATION_PATH_PATTERN)
+          next if repository_relative.start_with?("gems/") || repository_relative.include?("/gems/")
+
+          base = File.basename(repository_relative)
+          next if base.start_with?("rspec-") || base.start_with?("minitest")
+
+          default_base = File.basename(default_path)
+          same_file = repository_relative == default_path
+          same_dir = File.dirname(repository_relative) == File.dirname(default_path)
+          next unless same_file || (repository_relative.end_with?(default_base) && same_dir) || repository_relative.start_with?("spec/")
+
+          line = begin Integer(raw_line) rescue nil end
+          next unless line && line >= 1
+
+          return [line, repository_relative]
+        end
+        [nil, nil]
+      rescue StandardError
+        [nil, nil]
+      end
+
+      def normalize_path_for_backtrace(raw_path)
+        cleaned = raw_path.to_s.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?").strip[0, 1024]
+        return nil if cleaned.empty?
+
+        cleaned = cleaned.sub(/\A\.\//, "")
+        cleaned = cleaned.sub(%r{\A#{Regexp.escape(Dir.pwd)}/}, "") rescue cleaned
+        cleaned.split(":").first.to_s.strip
+      rescue StandardError
+        nil
+      end
+
       def id_for(example, index)
         (example["full_description"] || example["description"] || "example_#{index}").to_s.gsub(/[^a-zA-Z0-9_-]/, "_")[0, 64]
       end
 
       def normalize_path(file)
-        return file.delete_prefix("./") if file.is_a?(String) && !file.empty? && file.match?(Finding::LOCATION_PATH_PATTERN)
+        return file.delete_prefix("./").then { |cleaned| cleaned.match?(Finding::LOCATION_PATH_PATTERN) ? cleaned : "spec/unknown_spec.rb" } if file.is_a?(String) && !file.empty?
+
+        stripped = file.to_s.delete_prefix("./")
+        return stripped if stripped.match?(Finding::LOCATION_PATH_PATTERN)
 
         "spec/unknown_spec.rb"
       end

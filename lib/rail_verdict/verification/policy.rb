@@ -309,6 +309,17 @@ module RailVerdict
           path = finding.location.fetch("path")
           next false unless changed_paths.include?(path)
 
+          if finding.category == "test"
+            lines = changed_line_set[path]
+            if lines.nil? || lines.empty?
+              next true
+            end
+            line = finding.location["start_line"]
+            next true if line.nil?
+            next true if lines.include?(line.to_i)
+            next true
+          end
+
           lines = changed_line_set[path]
           next true if lines.nil? || lines.empty?
 
