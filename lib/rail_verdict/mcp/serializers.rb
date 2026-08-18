@@ -50,18 +50,25 @@ module RailVerdict
         return nil unless structured.is_a?(Hash)
 
         if structured.key?("findings") && structured["findings"].is_a?(Array) && structured["findings"].length > 10
+          total = structured["findings"].length
           copy = structured.dup
           copy["findings"] = structured["findings"].first(20)
+          copy["findings_truncated"] = true
+          copy["total_findings"] = total
+          copy["returned_findings"] = 20
           copy["truncated_due_to_size"] = true
-          copy["total"] ||= structured["findings"].length
           return copy if JSON.generate(copy).bytesize <= MAX_TOOL_RESPONSE_BYTES
         end
         if structured.key?("gate_result") && structured["gate_result"].is_a?(Hash)
           gr = structured["gate_result"]
           if gr["findings"] && gr["findings"].is_a?(Array) && gr["findings"].length > 10
+            total = gr["findings"].length
             copy = structured.dup
             copy["gate_result"] = gr.dup
             copy["gate_result"]["findings"] = gr["findings"].first(20)
+            copy["gate_result"]["findings_truncated"] = true
+            copy["gate_result"]["total_findings"] = total
+            copy["gate_result"]["returned_findings"] = 20
             copy["gate_result"]["truncated_due_to_size"] = true
             return copy if JSON.generate(copy).bytesize <= MAX_TOOL_RESPONSE_BYTES
           end

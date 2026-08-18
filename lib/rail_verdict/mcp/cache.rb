@@ -59,28 +59,64 @@ module RailVerdict
 
         ctx = outcome.context
         config = outcome.configuration
-        root = outcome.context&.repository_root || outcome.result&.git&.fetch("repository_root", nil)
-        file_sig = nil
-        if root && File.directory?(root.to_s)
-          begin
-            baseline_path = File.join(File.realpath(root.to_s), ".railverdict-baseline.json")
-            waiver_path = File.join(File.realpath(root.to_s), ".railverdict-waivers.json")
-            file_sig = {
-              "baseline_mtime" => File.exist?(baseline_path) ? File.mtime(baseline_path).to_i : nil,
-              "baseline_size" => File.exist?(baseline_path) ? File.size(baseline_path) : nil,
-              "waiver_mtime" => File.exist?(waiver_path) ? File.mtime(waiver_path).to_i : nil,
-              "waiver_size" => File.exist?(waiver_path) ? File.size(waiver_path) : nil
-            }
-          rescue StandardError
-            file_sig = nil
-          end
+        root = outcome.context&.repository_root
+        root ||= outcome.result&.git&.fetch("repository_root", nil) rescue nil
+        root ||= @last_outcome&.context&.repository_root rescue nil
+        if root.nil? && @last_outcome
+          root = @last_outcome.context&.repository_root rescue nil
         end
+        stored_root = @last_outcome&.context&.repository_root rescue nil
+        effective_root = root || stored_root
+        file_sig = file_identity(effective_root)
+        worktree_sig = worktree_identity(effective_root)
         {
           "config_digest" => config&.digest,
           "revision" => ctx&.revision,
           "findings_hash" => outcome.findings&.map(&:fingerprint)&.sort&.hash,
-          "file_sig" => file_sig
+          "file_sig" => file_sig,
+          "worktree_sig" => worktree_sig
         }
+      end
+
+      def file_identity(root)
+        return nil unless root && File.directory?(root.to_s)
+
+        begin
+          baseline_path = File.join(File.realpath(root.to_s), ".railverdict-baseline.json")
+          waiver_path = File.join(File.realpath(root.to_s), ".railverdict-waivers.json")
+          {
+            "baseline_mtime" => File.exist?(baseline_path) ? File.mtime(baseline_path).to_i : nil,
+            "baseline_size" => File.exist?(baseline_path) ? File.size(baseline_path) : nil,
+            "waiver_mtime" => File.exist?(waiver_path) ? File.mtime(waiver_path).to_i : nil,
+            "waiver_size" => File.exist?(waiver_path) ? File.size(waiver_path) : nil,
+            "config_mtime" => begin
+              cfg = File.join(File.realpath(root.to_s), ".railverdict.yml")
+              File.exist?(cfg) ? File.mtime(cfg).to_i : nil
+            rescue StandardError
+              nil
+            end
+          }
+        rescue StandardError
+          nil
+        end
+      end
+
+      def worktree_identity(root)
+        return nil unless root && File.directory?(root.to_s)
+
+        begin
+          real = File.realpath(root.to_s)
+          out = IO.popen(["git", "-C", real, "status", "--porcelain", "-uall", "--no-renames"], err: [:child, :out]) { |io| io.read(64 * 1024) } rescue nil
+          return nil if out.nil?
+
+          out = out.to_s.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?").strip
+          return "clean" if out.empty?
+
+          require "digest"
+          Digest::SHA256.hexdigest(out)
+        rescue StandardError
+          nil
+        end
       end
     end
   end

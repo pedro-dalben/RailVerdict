@@ -33,7 +33,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "json_schemer", ">= 2.5", "< 3"
-  spec.add_dependency "mcp", "~> 1.2"
+  spec.add_dependency "mcp", "~> 1.2.0"
 
   spec.metadata["rubygems_mfa_required"] = "true"
 end

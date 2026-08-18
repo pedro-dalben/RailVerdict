@@ -65,7 +65,7 @@ MCP tools are `readOnlyHint: true` — RailVerdict does not intentionally mutate
 
 ## Dependency
 
-`mcp ~> 1.2` (1.2.x), protocol `2025-11-25` stable. `outputSchema` is declared via `MCP::Tool::OutputSchema` where supported by the SDK; where the SDK cannot express it, the tool still returns `structuredContent` per `result-v1`/`finding-v1`/`repair-packet-v1`.
+`mcp ~> 1.2.0` (>=1.2.0 <1.3.0), protocol `2025-11-25` stable. `outputSchema` is declared via `MCP::Tool::OutputSchema` where supported by the SDK; where the SDK cannot express it, the tool still returns `structuredContent` per `result-v1`/`finding-v1`/`repair-packet-v1`.
 
 ## Response serialization
 
