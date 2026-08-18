@@ -32,16 +32,19 @@ Existing tools give fragmented signals — lint, tests, coverage, dependencies. 
 gem install rail_verdict
 
 # In a Rails (or synthetic) repository:
-railverdict init                          # writes .railverdict.yml
+railverdict init                          # writes .railverdict.yml (mode: no_new_debt)
 railverdict doctor                        # validates config, probes analyzers
-railverdict check                         # full verification → console
+# no_new_debt without a baseline → INCOMPLETE (baseline_required); create a baseline first:
+railverdict check                         # full verification → console (or INCOMPLETE baseline_required)
+railverdict baseline create               # atomic baseline from a complete run (requires PASS/WARN/FAIL, not INCOMPLETE)
 railverdict check --format json           # versioned JSON on stdout, diagnostics on stderr
 railverdict check --changed --base main   # changed-scope gate from deterministic Git diff
-railverdict baseline create               # atomic baseline from a complete run
 railverdict findings --format json        # projection of normalized findings
 ```
 
 **Exit codes:** `0` PASS/WARN · `1` FAIL · `2` INCOMPLETE/config/tool error · `130` interrupted.
+
+**Notes:** RailVerdict does NOT bundle or install analyzers, boot Rails, update bundler-audit DB, require AI or MCP. Configure/install desired analyzers in the target bundle, then `railverdict doctor` shows status. With `mode: no_new_debt`, `check` returns `INCOMPLETE baseline_required` until you run `baseline create`.
 
 ---
 

@@ -32,7 +32,13 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              packet: { type: "object", description: "RepairPacket v1" }
+            },
+            required: %w[packet]
+          }
         end
 
         def tool_annotations
@@ -43,8 +49,11 @@ module RailVerdict
           begin
             ref = Validators.validate_finding_ref(finding_ref)
             outcome = @server.cache.fetch_outcome
+            if outcome && !@server.cache.valid?
+              outcome = nil
+            end
             unless outcome
-              outcome = Check.execute(repository_root: @server.repository_root, config_path: File.join(@server.repository_root, ".railverdict.yml"))
+              outcome = @server.synchronized_verification { Check.execute(repository_root: @server.repository_root, config_path: File.join(@server.repository_root, ".railverdict.yml")) }
               @server.cache.store_outcome(outcome)
             end
 

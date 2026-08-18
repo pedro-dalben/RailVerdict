@@ -111,6 +111,30 @@ module RailVerdict
           )
         end
 
+        if mode == "no_new_debt" && comparison.nil? && !findings.empty?
+          return GateResult.new(
+            completion_status: "incomplete",
+            gate: "INCOMPLETE",
+            policy_status: "not_evaluated",
+            findings: summaries(findings, blocking: false),
+            analyzer_results: analyzer_results,
+            operational_failures: [{ "code" => "failed", "message" => "baseline required for no_new_debt policy; run `railverdict baseline create`" }],
+            decision_reasons: [{ "code" => "baseline_required", "message" => "no_new_debt requires a baseline; create one with `railverdict baseline create`" }]
+          )
+        end
+
+        if mode == "no_new_debt" && comparison.nil? && findings.empty?
+          return GateResult.new(
+            completion_status: "complete",
+            gate: "PASS",
+            policy_status: "pass",
+            findings: summaries(findings, blocking: false),
+            analyzer_results: analyzer_results,
+            operational_failures: optional_failures,
+            decision_reasons: [{ "code" => "no_findings_detected", "message" => "All enabled analyzer evidence contains no findings." }]
+          )
+        end
+
         if mode == "no_new_debt" && comparison
           counts = comparison.fetch("counts") rescue comparison["counts"] if comparison.is_a?(Hash)
           counts ||= {}

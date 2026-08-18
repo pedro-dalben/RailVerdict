@@ -35,7 +35,20 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              schema_version: { type: "string" },
+              completion_status: { type: "string" },
+              gate: { type: "string" },
+              policy_status: { type: "string" },
+              findings: { type: "array" },
+              analyzer_results: { type: "array" },
+              operational_failures: { type: "array" },
+              decision_reasons: { type: "array" }
+            },
+            required: %w[schema_version completion_status gate policy_status findings]
+          }
         end
 
         def tool_annotations
@@ -57,7 +70,7 @@ module RailVerdict
               end
             end
 
-            outcome = run_check(changed: changed, base: base_validated, config_path: config_file, baseline_path: baseline_path, waiver_path: waiver_path)
+            outcome = @server.synchronized_verification { run_check(changed: changed, base: base_validated, config_path: config_file, baseline_path: baseline_path, waiver_path: waiver_path) }
             @server.cache.store_outcome(outcome)
             structured = Serializers.gate_result_to_structured(outcome)
             structured = Validators.scrub_text(structured) if structured.is_a?(String)
@@ -77,9 +90,22 @@ module RailVerdict
           opts = { repository_root: root, config_path: config_path }
           opts[:changed] = true if changed
           opts[:base] = base if base
-          opts[:baseline_path_override] = baseline_path if baseline_path && !baseline_path.to_s.strip.empty?
-          opts[:waiver_path_override] = waiver_path if waiver_path && !waiver_path.to_s.strip.empty?
+          baseline_resolved = resolve_contained_path(baseline_path, "baseline_path") if baseline_path && !baseline_path.to_s.strip.empty?
+          waiver_resolved = resolve_contained_path(waiver_path, "waiver_path") if waiver_path && !waiver_path.to_s.strip.empty?
+          opts[:baseline_path_override] = baseline_resolved if baseline_resolved
+          opts[:waiver_path_override] = waiver_resolved if waiver_resolved
           Check.execute(**opts)
+        end
+
+        def resolve_contained_path(raw_path, field_name)
+          raw = raw_path.to_s.strip
+          raise ArgumentError, "#{field_name} contains NUL byte" if raw.include?("\u0000")
+
+          expanded = File.expand_path(raw, @server.repository_root)
+          unless RepositoryRoot.contained?(@server.repository_root, expanded)
+            raise ArgumentError, "#{field_name} escapes repository root"
+          end
+          expanded
         end
 
         def resolve_config_path(config_path)

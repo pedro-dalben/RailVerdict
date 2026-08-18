@@ -116,14 +116,26 @@ class TestPolicy < Minitest::Test
     assert result.findings.first.fetch("blocking")
   end
 
-  def test_no_new_debt_is_strict_without_baseline
+  def test_no_new_debt_without_baseline_is_incomplete
     result = RailVerdict::Verification::Policy.evaluate(
       configuration: configuration(mode: "no_new_debt"),
       analyzer_results: [analyzer],
       findings: [finding]
     )
-    assert_equal "FAIL", result.gate
-    assert_includes result.decision_reasons.map { |reason| reason.fetch("code") }, "blocking_findings_present"
+    assert_equal "INCOMPLETE", result.gate
+    assert_equal "not_evaluated", result.policy_status
+    assert_includes result.decision_reasons.map { |reason| reason.fetch("code") }, "baseline_required"
+    assert_includes result.operational_failures.map { |f| f["code"] }, "failed"
+  end
+
+  def test_no_new_debt_without_baseline_empty_findings_passes
+    result = RailVerdict::Verification::Policy.evaluate(
+      configuration: configuration(mode: "no_new_debt"),
+      analyzer_results: [analyzer],
+      findings: []
+    )
+    assert_equal "PASS", result.gate
+    assert_equal "pass", result.policy_status
   end
 
   def test_optional_failure_completes_but_remains_visible

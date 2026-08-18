@@ -59,10 +59,27 @@ module RailVerdict
 
         ctx = outcome.context
         config = outcome.configuration
+        root = outcome.context&.repository_root || outcome.result&.git&.fetch("repository_root", nil)
+        file_sig = nil
+        if root && File.directory?(root.to_s)
+          begin
+            baseline_path = File.join(File.realpath(root.to_s), ".railverdict-baseline.json")
+            waiver_path = File.join(File.realpath(root.to_s), ".railverdict-waivers.json")
+            file_sig = {
+              "baseline_mtime" => File.exist?(baseline_path) ? File.mtime(baseline_path).to_i : nil,
+              "baseline_size" => File.exist?(baseline_path) ? File.size(baseline_path) : nil,
+              "waiver_mtime" => File.exist?(waiver_path) ? File.mtime(waiver_path).to_i : nil,
+              "waiver_size" => File.exist?(waiver_path) ? File.size(waiver_path) : nil
+            }
+          rescue StandardError
+            file_sig = nil
+          end
+        end
         {
           "config_digest" => config&.digest,
           "revision" => ctx&.revision,
-          "findings_hash" => outcome.findings&.map(&:fingerprint)&.sort&.hash
+          "findings_hash" => outcome.findings&.map(&:fingerprint)&.sort&.hash,
+          "file_sig" => file_sig
         }
       end
     end

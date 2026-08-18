@@ -29,10 +29,14 @@ Payload: `{payload_schema, fingerprint_version, algorithm, analyzer, rule_id, pa
 ## Policy modes
 
 - `advisory`: all non-blocking; `PASS` empty else `WARN`.
-- `no_new_debt`: `existing` non-blocking; `introduced`/`changed`/`moved` blocking (default any severity). Only existing → `PASS`.
+- `no_new_debt`: `existing` non-blocking; `introduced`/`changed`/`moved` blocking (default any severity). Only existing → `PASS`. Without a baseline, `no_new_debt` returns `INCOMPLETE` (`baseline_required` — run `railverdict baseline create`).
 - `strict`: all current findings blocking.
 
 Incomplete required evidence always produces `INCOMPLETE`/`not_evaluated` (exit 2), even with a baseline.
+
+## Fresh init workflow
+
+`railverdict init` writes `mode: no_new_debt`. A fresh repo has no `.railverdict-baseline.json`, so `check` returns `INCOMPLETE baseline_required` (not silent strict). Workflow: `init` → `doctor` → configure/install analyzers → `check` (INCOMPLETE baseline_required) → `baseline create` → `check` passes/fails per no_new_debt.
 
 ## Waivers
 

@@ -38,6 +38,19 @@ module RailVerdict
           "version" => probe&.version
         }
       end
+      hints = {}
+      configuration.analyzers.each do |name, sel|
+        probe = probes[name]
+        status = probe&.status || "disabled"
+        next if %w[succeeded disabled].include?(status)
+
+        hints[name] = doctor_hint(name, probe)
+      end
+      baseline_hint = nil
+      if configuration.mode == "no_new_debt"
+        baseline_path = Baseline.resolve_path(repository_root: root, configuration: configuration)
+        baseline_hint = File.file?(baseline_path) ? nil : "baseline missing for no_new_debt; run `railverdict baseline create`"
+      end
       report = {
         "doctor" => "1.0",
         "ruby_version" => context.ruby_version,
@@ -49,8 +62,10 @@ module RailVerdict
           "mode" => configuration.mode,
           "digest" => configuration.digest
         },
-        "analyzers" => analyzers_report
-      }
+        "analyzers" => analyzers_report,
+        "hints" => hints,
+        "baseline_hint" => baseline_hint
+      }.compact
       Outcome.new(report: report, exit_code: 0)
     rescue ConfigurationError => error
       Outcome.new(
@@ -89,6 +104,25 @@ module RailVerdict
       end
     end
     private_class_method :build_adapter
+
+    def doctor_hint(name, probe)
+      msg = probe&.message.to_s
+      case name
+      when "rspec"
+        "Add `rspec` to the target application's bundle and run bundle install. (#{msg})"
+      when "minitest"
+        "Add `minitest` to the target bundle or ensure tests load. (#{msg})"
+      when "rubocop"
+        "Add `rubocop` to the target bundle and run bundle install. (#{msg})"
+      when "simplecov"
+        "Generate coverage at coverage/coverage.json (SimpleCov JSON formatter) before check. (#{msg})"
+      when "bundler_audit"
+        "Add `bundler-audit` to the bundle; run `bundle exec bundler-audit update` separately. (#{msg})"
+      else
+        msg
+      end
+    end
+    private_class_method :doctor_hint
 
     def relative_path(path, root)
       Pathname.new(path).relative_path_from(Pathname.new(root)).to_s

@@ -53,7 +53,27 @@ Per `server/tools` spec, each `tools/call` returns `{content:[{type:"text", text
 
 ## Output bounds
 
-`list_findings` capped `100`, `get_finding` context `64 KiB`, packet `256 KiB`. Control chars replaced `?`, oversize rejected with `invalid_arguments`. `truncated` flag explicit.
+`list_findings` capped `100`, `get_finding` context `64 KiB`, packet `256 KiB`. `verify`/`verify_repair` responses capped `256 KiB` (truncated deterministically or `response_too_large` directing to `list_findings`/`get_finding`). Control chars replaced `?`, oversize rejected with `invalid_arguments`. `truncated` flag explicit. JSON never truncated into invalid documents; `gate`/`completion_status`/`policy_status`/`decision_reasons`/`verification_boundary_changed` preserved.
+
+## Analyzer side effects
+
+MCP tools are `readOnlyHint: true` — RailVerdict does not intentionally mutate product source/policy. Analyzers themselves may create `coverage/` files, test caches, or Bundler/tool caches as normal local side effects. RailVerdict executes only analyzers already installed/configured by the target project.
+
+## Cache semantics
+
+`verify` result is cached per server instance; `verify_repair` always re-runs fresh verification. Cache validity checks `config_digest`, `revision`, findings hash, and baseline/waiver file mtimes/sizes; external edits invalidate it. No filesystem watchers or daemon persistence.
+
+## Dependency
+
+`mcp ~> 1.2` (1.2.x), protocol `2025-11-25` stable. `outputSchema` is declared via `MCP::Tool::OutputSchema` where supported by the SDK; where the SDK cannot express it, the tool still returns `structuredContent` per `result-v1`/`finding-v1`/`repair-packet-v1`.
+
+## Response serialization
+
+`verify` and `verify_repair` execute under a server-level mutex (`RailVerdict::MCP::Server#synchronized_verification`); `ProcessRunner` registry is not a concurrent verification registry and stdio is synchronous. Verification operations are serialized per MCP server instance.
+
+## Path containment
+
+`config_path`, `baseline_path`, `waiver_path` are all contained within the fixed repository root (`RepositoryRoot.contained?` with realpath). `../` escape, absolute outside paths, symlink escapes, and NUL are rejected as `invalid_arguments` (tool error, not `INCOMPLETE`).
 
 ## Errors vs gate
 

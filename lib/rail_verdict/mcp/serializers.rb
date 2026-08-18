@@ -29,9 +29,44 @@ module RailVerdict
         scrub(JSON.generate(structured))
       end
 
+      MAX_TOOL_RESPONSE_BYTES = 256 * 1024
+
       def self.tool_response(structured, error: false)
         text = text_content(structured)
+        if text.bytesize > MAX_TOOL_RESPONSE_BYTES
+          truncated = truncate_structured(structured)
+          if truncated
+            structured = truncated
+            text = text_content(structured)
+          else
+            payload = { "code" => "response_too_large", "message" => "response exceeds #{MAX_TOOL_RESPONSE_BYTES} bytes; use list_findings/get_finding with pagination" }
+            return ::MCP::Tool::Response.new([{ type: "text", text: JSON.generate(payload) }], error: true, structured_content: payload)
+          end
+        end
         ::MCP::Tool::Response.new([{ type: "text", text: text }], error: error, structured_content: structured)
+      end
+
+      def self.truncate_structured(structured)
+        return nil unless structured.is_a?(Hash)
+
+        if structured.key?("findings") && structured["findings"].is_a?(Array) && structured["findings"].length > 10
+          copy = structured.dup
+          copy["findings"] = structured["findings"].first(20)
+          copy["truncated_due_to_size"] = true
+          copy["total"] ||= structured["findings"].length
+          return copy if JSON.generate(copy).bytesize <= MAX_TOOL_RESPONSE_BYTES
+        end
+        if structured.key?("gate_result") && structured["gate_result"].is_a?(Hash)
+          gr = structured["gate_result"]
+          if gr["findings"] && gr["findings"].is_a?(Array) && gr["findings"].length > 10
+            copy = structured.dup
+            copy["gate_result"] = gr.dup
+            copy["gate_result"]["findings"] = gr["findings"].first(20)
+            copy["gate_result"]["truncated_due_to_size"] = true
+            return copy if JSON.generate(copy).bytesize <= MAX_TOOL_RESPONSE_BYTES
+          end
+        end
+        nil
       end
 
       def self.error_response(message, code: "invalid_arguments")

@@ -2,6 +2,8 @@
 
 AI is optional, advisory, and off by default. `railverdict check` remains offline and deterministic regardless of AI configuration or environment credentials.
 
+> Remote AI via `ai.provider: openai_compat` is supported when `ai.enabled && ai.remote.enabled` with `trust: redacted` default, secret redaction, budgets, and timeouts. If `provider` is not `openai_compat`, the default provider is `FakeProvider` (offline stub) — no network.
+
 ## Enabling
 
 ```yaml

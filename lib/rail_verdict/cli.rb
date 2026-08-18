@@ -161,7 +161,10 @@ module RailVerdict
 
       outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
       return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
-      unless outcome.result.completion_status == "complete"
+      baseline_required_only = outcome.result.completion_status == "incomplete" &&
+        outcome.result.decision_reasons.any? { |r| r["code"] == "baseline_required" } &&
+        outcome.result.operational_failures.all? { |f| f["message"]&.include?("baseline required") }
+      unless outcome.result.completion_status == "complete" || baseline_required_only
         @stderr.puts "railverdict baseline create: refusing to create baseline from incomplete run (#{outcome.result.operational_failures.map { |failure| failure.fetch('code') }.join(', ')})"
         return EXIT_NO_GATE
       end

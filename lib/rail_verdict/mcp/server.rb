@@ -36,6 +36,10 @@ module RailVerdict
         @cache
       end
 
+      def synchronized_verification(&block)
+        @mutex.synchronize(&block)
+      end
+
       private
 
       def build_mcp_server
@@ -49,7 +53,11 @@ module RailVerdict
           capabilities: { tools: { listChanged: false } }
         )
         register_tools(server)
+        wrap_verification_tools(server)
         server
+      end
+
+      def wrap_verification_tools(_server)
       end
 
       def register_tools(mcp_server)

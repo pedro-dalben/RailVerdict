@@ -32,7 +32,19 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              finding: { type: "object" },
+              gate_summary: { type: "object" },
+              evidence: { type: "object" },
+              git_context: { type: "object" },
+              rails_context: { type: "object" },
+              gate: { type: "string" },
+              completion_status: { type: "string" }
+            },
+            required: %w[finding]
+          }
         end
 
         def tool_annotations

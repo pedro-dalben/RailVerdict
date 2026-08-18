@@ -33,7 +33,15 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              preview: { type: "boolean" },
+              manifest: { type: "object" },
+              failure: { type: ["object", "null"] },
+              analysis: { type: ["object", "null"] }
+            }
+          }
         end
 
         def tool_annotations

@@ -34,7 +34,20 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              target_status: { type: "string" },
+              gate: { type: "string" },
+              completion_status: { type: "string" },
+              overall_status: { type: "string" },
+              new_blocking_findings: { type: "integer" },
+              verification_boundary_changed: { type: ["object", "boolean"] },
+              regressed: { type: "boolean" },
+              gate_result: { type: "object" }
+            },
+            required: %w[target_status gate completion_status]
+          }
         end
 
         def tool_annotations
@@ -55,13 +68,14 @@ module RailVerdict
               return Serializers.error_response("packet not found for packet_id: #{pid}; call build_repair_packet first", code: "stale_target")
             end
 
-            fresh_outcome = fresh_check(changed: changed_v, base: base_v)
+            fresh_outcome = @server.synchronized_verification { fresh_check(changed: changed_v, base: base_v) }
             result = Repair::Verifier.verify(packet: packet_h, new_outcome: fresh_outcome)
 
             structured = {
               "target_status" => result.target_status,
               "gate" => result.gate,
               "completion_status" => result.completion_status,
+              "overall_status" => result.overall_status,
               "new_blocking_findings" => result.new_blocking_findings,
               "verification_boundary_changed" => result.verification_boundary_changed,
               "regressed" => result.regressed,

@@ -45,7 +45,7 @@ module RailVerdict
         end
 
         prompt = Prompt.build(manifest)
-        prov = provider || Providers::FakeProvider.new
+        prov = provider || (config.ai_config&.dig("provider") == "openai_compat" ? Providers::OpenAICompatProvider.new(endpoint: config.ai_config.dig("remote", "endpoint") || Providers::OpenAICompatProvider::ENDPOINT) : Providers::FakeProvider.new)
         request = AIProvider::Request.new(
           manifest: manifest.to_json_hash,
           prompt: prompt,

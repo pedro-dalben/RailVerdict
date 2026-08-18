@@ -3,7 +3,21 @@
 module RailVerdict
   module Repair
     module Verifier
-      Result = Struct.new(:target_status, :gate, :completion_status, :new_blocking_findings, :verification_boundary_changed, :regressed, keyword_init: true)
+      Result = Struct.new(:target_status, :gate, :completion_status, :new_blocking_findings, :verification_boundary_changed, :regressed, :overall_status, keyword_init: true) do
+        def overall_status
+          self[:overall_status] || derive_overall
+        end
+
+        private
+
+        def derive_overall
+          return "incomplete" if completion_status == "incomplete" || target_status == "incomplete"
+          return "boundary_changed" if verification_boundary_changed && verification_boundary_changed != false
+          return "successful" if target_status == "fixed" && %w[PASS WARN].include?(gate) && !regressed
+
+          "unsuccessful"
+        end
+      end
 
       def self.verify(packet:, new_outcome:)
         packet_hash = packet.is_a?(Packet) ? packet.to_h : packet
@@ -39,7 +53,7 @@ module RailVerdict
         old_blocking = packet_hash.dig("verification", "comparison_counts") || {}
         regressed = blocking_now > 0 && target_status == "fixed"
 
-        Result.new(
+        res = Result.new(
           target_status: target_status,
           gate: new_result.gate,
           completion_status: new_result.completion_status,
@@ -47,6 +61,8 @@ module RailVerdict
           verification_boundary_changed: boundary,
           regressed: regressed
         )
+        res[:overall_status] = res.overall_status
+        res
       end
 
       def self.boundary_changed?(packet_hash, new_outcome)

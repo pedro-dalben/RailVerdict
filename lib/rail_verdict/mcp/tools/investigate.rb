@@ -32,7 +32,14 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              preview: { type: "boolean" },
+              manifests: { type: "array" },
+              results: { type: "array" }
+            }
+          }
         end
 
         def tool_annotations

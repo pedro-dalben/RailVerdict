@@ -35,7 +35,19 @@ module RailVerdict
         end
 
         def tool_output_schema
-          nil
+          {
+            type: "object",
+            properties: {
+              findings: { type: "array" },
+              total: { type: "integer" },
+              limit: { type: "integer" },
+              offset: { type: "integer" },
+              truncated: { type: "boolean" },
+              gate: { type: "string" },
+              completion_status: { type: "string" }
+            },
+            required: %w[findings total limit offset truncated]
+          }
         end
 
         def tool_annotations
