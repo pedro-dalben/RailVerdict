@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_phase_name: fingerprints-baselines-policies
-status: complete
-stopped_at: "Phase 03 Fingerprints, Baselines and Policies complete"
-last_updated: "2026-08-17T00:00:00-03:00"
-last_activity: 2026-08-17
-last_activity_desc: Phase 03 Fingerprints, Baselines and Policies implemented and verified
+current_phase: 09
+current_phase_name: 1.0-hardening
+status: technical_complete
+stopped_at: "Phase 09 1.0 Hardening — technical complete; publication remains blocked"
+last_updated: "2026-08-18T00:00:00-03:00"
+last_activity: 2026-08-18
+last_activity_desc: Phase 09 closeout — real Minitest installed-gem integration + planning sync
 progress:
   total_phases: 10
-  completed_phases: 4
-  total_plans: 25
-  completed_plans: 25
+  completed_phases: 10
+  total_plans: 32
+  completed_plans: 32
   percent: 100
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 03 — fingerprints-baselines-policies
+**Current focus:** Phase 09 — 1.0-hardening (technical complete; publication BLOCKED — no Phase 10)
 
 ## Current Position
 
-Phase: 03 (fingerprints-baselines-policies) — COMPLETE
-Plans: 6/6
-Status: Phase 03 Fingerprints, Baselines and Policies complete 2026-08-17; Phase 04 not started
-Last activity: 2026-08-17 — fingerprints, baselines and policies complete
+Phase: 09 (1.0-hardening) — TECHNICAL COMPLETE
+Plans: 7 + closeout
+Status: Technical 1.0 hardening complete 2026-08-18; publication remains blocked by explicit external/legal gates; no Phase 10 started
+Last activity: 2026-08-18 — Phase 09 closeout: real Minitest reporter via installed gem (green/fail/zero) + planning STATE/ROADMAP sync
 
 Progress: [██████████] 100%
 
@@ -39,9 +39,8 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 7
-- Average duration: ~9 min
-- Total execution time: 1.0 hours
+- Total plans completed: 32
+- Technical 1.0 hardening complete on Ruby 3.4.5
 
 **By Phase:**
 
@@ -50,21 +49,18 @@ Progress: [██████████] 100%
 | Phase 00 | 7 | 7 | ~9 min |
 | Phase 01 | 6 | 6 | ~15 min |
 | Phase 02 | 6 | 6 | ~5 min |
+| Phase 03 | 6 | 6 | ~9 min |
+| Phase 04 | implemented | git diff / SARIF / Actions | — |
+| Phase 05 | implemented | rails_context | — |
+| Phase 06 | implemented | intelligence / AI | — |
+| Phase 07 | implemented | repair / packets | — |
+| Phase 08 | implemented | MCP | — |
+| Phase 09 | 7 + closeout | release hardening | 2026-08-17/18 |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 02 6/6 green
+- Last 5 plans: 09-03/04/05/06/07 green
 - Trend: steady
-
-*Updated after each plan completion*
-| Phase 00 P01 | 5 min | 2 tasks | 4 files |
-| Phase 00 P02 | 5 min | 2 tasks | 4 files |
-| Phase 00 P03 | 7 min | 2 tasks | 1 files |
-| Phase 00 P04 | 7 min | 2 tasks | 5 files |
-| Phase 00 P05 | 11 min | 2 tasks | 1 files |
-| Phase 00 P06 | 7 min | 3 tasks | 15 files |
-| Phase 00 P07 | 18 min | 3 tasks | 5 files |
-| Phase 02 | 6/6 | evidence ecosystem | Minitest/RSpec/SimpleCov/bundler-audit |
 
 ## Accumulated Context
 
@@ -107,15 +103,22 @@ Recent decisions affecting current work:
 - [Phase 02]: Treat zero-test, stale-coverage, and empty-suite cases as `incomplete_evidence` so required incomplete evidence cannot become PASS; optional failures remain non-blocking.
 - [Phase 02]: Record RuboCop plugin and config digest in `evidence_summary`; never invoke `bundler-audit update`; keep Brakeman on HOLD.
 - [Phase 03]: Implement fingerprint v1 canonical payload, versioned baseline with atomic create, deterministic comparison (introduced/existing/resolved/changed/moved), advisory/no_new_debt/strict policy, and exact-fingerprint waivers with UTC expiry; check remains read-only, incomplete still wins.
+- [Phase 04]: Git diff, changed scope, SARIF and GitHub annotations are projections of GateResult; local Git facts remain the only scope authority.
+- [Phase 05]: Rails context is bounded, provenance-backed, and confidence-tagged; no full semantic graph and no Rails runtime dependency.
+- [Phase 06]: AI is opt-in advisory only; remote transmission is explicit, minimized, secret-scanned, budgeted, cached, and never changes the deterministic gate.
+- [Phase 07]: Repair packets are deterministic, bounded, and argv-form; packet evidence is distinct from optional AI guidance.
+- [Phase 08]: MCP is a read-only adapter over CLI/GateResult/packet/mcp contracts with no duplicate policy or execution engine.
+- [Phase 09]: Technical 1.0 hardening complete (runnable, synthetic-fixture, compatibility, documentation, build-once, provenance, language). Publication remains blocked by external/legal gates already documented (jurisdiction, qualified trademark, private-provenance/media scan at release) — no tag, no publish. Real Minitest reporter integration is proven via installed gem (exe/railverdict-minitest-reporter.rb → minitest-reporter-v1 → Minitest adapter → Policy), replacing stub-only evidence.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- [Phase 0]: Phase 0 may complete its documented foundation while publication remains blocked on documented launch-jurisdiction checks and qualified trademark review for RailVerdict; the foundation records this unresolved gate without inventing clearance.
-- [Phase 2]: Brakeman cannot be advertised as supported until its current license and product-use boundaries receive a written decision.
+- [Phase 0]: Phase 0 may complete its documented foundation while publication remains blocked on documented launch-jurisdiction checks and qualified trademark review for RailVerdict; the foundation records this unresolved gate without inventing clearance. Still unresolved at 09 closeout by design.
+- [Phase 2]: Brakeman cannot be advertised as supported until its current license and product-use boundaries receive a written decision. Still unresolved at 09 closeout by design.
+- [Phase 9 publication]: Private-provenance/media scan, jurisdiction, and qualified trademark decisions must be revalidated at the actual release tag before publication — no 1.0 tag in this closeout.
 
 ## Deferred Items
 
@@ -127,6 +130,6 @@ Items acknowledged and carried forward from project definition:
 
 ## Session Continuity
 
-Last session: 2026-08-17
-Stopped at: Phase 02 Evidence Ecosystem complete; ready for Phase 03
+Last session: 2026-08-18
+Stopped at: Phase 09 technical complete; publication blocked (no Phase 10)
 Resume file: None

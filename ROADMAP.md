@@ -15,12 +15,12 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - [x] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
 - [x] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
 - [x] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
-- [ ] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
-- [ ] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph.
-- [ ] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate.
-- [ ] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures.
-- [ ] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter.
-- [ ] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0.
+- [x] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
+- [x] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph.
+- [x] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate.
+- [x] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures.
+- [x] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter.
+- [x] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0. Technical 1.0 hardening complete; publication remains blocked by explicit external/legal gates (see ROADMAP Phase details).
 
 ## Phase Details
 
@@ -102,7 +102,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic legacy fixture can create a reviewed baseline, retain existing findings, classify a new regression, and fail only according to its selected policy while baseline and waiver compatibility cases remain explicit.
 **Non-goals**: AST identity unless regression evidence requires it, wildcard or permanent waivers, automatic baseline updates, GitHub policy, or an opaque quality score.
-**Plans**: 6/6 plans executed
+**Plans**: 6/6 plans executed — Phase complete 2026-08-17
 
 - [x] `03-01` — Fingerprint v1 canonical payload and regression vectors (DEBT-01, DEBT-02)
 - [x] `03-02` — Versioned baseline schema and atomic baseline create/read (DEBT-03, DEBT-04, DEBT-10)
@@ -125,7 +125,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic repository exercises normal, shallow/incomplete, rename, binary, conflict, and unusual-path cases locally, and an unprivileged pull-request workflow enforces the same `GateResult` including production changed-line coverage.
 **Non-goals**: Guessing or fetching an undeclared base, treating rename heuristics as finding identity, a custom GitHub App, or privileged execution of untrusted pull-request material.
-**Plans**: TBD
+**Plans**: Implemented — Git diff, changed scope (`--changed`/`--base`), SARIF projection, GitHub annotations, Actions workflow. Complete.
 
 ### Phase 5: Rails-Aware Intelligence
 
@@ -140,7 +140,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Synthetic Rails fixtures produce reproducible bounded context, including uncertainty and absence cases, without changing findings, policy, or gate authority.
 **Non-goals**: A full semantic code graph, analyzer replacement, a Rails runtime dependency in the core, or generalized certainty claims.
-**Plans**: TBD
+**Plans**: Implemented — bounded Rails context resolvers. Complete.
 
 ### Phase 6: Optional AI Intelligence
 
@@ -157,7 +157,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: A synthetic finding can be explained through the initial provider path, and tests prove consent, manifest inspection, secret failure, injection isolation, budget limits, cache separation, invalid-response degradation, and gate equivalence.
 **Non-goals**: Mandatory or gate-authoritative AI, silent uploads, whole-repository transmission, multiple initial providers, agent tool authority, or autonomous source edits.
-**Plans**: TBD
+**Plans**: Implemented — optional AI with opt-in, manifest, redaction, budgets. Complete.
 
 ### Phase 7: Agent Repair Workflow
 
@@ -173,7 +173,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: The end-to-end synthetic repair loop succeeds using only versioned machine contracts, and packet fixtures cover boundedness, unavailable context, unsafe command rejection, and deterministic replay.
 **Non-goals**: Source rewriting by RailVerdict, permission escalation, an embedded coding agent, or terminal-scraping integrations.
-**Plans**: TBD
+**Plans**: Implemented — deterministic repair packets with bounded evidence. Complete.
 
 ### Phase 8: MCP
 
@@ -188,7 +188,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Contract parity tests compare CLI and MCP results for the same synthetic inputs against the then-current official MCP specification and supported SDK.
 **Non-goals**: MCP-only product behavior, code-editing tools, duplicate policy or analyzer engines, or MCP as a core dependency.
-**Plans**: TBD
+**Plans**: Implemented — read-only MCP adapter over same services. Complete.
 
 ### Phase 9: 1.0 Hardening
 
@@ -205,7 +205,8 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Every compatibility, supported-lane, security, provenance, language, clean-install, documentation, and artifact-identity gate passes against the release candidate; current identity/legal and third-party license decisions are revalidated immediately before publication.
 **Non-goals**: Paid or hosted dependencies, long-lived routine publishing keys, rebuilding after verification, private-derived fixtures, untested compatibility promises, or expanding v1 analyzer scope during release hardening.
-**Plans**: TBD
+**Plans**: 09-01 MIT alignment · 09-02 packaging CWD-independent · 09-03 dogfood (Minitest/RSpec stubs) · 09-04 SARIF · 09-05 release invariants · 09-06 CI/Trusted Publishing · 09-07 CHANGELOG/final acceptance · 09 closeout (real installed-gem Minitest proof ebf36a8 + planning sync). Technical 1.0 hardening complete.
+**Publication blocked**: Jurisdiction, qualified trademark, private-provenance/media scan at release tag — no tag, no publish. No Phase 10 started.
 
 ## Dependency Order
 

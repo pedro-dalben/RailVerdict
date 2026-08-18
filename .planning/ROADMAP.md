@@ -12,15 +12,15 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - Decimal phases are reserved for urgent insertions and execute between their surrounding integers.
 
 - [x] **Phase 0: Product, Naming and Legal Foundation** - Ratify RailVerdict's documentation, identity, legal, architecture, security, and contract foundation before production core implementation.
-- [ ] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
-- [ ] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
-- [ ] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
-- [ ] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts.
-- [ ] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph.
-- [ ] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate.
-- [ ] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures.
-- [ ] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter.
-- [ ] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0.
+- [x] **Phase 1: Trustworthy Core** - Deliver one deterministic, offline, fail-closed verification path through the CLI.
+- [x] **Phase 2: Evidence Ecosystem** - Normalize multiple test, lint, coverage, and dependency evidence sources behind hardened adapter contracts.
+- [x] **Phase 3: Fingerprints, Baselines and Policies** - Let legacy projects adopt stable no-new-debt gates with explicit waivers.
+- [x] **Phase 4: Git Diff and Pull Request Readiness** - Make changed-scope verification and GitHub Actions consume trustworthy local Git facts. *(implemented: lib/rail_verdict/git/, SARIF/GitHub annotations, .github/workflows/)*
+- [x] **Phase 5: Rails-Aware Intelligence** - Add bounded, provenance-backed Rails context without building a generalized code graph. *(implemented: lib/rail_verdict/rails_context/)*
+- [x] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate. *(implemented: lib/rail_verdict/intelligence/)*
+- [x] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures. *(implemented: lib/rail_verdict/repair/)*
+- [x] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter. *(implemented: lib/rail_verdict/mcp/)*
+- [x] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0. **Technical 1.0 hardening complete; publication remains blocked by explicit external/legal gates (jurisdiction, qualified trademark, private-provenance scan) — no Phase 10 started.**
 
 ## Phase Details
 
@@ -214,7 +214,8 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 
 **Exit gate**: Every compatibility, supported-lane, security, provenance, language, clean-install, documentation, and artifact-identity gate passes against the release candidate; current identity/legal and third-party license decisions are revalidated immediately before publication.
 **Non-goals**: Paid or hosted dependencies, long-lived routine publishing keys, rebuilding after verification, private-derived fixtures, untested compatibility promises, or expanding v1 analyzer scope during release hardening.
-**Plans**: TBD
+**Plans**: 09-01 (MIT) · 09-02 (packaging) · 09-03 (dogfood) · 09-04 (SARIF) · 09-05 (release invariants) · 09-06 (CI/Trusted Publishing) · 09-07 (CHANGELOG/final acceptance) · 09 closeout (real Minitest + planning) — technical 1.0 hardening complete.
+**Publication gate**: Technical READY; publication remains BLOCKED by the already-documented external gates (launch-jurisdiction, qualified trademark review, private-provenance/media scan at release tag) — no tag, no publish in this closeout.
 
 ## Progress
 
@@ -225,11 +226,12 @@ Phases execute in numeric order: 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 →
 |-------|----------------|--------|-----------|
 | 0. Product, Naming and Legal Foundation | 7/7 | Independently verified | 2026-08-16 |
 | 1. Trustworthy Core | 6/6 | Complete | 2026-08-16 |
-| 2. Evidence Ecosystem | 0/TBD | Not started | - |
-| 3. Fingerprints, Baselines and Policies | 0/TBD | Not started | - |
-| 4. Git Diff and Pull Request Readiness | 0/TBD | Not started | - |
-| 5. Rails-Aware Intelligence | 0/TBD | Not started | - |
-| 6. Optional AI Intelligence | 0/TBD | Not started | - |
-| 7. Agent Repair Workflow | 0/TBD | Not started | - |
-| 8. MCP | 0/TBD | Not started | - |
-| 9. 1.0 Hardening | 0/TBD | Not started | - |
+| 2. Evidence Ecosystem | 6/6 | Complete | 2026-08-16 |
+| 3. Fingerprints, Baselines and Policies | 6/6 | Complete | 2026-08-17 |
+| 4. Git Diff and Pull Request Readiness | implemented | Complete | 2026-08-17 |
+| 5. Rails-Aware Intelligence | implemented | Complete | 2026-08-17 |
+| 6. Optional AI Intelligence | implemented | Complete | 2026-08-17 |
+| 7. Agent Repair Workflow | implemented | Complete | 2026-08-17 |
+| 8. MCP | implemented | Complete | 2026-08-17 |
+| 9. 1.0 Hardening | 7 + closeout | Technical complete | 2026-08-18 |
+| 10. — | — | Not started | — |

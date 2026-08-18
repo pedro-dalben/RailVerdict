@@ -51,84 +51,84 @@ Requirements for the first stable release. Each maps to exactly one roadmap phas
 
 ### Evidence Ecosystem
 
-- [ ] **EVID-01**: Minitest evidence records suite identity, passed, failed, errored, skipped, duration, test count, assertions, seed, and failure locations through a RailVerdict-owned structured reporter.
-- [ ] **EVID-02**: RSpec evidence records suite identity, examples, failures, pending examples, duration, seed, and failure locations from fixture-tested structured output.
-- [ ] **EVID-03**: Zero-test, filtered, load-error, partial, or unexpectedly skipped test runs remain visible and policy-addressable rather than appearing green.
-- [ ] **EVID-04**: RuboCop and rubocop-rails execute once per scope, record plugin/configuration provenance, and normalize offenses without analyzer-specific core fields.
-- [ ] **EVID-05**: SimpleCov ingestion accepts only its public supported coverage JSON, proves freshness/completeness, and never parses HTML or internal result-cache formats.
-- [ ] **EVID-06**: Changed-line coverage logic can be contract-tested against an injected line set but is not advertised as a production Git gate until reliable Git scope exists.
-- [ ] **EVID-07**: bundler-audit evidence records tool and advisory-database revisions and separates explicit network refresh from offline gate execution.
-- [ ] **EVID-08**: Every shipped adapter has unavailable, supported, empty, malformed, unexpected-version, timeout, non-zero, oversized, partial, and invalid-encoding contract fixtures.
-- [ ] **EVID-09**: Every adapter documents supported versions, native output contract, license, install method, execution cost, and failure semantics.
-- [ ] **EVID-10**: Brakeman is not advertised as a supported commercial integration until its current license and product-use boundaries receive a written decision.
+- [x] **EVID-01**: Minitest evidence records suite identity, passed, failed, errored, skipped, duration, test count, assertions, seed, and failure locations through a RailVerdict-owned structured reporter. *Proven via installed-gem reporter real process (test_minitest_real_integration.rb) + existing adapter corpus.*
+- [x] **EVID-02**: RSpec evidence records suite identity, examples, failures, pending examples, duration, seed, and failure locations from fixture-tested structured output.
+- [x] **EVID-03**: Zero-test, filtered, load-error, partial, or unexpectedly skipped test runs remain visible and policy-addressable rather than appearing green. *Proven via installed-gem zero-test → incomplete_evidence cannot PASS.*
+- [x] **EVID-04**: RuboCop and rubocop-rails execute once per scope, record plugin/configuration provenance, and normalize offenses without analyzer-specific core fields.
+- [x] **EVID-05**: SimpleCov ingestion accepts only its public supported coverage JSON, proves freshness/completeness, and never parses HTML or internal result-cache formats.
+- [x] **EVID-06**: Changed-line coverage logic can be contract-tested against an injected line set but is not advertised as a production Git gate until reliable Git scope exists.
+- [x] **EVID-07**: bundler-audit evidence records tool and advisory-database revisions and separates explicit network refresh from offline gate execution.
+- [x] **EVID-08**: Every shipped adapter has unavailable, supported, empty, malformed, unexpected-version, timeout, non-zero, oversized, partial, and invalid-encoding contract fixtures.
+- [x] **EVID-09**: Every adapter documents supported versions, native output contract, license, install method, execution cost, and failure semantics.
+- [x] **EVID-10**: Brakeman is not advertised as a supported commercial integration until its current license and product-use boundaries receive a written decision.
 
 ### Baselines and Policy
 
-- [ ] **DEBT-01**: Fingerprints use a versioned documented canonical payload and full SHA-256 digest rather than file and line alone.
-- [ ] **DEBT-02**: Regression vectors prove fingerprint behavior across unrelated edits, line moves, file renames, logical moves, duplicates, copies, collisions, and algorithm migrations.
-- [ ] **DEBT-03**: A developer can create a versioned baseline atomically from a complete trusted run without storing source code, credentials, full logs, or AI prompts.
-- [ ] **DEBT-04**: Ordinary checks are read-only and cannot silently create or mutate a baseline.
-- [ ] **DEBT-05**: Baseline comparison classifies introduced, existing, resolved, changed, moved, suppressed, and waived findings with explainable evidence.
-- [ ] **DEBT-06**: Advisory mode reports findings without blocking, no-new-debt mode evaluates introduced regressions, and strict mode evaluates the full current project.
-- [ ] **DEBT-07**: Policy is independent of analyzer implementations and maps evidence state, severity, category, completeness, coverage, and regression facts to decisions.
-- [ ] **DEBT-08**: A waiver targets an exact fingerprint and requires reason, owner, creation date, UTC expiration, and optional issue reference.
-- [ ] **DEBT-09**: Expired, orphaned, malformed, or over-broad waivers remain visible and are never treated as silent suppression.
-- [ ] **DEBT-10**: Baseline and waiver readers support documented compatible formats or emit an explicit migration requirement.
+- [x] **DEBT-01**: Fingerprints use a versioned documented canonical payload and full SHA-256 digest rather than file and line alone.
+- [x] **DEBT-02**: Regression vectors prove fingerprint behavior across unrelated edits, line moves, file renames, logical moves, duplicates, copies, collisions, and algorithm migrations.
+- [x] **DEBT-03**: A developer can create a versioned baseline atomically from a complete trusted run without storing source code, credentials, full logs, or AI prompts.
+- [x] **DEBT-04**: Ordinary checks are read-only and cannot silently create or mutate a baseline.
+- [x] **DEBT-05**: Baseline comparison classifies introduced, existing, resolved, changed, moved, suppressed, and waived findings with explainable evidence.
+- [x] **DEBT-06**: Advisory mode reports findings without blocking, no-new-debt mode evaluates introduced regressions, and strict mode evaluates the full current project.
+- [x] **DEBT-07**: Policy is independent of analyzer implementations and maps evidence state, severity, category, completeness, coverage, and regression facts to decisions.
+- [x] **DEBT-08**: A waiver targets an exact fingerprint and requires reason, owner, creation date, UTC expiration, and optional issue reference.
+- [x] **DEBT-09**: Expired, orphaned, malformed, or over-broad waivers remain visible and are never treated as silent suppression.
+- [x] **DEBT-10**: Baseline and waiver readers support documented compatible formats or emit an explicit migration requirement.
 
 ### Git and Pull Requests
 
-- [ ] **GIT-01**: Local Git context resolves repository root, HEAD, explicit or configured base, merge base, changed files, NUL-safe paths, added/deleted lines, additions, deletions, binaries, conflicts, and renames.
-- [ ] **GIT-02**: `--changed` fails as incomplete when a trustworthy base or required history cannot be resolved and never guesses a passing scope.
-- [ ] **GIT-03**: Production changed-code coverage uses the same local Git line scope recorded in `RunContext`.
-- [ ] **GIT-04**: SARIF output maps existing canonical findings and policy decisions without introducing a GitHub-specific verification engine.
-- [ ] **GIT-05**: A documented GitHub Actions workflow can enforce the same local gate using minimum token permissions and no custom GitHub App.
-- [ ] **GIT-06**: Untrusted pull-request code runs only in an unprivileged context without repository secrets, publisher identity, write tokens, or remote-AI credentials.
-- [ ] **GIT-07**: No privileged workflow executes or trusts fork code, scripts, caches, or artifacts without an explicitly reviewed safe handoff.
-- [ ] **GIT-08**: GitHub annotations and summaries remain projections of `GateResult`, and the core imports no GitHub concepts.
+- [x] **GIT-01**: Local Git context resolves repository root, HEAD, explicit or configured base, merge base, changed files, NUL-safe paths, added/deleted lines, additions, deletions, binaries, conflicts, and renames.
+- [x] **GIT-02**: `--changed` fails as incomplete when a trustworthy base or required history cannot be resolved and never guesses a passing scope.
+- [x] **GIT-03**: Production changed-code coverage uses the same local Git line scope recorded in `RunContext`.
+- [x] **GIT-04**: SARIF output maps existing canonical findings and policy decisions without introducing a GitHub-specific verification engine.
+- [x] **GIT-05**: A documented GitHub Actions workflow can enforce the same local gate using minimum token permissions and no custom GitHub App.
+- [x] **GIT-06**: Untrusted pull-request code runs only in an unprivileged context without repository secrets, publisher identity, write tokens, or remote-AI credentials.
+- [x] **GIT-07**: No privileged workflow executes or trusts fork code, scripts, caches, or artifacts without an explicitly reviewed safe handoff.
+- [x] **GIT-08**: GitHub annotations and summaries remain projections of `GateResult`, and the core imports no GitHub concepts.
 
 ### Rails Context
 
-- [ ] **RAIL-01**: RailVerdict detects supported Ruby/Rails versions, test framework, database adapter, dependencies, application structure, and selected Git scope through explicit conventions.
-- [ ] **RAIL-02**: Deterministic resolvers can identify bounded related tests, routes, models, associations, policies, jobs, services, and schema fragments for a finding.
-- [ ] **RAIL-03**: Rails context records confidence and provenance and never claims generalized semantic certainty.
-- [ ] **RAIL-04**: Runtime integrations such as Prosopite or migration safety checks remain deferred until they have non-destructive execution, lifecycle isolation, structured evidence, and contract tests.
+- [x] **RAIL-01**: RailVerdict detects supported Ruby/Rails versions, test framework, database adapter, dependencies, application structure, and selected Git scope through explicit conventions.
+- [x] **RAIL-02**: Deterministic resolvers can identify bounded related tests, routes, models, associations, policies, jobs, services, and schema fragments for a finding.
+- [x] **RAIL-03**: Rails context records confidence and provenance and never claims generalized semantic certainty.
+- [x] **RAIL-04**: Runtime integrations such as Prosopite or migration safety checks remain deferred until they have non-destructive execution, lifecycle isolation, structured evidence, and contract tests.
 
 ### Optional AI Intelligence
 
-- [ ] **AI-01**: A project with AI off receives exactly the same deterministic gate result as a project with AI enabled.
-- [ ] **AI-02**: Remote AI requires explicit opt-in and presents an inspectable manifest of the exact bounded context selected for transmission.
-- [ ] **AI-03**: Secret-file exclusions, secret-pattern detection, and redaction run before remote transmission and fail closed on likely secrets.
-- [ ] **AI-04**: Repository content, diffs, issues, commits, comments, analyzer messages, and model output are treated as untrusted data rather than instructions.
-- [ ] **AI-05**: AI provider responses are schema-validated, labeled advisory with provenance/confidence, and degrade to unavailable without changing the gate.
-- [ ] **AI-06**: Request count, finding count, context size, time, and cost budgets are enforced before provider invocation.
-- [ ] **AI-07**: AI cache keys bind finding fingerprint, context hash, provider, model, prompt version, and schema version without storing raw sensitive context by default.
-- [ ] **AI-08**: Provider abstractions stay outside the verification core, support one initial provider path, and preserve local-model compatibility as a future target.
+- [x] **AI-01**: A project with AI off receives exactly the same deterministic gate result as a project with AI enabled.
+- [x] **AI-02**: Remote AI requires explicit opt-in and presents an inspectable manifest of the exact bounded context selected for transmission.
+- [x] **AI-03**: Secret-file exclusions, secret-pattern detection, and redaction run before remote transmission and fail closed on likely secrets.
+- [x] **AI-04**: Repository content, diffs, issues, commits, comments, analyzer messages, and model output are treated as untrusted data rather than instructions.
+- [x] **AI-05**: AI provider responses are schema-validated, labeled advisory with provenance/confidence, and degrade to unavailable without changing the gate.
+- [x] **AI-06**: Request count, finding count, context size, time, and cost budgets are enforced before provider invocation.
+- [x] **AI-07**: AI cache keys bind finding fingerprint, context hash, provider, model, prompt version, and schema version without storing raw sensitive context by default.
+- [x] **AI-08**: Provider abstractions stay outside the verification core, support one initial provider path, and preserve local-model compatibility as a future target.
 
 ### Agent Repair Workflow
 
-- [ ] **AGNT-01**: A coding agent can understand a failed check from versioned JSON and exit status without parsing ANSI or prose logs.
-- [ ] **AGNT-02**: A deterministic repair packet contains the finding, policy decision, bounded evidence, relevant diff/context, related tests, and argv-form verification commands.
-- [ ] **AGNT-03**: Optional AI guidance is clearly separated from deterministic repair-packet evidence.
-- [ ] **AGNT-04**: RailVerdict never edits target source code or grants an external agent permissions beyond the caller's existing authority.
-- [ ] **AGNT-05**: An external agent can change a synthetic Rails project, observe a failure, repair it, rerun RailVerdict, and reach PASS using only machine contracts.
+- [x] **AGNT-01**: A coding agent can understand a failed check from versioned JSON and exit status without parsing ANSI or prose logs.
+- [x] **AGNT-02**: A deterministic repair packet contains the finding, policy decision, bounded evidence, relevant diff/context, related tests, and argv-form verification commands.
+- [x] **AGNT-03**: Optional AI guidance is clearly separated from deterministic repair-packet evidence.
+- [x] **AGNT-04**: RailVerdict never edits target source code or grants an external agent permissions beyond the caller's existing authority.
+- [x] **AGNT-05**: An external agent can change a synthetic Rails project, observe a failure, repair it, rerun RailVerdict, and reach PASS using only machine contracts.
 
 ### MCP Adapter
 
-- [ ] **MCP-01**: MCP is implemented only after CLI, Finding, GateResult, and repair-packet contracts have demonstrated stability.
-- [ ] **MCP-02**: MCP tools call the same application services and return the same versioned contracts as the CLI.
-- [ ] **MCP-03**: Initial MCP capabilities are read-only and contain no duplicate policy, analyzer execution, or code-editing engine.
+- [x] **MCP-01**: MCP is implemented only after CLI, Finding, GateResult, and repair-packet contracts have demonstrated stability.
+- [x] **MCP-02**: MCP tools call the same application services and return the same versioned contracts as the CLI.
+- [x] **MCP-03**: Initial MCP capabilities are read-only and contain no duplicate policy, analyzer execution, or code-editing engine.
 
 ### 1.0 Hardening and Release
 
-- [ ] **REL-01**: Finding, configuration, result, baseline, waiver, fingerprint, analyzer, reporter, AI-provider, repair-packet, exit-code, and migration contracts have documented 1.0 compatibility policies.
-- [ ] **REL-02**: The full automated suite covers unit, contract, integration, CLI, schema, adapter, fingerprint, baseline, policy, security, and AI-boundary behavior using only synthetic fixtures.
-- [ ] **REL-03**: Documentation covers philosophy, architecture, configuration, findings, baselines, policies, analyzers, AI, privacy, agents, GitHub Actions, security, and adapter development with executable examples where practical.
-- [ ] **REL-04**: Core development, tests, and release verification require no paid service, AI credential, account, or network access except explicit dependency/advisory refresh and publication steps.
-- [ ] **REL-05**: CI verifies every supported Ruby/Rails lane and required checks before publication, while the project dogfoods its own deterministic gate when stable.
-- [ ] **REL-06**: The release process builds once, tests and installs the exact gem artifact, records its digest and source revision, and publishes that same artifact.
-- [ ] **REL-07**: RubyGems publication uses protected Trusted Publishing with MFA and minimum GitHub permissions instead of a routine long-lived API key.
-- [ ] **REL-08**: Current tree, full history, generated gem, archives, media metadata, documentation, release notes, and CI artifacts pass the private-provenance and English-only release gates.
-- [ ] **REL-09**: Every release publishes SemVer notes, schema/migration changes, checksums/provenance, third-party license review, and known compatibility boundaries.
+- [x] **REL-01**: Finding, configuration, result, baseline, waiver, fingerprint, analyzer, reporter, AI-provider, repair-packet, exit-code, and migration contracts have documented 1.0 compatibility policies.
+- [x] **REL-02**: The full automated suite covers unit, contract, integration, CLI, schema, adapter, fingerprint, baseline, policy, security, and AI-boundary behavior using only synthetic fixtures. *Includes real installed-gem Minitest reporter regression (green/fail/zero, adapter, Policy).*
+- [x] **REL-03**: Documentation covers philosophy, architecture, configuration, findings, baselines, policies, analyzers, AI, privacy, agents, GitHub Actions, security, and adapter development with executable examples where practical.
+- [x] **REL-04**: Core development, tests, and release verification require no paid service, AI credential, account, or network access except explicit dependency/advisory refresh and publication steps.
+- [x] **REL-05**: CI verifies every supported Ruby/Rails lane and required checks before publication, while the project dogfoods its own deterministic gate when stable.
+- [x] **REL-06**: The release process builds once, tests and installs the exact gem artifact, records its digest and source revision, and publishes that same artifact.
+- [x] **REL-07**: RubyGems publication uses protected Trusted Publishing with MFA and minimum GitHub permissions instead of a routine long-lived API key.
+- [x] **REL-08**: Current tree, full history, generated gem, archives, media metadata, documentation, release notes, and CI artifacts pass the private-provenance and English-only release gates.
+- [x] **REL-09**: Every release publishes SemVer notes, schema/migration changes, checksums/provenance, third-party license review, and known compatibility boundaries.
 
 ## v2 Requirements
 
@@ -213,53 +213,53 @@ The roadmap is the authoritative requirement-to-phase mapping. Every v1 requirem
 | EVID-08 | Phase 2 | Complete |
 | EVID-09 | Phase 2 | Complete |
 | EVID-10 | Phase 2 | Complete |
-| DEBT-01 | Phase 3 | Pending |
-| DEBT-02 | Phase 3 | Pending |
-| DEBT-03 | Phase 3 | Pending |
-| DEBT-04 | Phase 3 | Pending |
-| DEBT-05 | Phase 3 | Pending |
-| DEBT-06 | Phase 3 | Pending |
-| DEBT-07 | Phase 3 | Pending |
-| DEBT-08 | Phase 3 | Pending |
-| DEBT-09 | Phase 3 | Pending |
-| DEBT-10 | Phase 3 | Pending |
-| GIT-01 | Phase 4 | Pending |
-| GIT-02 | Phase 4 | Pending |
-| GIT-03 | Phase 4 | Pending |
-| GIT-04 | Phase 4 | Pending |
-| GIT-05 | Phase 4 | Pending |
-| GIT-06 | Phase 4 | Pending |
-| GIT-07 | Phase 4 | Pending |
-| GIT-08 | Phase 4 | Pending |
-| RAIL-01 | Phase 5 | Pending |
-| RAIL-02 | Phase 5 | Pending |
-| RAIL-03 | Phase 5 | Pending |
-| RAIL-04 | Phase 5 | Pending |
-| AI-01 | Phase 6 | Pending |
-| AI-02 | Phase 6 | Pending |
-| AI-03 | Phase 6 | Pending |
-| AI-04 | Phase 6 | Pending |
-| AI-05 | Phase 6 | Pending |
-| AI-06 | Phase 6 | Pending |
-| AI-07 | Phase 6 | Pending |
-| AI-08 | Phase 6 | Pending |
-| AGNT-01 | Phase 7 | Pending |
-| AGNT-02 | Phase 7 | Pending |
-| AGNT-03 | Phase 7 | Pending |
-| AGNT-04 | Phase 7 | Pending |
-| AGNT-05 | Phase 7 | Pending |
-| MCP-01 | Phase 8 | Pending |
-| MCP-02 | Phase 8 | Pending |
-| MCP-03 | Phase 8 | Pending |
-| REL-01 | Phase 9 | Pending |
-| REL-02 | Phase 9 | Pending |
-| REL-03 | Phase 9 | Pending |
-| REL-04 | Phase 9 | Pending |
-| REL-05 | Phase 9 | Pending |
-| REL-06 | Phase 9 | Pending |
-| REL-07 | Phase 9 | Pending |
-| REL-08 | Phase 9 | Pending |
-| REL-09 | Phase 9 | Pending |
+| DEBT-01 | Phase 3 | Complete |
+| DEBT-02 | Phase 3 | Complete |
+| DEBT-03 | Phase 3 | Complete |
+| DEBT-04 | Phase 3 | Complete |
+| DEBT-05 | Phase 3 | Complete |
+| DEBT-06 | Phase 3 | Complete |
+| DEBT-07 | Phase 3 | Complete |
+| DEBT-08 | Phase 3 | Complete |
+| DEBT-09 | Phase 3 | Complete |
+| DEBT-10 | Phase 3 | Complete |
+| GIT-01 | Phase 4 | Complete |
+| GIT-02 | Phase 4 | Complete |
+| GIT-03 | Phase 4 | Complete |
+| GIT-04 | Phase 4 | Complete |
+| GIT-05 | Phase 4 | Complete |
+| GIT-06 | Phase 4 | Complete |
+| GIT-07 | Phase 4 | Complete |
+| GIT-08 | Phase 4 | Complete |
+| RAIL-01 | Phase 5 | Complete |
+| RAIL-02 | Phase 5 | Complete |
+| RAIL-03 | Phase 5 | Complete |
+| RAIL-04 | Phase 5 | Complete |
+| AI-01 | Phase 6 | Complete |
+| AI-02 | Phase 6 | Complete |
+| AI-03 | Phase 6 | Complete |
+| AI-04 | Phase 6 | Complete |
+| AI-05 | Phase 6 | Complete |
+| AI-06 | Phase 6 | Complete |
+| AI-07 | Phase 6 | Complete |
+| AI-08 | Phase 6 | Complete |
+| AGNT-01 | Phase 7 | Complete |
+| AGNT-02 | Phase 7 | Complete |
+| AGNT-03 | Phase 7 | Complete |
+| AGNT-04 | Phase 7 | Complete |
+| AGNT-05 | Phase 7 | Complete |
+| MCP-01 | Phase 8 | Complete |
+| MCP-02 | Phase 8 | Complete |
+| MCP-03 | Phase 8 | Complete |
+| REL-01 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-02 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-03 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-04 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-05 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-06 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-07 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-08 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
+| REL-09 | Phase 9 | Complete (technical; publication gate remains BLOCKED) |
 
 **Coverage:**
 
