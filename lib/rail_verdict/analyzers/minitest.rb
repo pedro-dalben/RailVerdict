@@ -22,10 +22,10 @@ module RailVerdict
 
       def probe(repository_root, runner: ProcessRunner, timeout_seconds: 15.0)
         command = @command_resolver.call(repository_root)
-        invocation = Shared.invocation_for(command, ["--version"])
+        probe_argv = probe_argv_for(command, repository_root)
         result = runner.run(
           command.fetch(:executable),
-          invocation.fetch("argv"),
+          probe_argv,
           chdir: repository_root,
           timeout_seconds: timeout_seconds
         )
@@ -48,49 +48,74 @@ module RailVerdict
       end
 
       def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
-        command = @command_resolver.call(repository_root)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
-        version_invocation = Shared.invocation_for(command, ["--version"])
 
         unless probe_result.status == "succeeded"
+          fallback_command = @command_resolver.call(repository_root)
+          version_invocation = Shared.invocation_for(fallback_command, ["--version"])
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: version_invocation, status: probe_result.status, message: probe_result.message, tool_version: probe_result.version), []]
         end
 
+        command = @command_resolver.call(repository_root)
+        reporter_path = resolve_reporter_path
+        unless reporter_path
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: Shared.invocation_for(command, ["run"]), status: "malformed", message: "installed Minitest reporter is missing", tool_version: probe_result.version), []]
+        end
+
         invocation = Shared.invocation_for(command, ["run"])
-        result = runner.run(
-          command.fetch(:executable),
-          invocation.fetch("argv"),
-          chdir: repository_root,
-          timeout_seconds: timeout_seconds
-        )
-        tool_version = probe_result.version
-
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "unavailable", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :spawn_failed
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: Shared.detail_for(result), tool_version: tool_version), []] if Shared.truncated?(result)
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "timed_out", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :timed_out
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "signaled", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :signaled
-
+        output_path = File.join(repository_root, ".railverdict-minitest-#{SecureRandom.hex(6)}.json")
+        env_reset_required = false
+        previous_env = ENV["RAILVERDICT_MINITEST_OUTPUT"]
         begin
-          document = JSON.parse(result.stdout)
-        rescue JSON::ParserError => error
-          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-        end
+          ENV["RAILVERDICT_MINITEST_OUTPUT"] = output_path
+          env_reset_required = true
+          augmented_argv = invocation.fetch("argv").dup
+          augmented_argv = inject_reporter_require(augmented_argv, reporter_path)
+          result = runner.run(
+            command.fetch(:executable),
+            augmented_argv,
+            chdir: repository_root,
+            timeout_seconds: timeout_seconds
+          )
+          tool_version = probe_result.version
 
-        begin
-          summary, findings = normalize_document(document)
-        rescue MalformedOutput => error
-          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-        end
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "unavailable", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :spawn_failed
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: Shared.detail_for(result), tool_version: tool_version), []] if Shared.truncated?(result)
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "timed_out", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :timed_out
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "signaled", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :signaled
 
-        analyzer_result = AnalyzerResult.new(
-          analyzer: ANALYZER_ID,
-          tool_version: tool_version,
-          invocation: invocation,
-          execution_status: "succeeded",
-          finding_ids: findings.map(&:id),
-          evidence_summary: summary
-        )
-        [analyzer_result, findings]
+          document = load_reporter_document(output_path, result, invocation, tool_version)
+          return document if document.is_a?(Array) && document.first.is_a?(AnalyzerResult)
+
+          begin
+            summary, findings = normalize_document(document)
+          rescue MalformedOutput => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+
+          analyzer_result = AnalyzerResult.new(
+            analyzer: ANALYZER_ID,
+            tool_version: tool_version,
+            invocation: invocation,
+            execution_status: "succeeded",
+            finding_ids: findings.map(&:id),
+            evidence_summary: summary
+          )
+          [analyzer_result, findings]
+        ensure
+          if env_reset_required
+            if previous_env.nil?
+              ENV.delete("RAILVERDICT_MINITEST_OUTPUT")
+            else
+              ENV["RAILVERDICT_MINITEST_OUTPUT"] = previous_env
+            end
+          end
+          begin
+            File.unlink(output_path) if File.file?(output_path)
+          rescue StandardError
+            nil
+          end
+        end
       end
 
       private
@@ -100,6 +125,85 @@ module RailVerdict
           { executable: "bundle", args_prefix: ["exec", "ruby", "-I", "test", "-r", "test_helper"] }
         else
           { executable: "ruby", args_prefix: ["-I", "test", "-r", "test_helper"] }
+        end
+      end
+
+      def probe_argv_for(command, repository_root)
+        args = command.fetch(:args_prefix).dup
+        return args.concat(["--version"]) unless args.include?("test_helper")
+
+        if File.file?(File.join(repository_root, "Gemfile"))
+          ["exec", "ruby", "-rminitest", "-e", "puts Minitest::VERSION"]
+        else
+          ["-rminitest", "-e", "puts Minitest::VERSION"]
+        end
+      end
+
+      def resolve_reporter_path
+        candidates = []
+        begin
+          specs = Gem::Specification.find_all_by_name("rail_verdict")
+          if specs.any?
+            best = specs.max_by(&:version)
+            candidates << File.join(best.full_gem_path, "exe", "railverdict-minitest-reporter.rb")
+          end
+        rescue StandardError
+          nil
+        end
+        candidates << File.expand_path("../../../exe/railverdict-minitest-reporter.rb", __dir__)
+        candidates.find { |path| File.file?(path) && File.readable?(path) }
+      end
+
+      def build_run_argv(command, reporter_path)
+        base = command.fetch(:args_prefix).dup
+        base.concat(["-r", reporter_path])
+        base.concat(["-e", "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }"])
+        base
+      end
+
+      def inject_reporter_require(argv, reporter_path)
+        argv = argv.dup
+        if argv.include?("run")
+          idx = argv.index("run")
+          argv[idx] = "-r"
+          argv.insert(idx + 1, reporter_path)
+          argv.insert(idx + 2, "-e")
+          argv.insert(idx + 3, "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }")
+        else
+          argv.concat(["-r", reporter_path])
+          argv.concat(["-e", "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }"])
+        end
+        argv
+      end
+
+      def load_reporter_document(output_path, run_result, invocation, tool_version)
+        if File.file?(output_path)
+          begin
+            bytes = File.binread(output_path)
+          rescue SystemCallError => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+          if bytes.bytesize > 4 * 1024 * 1024
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: "Minitest reporter output exceeds 4 MiB", tool_version: tool_version), []]
+          end
+          text = bytes.dup.force_encoding(Encoding::UTF_8)
+          unless text.valid_encoding?
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: "Minitest reporter output is not valid UTF-8", tool_version: tool_version), []]
+          end
+          begin
+            return JSON.parse(text)
+          rescue JSON::ParserError => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+        end
+        stdout = run_result.stdout.to_s
+        if stdout.strip.empty?
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: "Minitest reporter did not produce output", tool_version: tool_version), []]
+        end
+        begin
+          JSON.parse(stdout)
+        rescue JSON::ParserError => error
+          [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
         end
       end
 

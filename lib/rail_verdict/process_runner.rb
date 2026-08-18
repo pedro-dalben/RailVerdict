@@ -12,7 +12,7 @@ module RailVerdict
     REAP_POLL_SECONDS = 0.01
 
     ENV_ALLOWLIST = %w[
-      PATH HOME GEM_HOME GEM_PATH LANG
+      PATH HOME GEM_HOME GEM_PATH LANG RAILVERDICT_MINITEST_OUTPUT
     ].freeze
     FORCED_ENV = { "LC_ALL" => "C.UTF-8", "TZ" => "UTC" }.freeze
 
