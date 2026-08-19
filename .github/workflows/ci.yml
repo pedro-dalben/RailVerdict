@@ -24,6 +24,7 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
+      - run: gem install rubocop --no-document
       - run: bundle exec ruby script/validate-foundation
       - run: bundle exec rake test
       - run: gem build rail_verdict.gemspec
