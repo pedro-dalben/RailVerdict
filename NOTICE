@@ -6,9 +6,9 @@ Third-party dependencies and analyzer tools retain their own licenses;
 see docs/analyzers.md and the NOTICE of any distributed artifact for details.
 
 Copyright holder: Pedro Dalben
-Trademark/project owner: Pedro Dalben (no registration claimed)
+Trademark/project owner: Pedro Dalben (no registration claimed; qualified review not performed — non-blocking by maintainer decision 2026-08-19, Pedro Dalben — residual risk accepted)
 Security contact: dev@pedrodalben.com.br
 Legal/trademark contact: dev@pedrodalben.com.br
 Repository: https://github.com/pedro-dalben/RailVerdict
 
-Qualified trademark/name review remains unresolved; see docs/foundation.md.
+Qualified trademark/name review remains NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION for initial open-source publication; recommended but not mandatory. Preliminary screen 2026-08-19: no obvious conflict observed; NOT LEGAL CLEARANCE. See docs/foundation.md.

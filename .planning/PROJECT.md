@@ -4,7 +4,7 @@
 
 RailVerdict is a fully open-source, local-first verification framework for Ruby on Rails applications. It collects evidence from established quality tools, normalizes that evidence into stable findings, applies project policy and historical baselines, and returns a deterministic merge gate that humans, CI systems, and coding agents can consume.
 
-Phase 0 rejected the working name LineClear after finding avoidable software, GitHub, and trademark collision risk. The selected identity is RailVerdict: gem `rail_verdict`, Ruby namespace `RailVerdict`, CLI `railverdict`, and configuration `.railverdict.yml`. Publication remains blocked until the documented jurisdictional and qualified trademark review is complete. The product is not a SaaS and does not depend on accounts, telemetry, hosted services, or AI.
+Phase 0 rejected the working name LineClear after finding avoidable software, GitHub, and trademark collision risk. The selected identity is RailVerdict: gem `rail_verdict`, Ruby namespace `RailVerdict`, CLI `railverdict`, and configuration `.railverdict.yml`. Qualified trademark review (including Brazil INPI / launch jurisdictions) is NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben) for the initial open-source publication; preliminary screen 2026-08-19 found no obvious software/developer-tool conflict (NOT LEGAL CLEARANCE); remaining mandatory publication gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan). The product is not a SaaS and does not depend on accounts, telemetry, hosted services, or AI.
 
 ## Core Value
 
@@ -72,7 +72,7 @@ The initial research set includes Minitest, RSpec, RuboCop, rubocop-rails, Simpl
 | GitHub and MCP remain adapters | Core contracts must work locally and remain platform-independent | — Pending |
 | Apache-2.0 plus separate trademark policy | Preserve genuine open-source use while protecting official project identity | — Pending |
 | Horizontal project structure | Contract and infrastructure layers must stabilize before higher-level adapters consume them | — Pending |
-| Rename LineClear to RailVerdict before publication | LineClear had avoidable exact-name software, GitHub, and trademark collision signals; RailVerdict's dated package/repository/domain checks returned no exact record at that time, which is technical evidence rather than legal clearance | — Pending qualified trademark review |
+| Rename LineClear to RailVerdict before publication | LineClear had avoidable exact-name software, GitHub, and trademark collision signals; RailVerdict's dated package/repository/domain checks returned no exact record at that time, which is technical evidence rather than legal clearance; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); preliminary screen 2026-08-19 found no obvious conflict (NOT LEGAL CLEARANCE) | — Qualified review recommended but non-blocking; residual risk accepted by maintainer |
 
 ## Evolution
 

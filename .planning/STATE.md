@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 09
 current_phase_name: 1.0-hardening
 status: technical_complete
-stopped_at: "Phase 09 1.0 Hardening — technical complete; publication remains blocked"
-last_updated: "2026-08-18T00:00:00-03:00"
-last_activity: 2026-08-18
-last_activity_desc: Phase 09 closeout — real Minitest installed-gem integration + planning sync
+stopped_at: "Phase 09 1.0 Hardening — technical complete; trademark qualified review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); publication gate is release closeout"
+last_updated: "2026-08-19T00:00:00-03:00"
+last_activity: 2026-08-19
+last_activity_desc: Make qualified trademark review non-blocking for initial OSS release; preliminary screen 2026-08-19 — no obvious conflict; NOT LEGAL CLEARANCE
 progress:
   total_phases: 10
   completed_phases: 10
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 09 — 1.0-hardening (technical complete; publication BLOCKED — no Phase 10)
+**Current focus:** Phase 09 — 1.0-hardening (technical complete; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19; publication gate is release closeout — no Phase 10)
 
 ## Current Position
 
 Phase: 09 (1.0-hardening) — TECHNICAL COMPLETE
 Plans: 7 + closeout
-Status: Technical 1.0 hardening complete 2026-08-18; publication remains blocked by explicit external/legal gates; no Phase 10 started
-Last activity: 2026-08-18 — Phase 09 closeout: real Minitest reporter via installed gem (green/fail/zero) + planning STATE/ROADMAP sync
+Status: Technical 1.0 hardening complete 2026-08-19; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); preliminary screen 2026-08-19 — no obvious conflict (NOT LEGAL CLEARANCE); publication gate is release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan); no Phase 10 started
+Last activity: 2026-08-19 — Trademark non-blocking decision (Pedro Dalben) + preliminary screen refresh
 
 Progress: [██████████] 100%
 
@@ -118,7 +118,7 @@ None.
 
 - [Phase 0]: Phase 0 may complete its documented foundation while publication remains blocked on documented launch-jurisdiction checks and qualified trademark review for RailVerdict; the foundation records this unresolved gate without inventing clearance. Still unresolved at 09 closeout by design.
 - [Phase 2]: Brakeman cannot be advertised as supported until its current license and product-use boundaries receive a written decision. Still unresolved at 09 closeout by design.
-- [Phase 9 publication]: Private-provenance/media scan, jurisdiction, and qualified trademark decisions must be revalidated at the actual release tag before publication — no 1.0 tag in this closeout.
+- [Phase 9 publication]: Private-provenance/media scan must be revalidated at the actual release tag; jurisdiction and qualified trademark decisions remain RECOMMENDED BUT NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); no 1.0 tag in this closeout without release-closeout gates passing.
 
 ## Deferred Items
 

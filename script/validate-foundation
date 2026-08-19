@@ -312,9 +312,16 @@ def check_identity
     fail_check("naming matrix date is invalid") unless row[1].match?(/\A\d{4}-\d{2}-\d{2}\z/)
     fail_check("naming matrix source must be HTTPS") unless row[3].start_with?("https://")
   end
+  rows.first(9).each do |row|
+    fail_check("technical surface is not dated evidence") unless row[5].include?("Dated evidence")
+    fail_check("technical surface limitation missing NOT LEGAL CLEARANCE") unless row[6].match?(/NOT LEGAL CLEARANCE/i)
+  end
   rows.drop(9).each do |row|
-    fail_check("incomplete legal surface is not unresolved") unless row[5].include?("Unresolved external gate")
-    fail_check("incomplete legal surface does not retain publication block") unless row[6].match?(/(?:unresolved|required|block)/i)
+    fail_check("preliminary screen surface is not labeled as such") unless row[5].match?(/Preliminary screen/i)
+    fail_check("preliminary screen missing NOT LEGAL CLEARANCE") unless row[5].match?(/NOT LEGAL CLEARANCE/i) || row[6].match?(/NOT LEGAL CLEARANCE/i)
+    fail_check("preliminary screen missing QUALIFIED REVIEW NOT PERFORMED") unless (row[5] + row[6]).match?(/QUALIFIED REVIEW NOT PERFORMED/i)
+    fail_check("preliminary screen missing NON-BLOCKING BY MAINTAINER DECISION") unless (row[5] + row[6]).match?(/NON-BLOCKING BY MAINTAINER DECISION/i)
+    fail_check("preliminary screen falsely claims clearance") if (row[5] + row[6]).match?(/TRADEMARK CLEARED|LEGAL CLEARANCE OBTAINED|INPI APPROVED|TRADEMARK AVAILABLE/i) && !(row[5] + row[6]).match?(/NOT LEGAL CLEARANCE/i)
   end
 
   _, identity_rows = markdown_table("docs/foundation.md", "## Identity Decision")
@@ -337,8 +344,15 @@ def check_identity
   (PUBLIC_TEXT_FILES - ["docs/foundation.md"]).each do |relative|
     fail_check("rejected working name leaked outside its history: #{relative}") if utf8_file(relative).include?(rejected_name)
   end
-  fail_check("publication blocker missing") unless foundation.match?(/Publication is blocked/i)
+  fail_check("publication gate missing") unless foundation.match?(/Publication gate/i)
   fail_check("qualified trademark review missing") unless (foundation + utf8_file("README.md")).match?(/qualified trademark review/i)
+  fail_check("qualified review non-blocking decision missing") unless foundation.match?(/NOT PERFORMED.*NON-BLOCKING BY MAINTAINER DECISION.*2026-08-19.*Pedro Dalben/mi)
+  fail_check("foundation missing preliminary screen NOT LEGAL CLEARANCE") unless foundation.match?(/NOT LEGAL CLEARANCE/i)
+  fail_check("foundation missing maintainer decision section") unless foundation.match?(/Maintainer Publication-Risk Decision.*2026-08-19/mi)
+  fail_check("foundation must not falsely claim clearance") if foundation.match?(/TRADEMARK CLEARED[^;]*$/im) || foundation.match?(/LEGAL CLEARANCE OBTAINED/i) || foundation.match?(/INPI APPROVED/i)
+  fail_check("maintainer decision must record residual risk accepted") unless foundation.match?(/residual risk.*accepted by maintainer/i)
+  fail_check("GitHub search result not updated to 2026-08-19") unless foundation.match?(/2026-08-19.*total_count: 2/mi)
+  fail_check("dated matrix dates not refreshed to 2026-08-19") unless rows.all? { |r| r[1] == "2026-08-19" }
 end
 
 def check_legal
@@ -353,33 +367,39 @@ def check_legal
   fail_check("NOTICE missing security contact") unless notice.match?(/Security contact:\s*dev@pedrodalben\.com\.br/i)
   fail_check("NOTICE missing legal contact") unless notice.match?(/Legal\/trademark contact:\s*dev@pedrodalben\.com\.br/i)
   fail_check("NOTICE missing repository") unless notice.include?("https://github.com/pedro-dalben/RailVerdict")
-  fail_check("NOTICE missing qualified-review unresolved pointer") unless notice.match?(/Qualified trademark\/name review remains unresolved/i)
+  fail_check("NOTICE missing qualified-review NOT PERFORMED pointer") unless notice.match?(/Qualified trademark\/name review remains NOT PERFORMED/i)
+  fail_check("NOTICE missing NON-BLOCKING BY MAINTAINER DECISION") unless notice.match?(/NON-BLOCKING BY MAINTAINER DECISION/i)
+  fail_check("NOTICE must not claim clearance") if notice.match?(/TRADEMARK CLEARED|LEGAL CLEARANCE OBTAINED|INPI APPROVED/i)
 
   trademarks = utf8_file("TRADEMARKS.md")
   fail_check("TRADEMARKS missing owner Pedro Dalben") unless trademarks.match?(/Trademark\/project owner:\s*Pedro Dalben/i)
   fail_check("TRADEMARKS missing legal contact") unless trademarks.match?(/Legal\/trademark contact:\s*dev@pedrodalben\.com\.br/i)
   fail_check("TRADEMARKS missing repository") unless trademarks.include?("https://github.com/pedro-dalben/RailVerdict")
+  fail_check("TRADEMARKS missing NOT PERFORMED NON-BLOCKING") unless trademarks.match?(/NOT PERFORMED.*NON-BLOCKING BY MAINTAINER DECISION/i)
+  fail_check("TRADEMARKS missing preliminary screen NOT LEGAL CLEARANCE") unless trademarks.match?(/NOT LEGAL CLEARANCE/i)
+  fail_check("TRADEMARKS missing residual risk accepted") unless trademarks.match?(/residual.*risk accepted/i)
   required = [
     /not a software-license condition/i,
     /does not limit personal or commercial use/i,
     /modification, forks, redistribution, consulting, resale/i,
     /nominative references are permitted/i,
     /official status, sponsorship, or endorsement/i,
-    /Publication remains blocked/i,
-    /qualified legal review are unresolved/i
+    /qualified trademark\/name review.*NOT PERFORMED.*NON-BLOCKING/i,
+    /NOT LEGAL CLEARANCE/i
   ]
   required.each { |pattern| fail_check("trademark/software-right boundary is incomplete") unless trademarks.match?(pattern) }
 
   foundation = utf8_file("docs/foundation.md")
   fail_check("foundation missing owner Pedro Dalben") unless foundation.match?(/Copyright and trademark ownership.*Pedro Dalben/im)
-  fail_check("foundation owner must note qualified review still required") unless foundation.match?(/Copyright and trademark ownership.*qualified review still required/im)
+  fail_check("foundation owner must note non-blocking decision") unless foundation.match?(/Copyright and trademark ownership.*non-blocking by maintainer decision/im)
   fail_check("foundation missing legal contact dev@pedrodalben.com.br") unless foundation.match?(/Legal contact.*dev@pedrodalben\.com\.br/im)
   %w[reviewer outcome].each do |term|
-    fail_check("foundation legal status omits unresolved #{term}") unless foundation.match?(/#{term}.{0,120}Unresolved|Unresolved.{0,120}#{term}/im)
+    fail_check("foundation legal status omits NOT PERFORMED #{term}") unless foundation.match?(/#{term}.{0,120}NOT PERFORMED|NOT PERFORMED.{0,120}#{term}/im)
   end
-  %w[Brazil].each do |term|
-    fail_check("foundation blocked jurisdiction omits unresolved #{term}") unless foundation.match?(/#{term}.{0,120}Unresolved|Unresolved.{0,120}#{term}/im)
-  end
+  fail_check("foundation Brazil must note NOT PERFORMED NON-BLOCKING") unless foundation.match?(/Brazil INPI qualified review.*NOT PERFORMED.*NON-BLOCKING/im)
+  fail_check("foundation jurisdiction must note NON-BLOCKING") unless foundation.match?(/launch jurisdiction qualified review.*NOT PERFORMED.*NON-BLOCKING/im)
+  fail_check("foundation must contain qualified reviewer NOT PERFORMED") unless foundation.match?(/Qualified reviewer.*NOT PERFORMED.*NON-BLOCKING/im)
+  fail_check("foundation must not claim trademark clearance") if foundation.match?(/TRADEMARK CLEARED|TRADEMARK AVAILABLE/i) && !foundation.match?(/no trademark conflict was affirmatively claimed/i)
 end
 
 def check_analyzers
@@ -521,8 +541,10 @@ def check_adrs
   fail_check("Apache ADR loses MIT supersession") unless apache.match?(/Superseded by MIT|MIT License.*current/i)
   fail_check("Apache ADR loses publication block") unless apache.match?(/Publication waits/i)
   trademark = utf8_file("docs/adr/0015-separate-trademark-policy.md")
-  fail_check("trademark ADR loses unresolved legal fields") unless trademark.match?(/owner and contact remain unresolved.*reviewer's actual conclusion/im)
-  fail_check("trademark ADR loses publication block") unless trademark.match?(/Publication remains blocked/i)
+  fail_check("trademark ADR loses NOT PERFORMED NON-BLOCKING") unless trademark.match?(/NOT PERFORMED.*NON-BLOCKING/i)
+  fail_check("trademark ADR loses maintainer decision 2026-08-19") unless trademark.match?(/2026-08-19.*Pedro Dalben/mi)
+  fail_check("trademark ADR loses preliminary screen NOT LEGAL CLEARANCE") unless trademark.match?(/NOT LEGAL CLEARANCE/i)
+  fail_check("trademark ADR loses no legal reviewer note") unless trademark.match?(/No legal reviewer was engaged/i)
 
   all_adrs = ADR_FILES.map { |name| utf8_file("docs/adr/#{name}") }.join("\n")
   topic_checks = {
@@ -599,10 +621,12 @@ def check_roadmap
   planning = utf8_file(".planning/ROADMAP.md")
   state = utf8_file(".planning/STATE.md")
   combined = roadmap + planning + state
-  unless combined.scan(/Phase 0.{0,300}(?:complete|completion).{0,300}publication.{0,120}block/im).any?
-    fail_check("foundation completion/publication blocker distinction is missing")
+  unless combined.scan(/Phase 0.{0,300}(?:complete|completion).{0,500}qualified trademark review.{0,300}NOT PERFORMED.*NON-BLOCKING/im).any?
+    fail_check("foundation completion/non-blocking trademark distinction is missing")
   end
   fail_check("qualified trademark review gate missing") unless combined.match?(/qualified trademark review/i)
+  fail_check("non-blocking trademark decision missing in roadmap/planning") unless combined.match?(/NOT PERFORMED.*NON-BLOCKING BY MAINTAINER DECISION.*2026-08-19.*Pedro Dalben/mi)
+  fail_check("roadmap must note preliminary screen NOT LEGAL CLEARANCE") unless combined.match?(/NOT LEGAL CLEARANCE/i)
   fail_check("Phase 2 injected-line ownership missing") unless roadmap.match?(/Phase 2.{0,1200}injected line set/im)
   fail_check("Phase 4 production coverage ownership missing") unless roadmap.match?(/Phase 4.{0,1000}production changed-code coverage/im)
   fail_check("Brakeman unsupported boundary missing") unless roadmap.match?(/Brakeman.{0,400}(?:unsupported|written)/im)

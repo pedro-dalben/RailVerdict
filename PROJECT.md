@@ -24,7 +24,7 @@ The practical invariants behind that value are defined in [PHILOSOPHY.md](PHILOS
 
 The planned v1 scope is one local Ruby gem and one process. It covers safe external-tool execution, normalized evidence, deterministic policy, baselines and waivers, Git-scoped verification, bounded Rails context, optional advisory AI, agent repair packets, and thin downstream adapters. Each capability belongs to the phase listed in [ROADMAP.md](ROADMAP.md); none is implied present merely because it is described here.
 
-Phase 0 contains documentation, legal files, decisions, draft schemas, synthetic examples, and foundation validation only. It does not contain a gem or production runtime scaffold. The current public identity remains provisional: [publication is blocked](docs/foundation.md#publication-gate-record) until launch-jurisdiction evidence and qualified trademark review are recorded.
+Phase 0 contains documentation, legal files, decisions, draft schemas, synthetic examples, and foundation validation only. It does not contain a gem or production runtime scaffold. The current public identity remains provisional: [publication gate](docs/foundation.md#publication-gate-record) — qualified trademark review (including Brazil INPI / launch jurisdictions) is NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); preliminary screen 2026-08-19 found no obvious conflict (NOT LEGAL CLEARANCE); remaining mandatory gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-pattern/provenance scan).
 
 ## Non-Goals
 
@@ -81,4 +81,4 @@ This differentiation is a project inference and design decision, not a verified 
 
 ## Status
 
-This document ratifies product scope, not implementation or publication readiness. The authoritative name evidence, identity mapping, and unresolved publication gate are in [docs/foundation.md](docs/foundation.md).
+This document ratifies product scope, not implementation or publication readiness. The authoritative name evidence, identity mapping, and publication gate (qualified review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19) are in [docs/foundation.md](docs/foundation.md).

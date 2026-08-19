@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No Brakeman support (HOLD pending legal/product decision).
 - No OS sandbox; subprocess containment is argv/env/bounds/pgroup only.
 - No full semantic code graph; Rails context is bounded + provenance-labeled.
-- Qualified trademark/name review (including Brazil INPI) unresolved until qualified counsel review is recorded in `docs/foundation.md`.
+- Qualified trademark/name review (including Brazil INPI) NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben) for initial open-source publication; recommended but not mandatory; preliminary screen 2026-08-19 found no obvious conflict — NOT LEGAL CLEARANCE; no registration or clearance claimed.
 - Private-pattern corpus scan requires external maintainer input (`FOUNDATION_PRIVATE_PATTERNS`).
 
 ### Artifact

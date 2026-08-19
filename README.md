@@ -187,6 +187,6 @@ bundle exec rubocop
 
 - **License:** [MIT](LICENSE) — see [NOTICE](NOTICE)
 - **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md)
-- **Foundation:** [docs/foundation.md](docs/foundation.md) — name evidence, identity mapping, qualified trademark review and publication block
+- **Foundation:** [docs/foundation.md](docs/foundation.md) — name evidence, identity mapping, preliminary screen (no obvious conflict; NOT LEGAL CLEARANCE), qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben)
 - **Schemas:** [finding v1](schemas/finding-v1.schema.json), [configuration v1](schemas/configuration-v1.schema.json), [result v1](schemas/result-v1.schema.json)
 - **Examples:** [finding](examples/finding-v1.json), [configuration](examples/configuration-v1.yml), [result](examples/result-v1.json)

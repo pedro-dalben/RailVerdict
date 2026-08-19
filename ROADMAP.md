@@ -20,7 +20,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - [x] **Phase 6: Optional AI Intelligence** - Add opt-in, privacy-preserving advisory analysis that cannot change the deterministic gate.
 - [x] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures.
 - [x] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter.
-- [x] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0. Technical 1.0 hardening complete; publication remains blocked by explicit external/legal gates (see ROADMAP Phase details).
+- [x] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0. Technical 1.0 hardening complete;publication gate: qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); remaining mandatory gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan) — see Phase details.
 
 ## Phase Details
 
@@ -31,13 +31,13 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Requirements:** FND-01, FND-02, FND-03, FND-04, FND-05, FND-06, FND-07, FND-08, FND-09, FND-10, FND-11, FND-12, FND-13, FND-14
 **Success Criteria** (what must be TRUE):
 
-  1. Maintainers can review dated package, repository, domain, product-collision, and preliminary trademark evidence for RailVerdict and see that publication stays blocked until the documented launch-jurisdiction and qualified trademark reviews are cleared.
+  1. Maintainers can review dated package, repository, domain, product-collision, and preliminary trademark evidence for RailVerdict and see that qualified trademark review (including launch jurisdictions / Brazil INPI) is NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); preliminary screen 2026-08-19 found no obvious conflict (NOT LEGAL CLEARANCE); remaining mandatory publication gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan).
   2. Contributors can use one identity mapping for RailVerdict, `rail_verdict`, `RailVerdict`, `railverdict`, `.railverdict.yml`, repository identity, and schema namespace, with MIT rights separated from trademark rules.
   3. Maintainers can inspect a dated analyzer registry and support proposal that document licenses, commercial-use considerations, installation, output, bundling, and version policy; Brakeman is absent from the committed adapter shortlist until a written product/legal decision approves it.
   4. Contributors can understand the deterministic-first product, four one-way layers, fifteen foundation ADRs, threat model, synthetic-only information firewall, English-only policy, and minimal one-gem structure from the repository documents.
   5. Adapter and automation authors can validate the draft Finding and configuration schemas, understand unknown-field behavior and the proposed CLI/stdout/stderr/exit contracts, and trace all 85 v1 requirements through this Phase 0–9 roadmap.
 
-**Exit gate:** Phase 0 may complete its documented foundation when the identity decision, the accurately unresolved external gate, every foundation artifact, and the no-production boundary are mutually consistent. Publication, package or repository reservation, domain action, and public branding remain blocked until documented launch-jurisdiction evidence and qualified trademark review explicitly clear them.
+**Exit gate:** Phase 0 may complete its documented foundation when the identity decision, the accurately documented preliminary screen and non-blocking qualified-review gate, every foundation artifact, and the no-production boundary are mutually consistent. Qualified trademark review (including Brazil INPI / launch jurisdictions) is NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); publication is not blocked by missing qualified review. Remaining mandatory publication gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan, or an obvious naming conflict).
 **Non-goals**: Production gem behavior, analyzer execution, baseline implementation, AI, GitHub integration, MCP, or publication.
 ### Phase 1: Trustworthy Core
 
@@ -206,7 +206,7 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 **Exit gate**: Every compatibility, supported-lane, security, provenance, language, clean-install, documentation, and artifact-identity gate passes against the release candidate; current identity/legal and third-party license decisions are revalidated immediately before publication.
 **Non-goals**: Paid or hosted dependencies, long-lived routine publishing keys, rebuilding after verification, private-derived fixtures, untested compatibility promises, or expanding v1 analyzer scope during release hardening.
 **Plans**: 09-01 MIT alignment · 09-02 packaging CWD-independent · 09-03 dogfood (Minitest/RSpec stubs) · 09-04 SARIF · 09-05 release invariants · 09-06 CI/Trusted Publishing · 09-07 CHANGELOG/final acceptance · 09 closeout (real installed-gem Minitest proof ebf36a8 + planning sync). Technical 1.0 hardening complete.
-**Publication blocked**: Jurisdiction, qualified trademark, private-provenance/media scan at release tag — no tag, no publish. No Phase 10 started.
+**Publication gate**: Qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); remaining mandatory blockers are release closeout (final 1.0.0 version/revision, final generated gem provenance, rehearsal, RubyGems/GitHub configuration, private-provenance/media scan, or obvious naming conflict) — no tag, no publish until those pass.
 
 ## Dependency Order
 
