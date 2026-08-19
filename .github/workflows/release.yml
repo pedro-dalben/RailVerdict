@@ -83,7 +83,7 @@ jobs:
       - name: Publish exact built gem to RubyGems (Trusted Publishing)
         run: |
           if [ "${{ vars.RELEASE_DRY_RUN }}" = "false" ]; then
-            gem push --attestations rail_verdict-*.gem
+            gem push rail_verdict-*.gem
           else
             echo "RELEASE_DRY_RUN != false — dry-runOnly, not pushing to RubyGems"
             ls -l rail_verdict-*.gem
