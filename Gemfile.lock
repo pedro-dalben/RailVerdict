@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    rail_verdict (0.1.0)
+    rail_verdict (1.0.0)
       json_schemer (>= 2.5, < 3)
       mcp (~> 1.2.0)
 

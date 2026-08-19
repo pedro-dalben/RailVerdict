@@ -5,14 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-- Publication identity: repository `pedro-dalben/RailVerdict`, owner/copyright `Pedro Dalben`, contacts `dev@pedrodalben.com.br`.
-
-## [1.0.0] — TBD (not yet released)
-
-> **Pre-release draft.** VERSION remains `0.1.0` until the `v1.0.0` tag. No `v1.0.0` tag or RubyGems push has occurred.
+## [1.0.0] — 2026-08-19
 
 ### Highlights
 
@@ -38,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No Brakeman support (HOLD pending legal/product decision).
 - No OS sandbox; subprocess containment is argv/env/bounds/pgroup only.
 - No full semantic code graph; Rails context is bounded + provenance-labeled.
+- AI does not control GateResult; no autonomous source mutation.
 - Qualified trademark/name review (including Brazil INPI) NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben) for initial open-source publication; recommended but not mandatory; preliminary screen 2026-08-19 found no obvious conflict — NOT LEGAL CLEARANCE; no registration or clearance claimed.
 - Private-pattern corpus scan requires external maintainer input (`FOUNDATION_PRIVATE_PATTERNS`).
 

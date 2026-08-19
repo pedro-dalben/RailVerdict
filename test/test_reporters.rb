@@ -82,7 +82,7 @@ class TestReporters < Minitest::Test
     output = RailVerdict::Reporters::Console.render(result(findings: [finding("app/a.rb", 1, message: "bad\e[31m")]))
     assert_equal output, RailVerdict::Reporters::Console.render(result(findings: [finding("app/a.rb", 1, message: "bad\e[31m")]))
     refute_includes output, "\e["
-    assert_includes output, "RailVerdict 0.1.0"
+    assert_includes output, "RailVerdict #{RailVerdict::VERSION}"
     assert_includes output, "Gate: FAIL"
   end
 
