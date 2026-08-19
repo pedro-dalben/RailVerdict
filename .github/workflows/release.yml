@@ -61,8 +61,9 @@ jobs:
     runs-on: ubuntu-latest
     # Trusted Publishing via OIDC — no GEM_HOST_API_KEY
     # Configure at https://rubygems.org/gems/rail_verdict/trusted_publishers
-    # This job is intentionally dry-run safe: it requires the protected environment
-    # and will only publish when explicitly approved.
+    # Uses the exact artifact built in the build job (build-once, publish-exact).
+    # rubygems/release-gem does not fit build-once (it rebuilds via rake release),
+    # so we publish the verified artifact directly via OIDC.
     environment: release
     permissions:
       contents: read
@@ -77,7 +78,13 @@ jobs:
           bundler-cache: false
       - name: Verify checksum matches build
         run: sha256sum rail_verdict-*.gem
-      - name: Publish to RubyGems (Trusted Publishing)
-        uses: rubygems/release-gem@v1
-        with:
-          dry-run: ${{ vars.RELEASE_DRY_RUN != 'false' }}
+      - name: Configure RubyGems credentials (OIDC)
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+      - name: Publish exact built gem to RubyGems (Trusted Publishing)
+        run: |
+          if [ "${{ vars.RELEASE_DRY_RUN }}" = "false" ]; then
+            gem push --attestations rail_verdict-*.gem
+          else
+            echo "RELEASE_DRY_RUN != false — dry-runOnly, not pushing to RubyGems"
+            ls -l rail_verdict-*.gem
+          fi
