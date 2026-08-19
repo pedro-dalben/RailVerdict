@@ -115,6 +115,17 @@ ASVS V13 Configuration, V14 Data Protection, and V16 Security Logging and Error 
 - Secret scanning, schemas, checksums, and attestations each prove a narrow property; none substitutes for provenance review, dependency review, or qualified legal judgment.
 - Phase 4 must reopen this model before adding public-fork CI. Phase 6 must reopen it before remote transmission. Phase 9 must reopen it before building or publishing any release artifact.
 
+## Contact
+
+- **Security contact:** dev@pedrodalben.com.br
+- **Legal/trademark contact:** dev@pedrodalben.com.br
+- **Repository:** https://github.com/pedro-dalben/RailVerdict
+- **Owner / copyright holder:** Pedro Dalben
+
+To report a vulnerability, email the security contact with a description, affected version, and reproduction steps. Do not open a public issue for sensitive reports.
+
+Trademark/name qualified review remains unresolved; see docs/foundation.md and TRADEMARKS.md.
+
 ## Information Firewall
 
 The information firewall protects public provenance, language consistency, and non-disclosure across the repository and every future release surface. It is a publication control, not a claim that automated scanning can prove authorship or language semantics.

@@ -1,7 +1,14 @@
 RailVerdict
-Copyright (c) 2026 RailVerdict Contributors
+Copyright (c) 2026 Pedro Dalben
 
 This product is licensed under the MIT License. See LICENSE for details.
 Third-party dependencies and analyzer tools retain their own licenses;
 see docs/analyzers.md and the NOTICE of any distributed artifact for details.
-No copyright-owner, trademark-owner, legal-contact, or third-party attribution beyond this file is asserted; unresolved ownership and contact evidence remains documented in docs/foundation.md.
+
+Copyright holder: Pedro Dalben
+Trademark/project owner: Pedro Dalben (no registration claimed)
+Security contact: dev@pedrodalben.com.br
+Legal/trademark contact: dev@pedrodalben.com.br
+Repository: https://github.com/pedro-dalben/RailVerdict
+
+Qualified trademark/name review remains unresolved; see docs/foundation.md.

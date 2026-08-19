@@ -1,6 +1,10 @@
 # RailVerdict Trademark Policy
 
-This policy addresses use of the RailVerdict project identity. It does not claim that the name is registered or cleared, and it does not identify a trademark owner.
+This policy addresses use of the RailVerdict project identity. It does not claim that the name is registered or cleared.
+
+Trademark/project owner: Pedro Dalben (no registration claimed; qualified review pending — see docs/foundation.md).
+Legal/trademark contact: dev@pedrodalben.com.br
+Repository: https://github.com/pedro-dalben/RailVerdict
 
 ## Software Rights Are Unchanged
 
@@ -18,4 +22,4 @@ These source-identification rules concern the project identity only. They do not
 
 ## Unresolved Publication Review
 
-Publication remains blocked. Trademark registration status, ownership, legal contact, launch-jurisdiction evidence, and qualified legal review are unresolved. No registration symbol or clearance claim should be used. The required evidence fields and current status are recorded in [docs/foundation.md](docs/foundation.md).
+Publication remains blocked pending qualified trademark/name review. Registration status, launch-jurisdiction evidence (including Brazil INPI), and qualified legal review are unresolved. No registration symbol or clearance claim should be used. The required evidence fields and current status are recorded in [docs/foundation.md](docs/foundation.md).

@@ -324,7 +324,7 @@ def check_identity
     "Ruby namespace" => "`RailVerdict`",
     "Executable" => "`railverdict`",
     "Configuration" => "`.railverdict.yml`",
-    "Repository identity" => "`railverdict`",
+    "Repository identity" => "`pedro-dalben/RailVerdict`",
     "Draft schema root" => "`https://railverdict.dev/schemas/`"
   }
   fail_check("canonical seven-surface identity changed") unless identity_rows.to_h == expected_identity
@@ -347,10 +347,18 @@ def check_legal
   fail_check("LICENSE does not match canonical MIT text (RailVerdict Contributors, 2026)") unless digest == expected
 
   notice = utf8_file("NOTICE")
-  fail_check("NOTICE invents ownership facts") unless notice.match?(/No copyright-owner, trademark-owner, legal-contact, or third-party attribution/i)
-  fail_check("NOTICE does not point to unresolved evidence") unless notice.match?(/unresolved ownership and contact/i)
+  fail_check("NOTICE missing copyright holder Pedro Dalben") unless notice.match?(/Copyright holder:\s*Pedro Dalben/i)
+  fail_check("NOTICE missing trademark owner Pedro Dalben") unless notice.match?(/Trademark\/project owner:\s*Pedro Dalben/i)
+  fail_check("NOTICE must state no registration claimed") unless notice.match?(/no registration claimed/i)
+  fail_check("NOTICE missing security contact") unless notice.match?(/Security contact:\s*dev@pedrodalben\.com\.br/i)
+  fail_check("NOTICE missing legal contact") unless notice.match?(/Legal\/trademark contact:\s*dev@pedrodalben\.com\.br/i)
+  fail_check("NOTICE missing repository") unless notice.include?("https://github.com/pedro-dalben/RailVerdict")
+  fail_check("NOTICE missing qualified-review unresolved pointer") unless notice.match?(/Qualified trademark\/name review remains unresolved/i)
 
   trademarks = utf8_file("TRADEMARKS.md")
+  fail_check("TRADEMARKS missing owner Pedro Dalben") unless trademarks.match?(/Trademark\/project owner:\s*Pedro Dalben/i)
+  fail_check("TRADEMARKS missing legal contact") unless trademarks.match?(/Legal\/trademark contact:\s*dev@pedrodalben\.com\.br/i)
+  fail_check("TRADEMARKS missing repository") unless trademarks.include?("https://github.com/pedro-dalben/RailVerdict")
   required = [
     /not a software-license condition/i,
     /does not limit personal or commercial use/i,
@@ -363,8 +371,14 @@ def check_legal
   required.each { |pattern| fail_check("trademark/software-right boundary is incomplete") unless trademarks.match?(pattern) }
 
   foundation = utf8_file("docs/foundation.md")
-  %w[owner contact reviewer outcome].each do |term|
+  fail_check("foundation missing owner Pedro Dalben") unless foundation.match?(/Copyright and trademark ownership.*Pedro Dalben/im)
+  fail_check("foundation owner must note qualified review still required") unless foundation.match?(/Copyright and trademark ownership.*qualified review still required/im)
+  fail_check("foundation missing legal contact dev@pedrodalben.com.br") unless foundation.match?(/Legal contact.*dev@pedrodalben\.com\.br/im)
+  %w[reviewer outcome].each do |term|
     fail_check("foundation legal status omits unresolved #{term}") unless foundation.match?(/#{term}.{0,120}Unresolved|Unresolved.{0,120}#{term}/im)
+  end
+  %w[Brazil].each do |term|
+    fail_check("foundation blocked jurisdiction omits unresolved #{term}") unless foundation.match?(/#{term}.{0,120}Unresolved|Unresolved.{0,120}#{term}/im)
   end
 end
 

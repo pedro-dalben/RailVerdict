@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Publication identity: repository `pedro-dalben/RailVerdict`, owner/copyright `Pedro Dalben`, contacts `dev@pedrodalben.com.br`.
+
+## [1.0.0] — TBD (not yet released)
+
+> **Pre-release draft.** VERSION remains `0.1.0` until the `v1.0.0` tag. No `v1.0.0` tag or RubyGems push has occurred.
+
+### Highlights
+
+- **Deterministic verification:** `railverdict check` (console / JSON / SARIF 2.1.0), `findings`, `doctor`, `init`, `baseline create`, `repair`; exits 0 PASS/WARN / 1 FAIL / 2 INCOMPLETE / 130 interrupt; stdout single-doc JSON, diagnostics on stderr.
+- **Fail-closed evidence:** required incomplete evidence never becomes PASS (unavailable, unsupported, timed_out, signaled, failed, parse_failed, truncated, malformed).
+- **Five analyzers (external, target-owned):** RuboCop `>= 1.72, < 2` (+ `rubocop-rails >= 2, < 3` provenance), Minitest `>= 5, < 7` (owned reporter `minitest-reporter-v1`), RSpec `>= 3.13, < 4`, SimpleCov public `coverage.json` v1, bundler-audit `>= 0.9.3, < 1`.
+- **Baselines & no-new-debt:** fingerprint v1 `sha256:` over `{analyzer, rule_id, path, message}`, atomic versioned baselines, comparison (`introduced`/`existing`/`resolved`/`changed`/`moved`), policy `advisory` / `no_new_debt` / `strict`, exact-fingerprint waivers with UTC expiry.
+- **Git changed scope:** `check --changed --base REV` with merge-base, NUL-safe diffs, rename awareness; shallow/missing base → INCOMPLETE.
+- **SARIF / JSON / annotations:** SARIF 2.1.0 and annotation projections are pure `GateResult` projections.
+- **Rails context (bounded, no boot):** bounded `rails_context` with confidence + provenance.
+- **Optional AI (advisory, off by default):** dual-gate `ai.enabled && ai.remote.enabled`, `trust: redacted` default, secret detection/redaction fail-closed, budgets, cache; AI never changes gate.
+- **RepairPacket v1:** deterministic, bounded 256 KiB, `packet_id sha256:`, `Verifier` classification `fixed|still_present|changed|moved|regressed|incomplete`.
+- **MCP stdio 2025-11-25:** `mcp ~> 1.2.0`, 7 read-only tools (`verify`, `list_findings`, `get_finding`, `build_repair_packet`, `verify_repair`, `explain`, `investigate`); mutex-serialized verification; same `GateResult`/`Finding`/`RepairPacket` contracts.
+- **Security/privacy:** argv-only exec, minimal env, bounded I/O, monotonic timeout, pgroup cleanup, secret isolation, English-only fixtures, information firewall.
+
+### Compatibility
+
+- Ruby `>= 3.3`; Rails target context `>= 8.0`; schemas Draft 2020-12 independent versioning; unknown versions → explicit migration.
+- Supported analyzer ranges per `docs/analyzers.md`; fixture-verified at 2026-08-16/17 versions.
+
+### Known limitations
+
+- No Brakeman support (HOLD pending legal/product decision).
+- No OS sandbox; subprocess containment is argv/env/bounds/pgroup only.
+- No full semantic code graph; Rails context is bounded + provenance-labeled.
+- Qualified trademark/name review (including Brazil INPI) unresolved until qualified counsel review is recorded in `docs/foundation.md`.
+- Private-pattern corpus scan requires external maintainer input (`FOUNDATION_PRIVATE_PATTERNS`).
+
+### Artifact
+
+- Gem `rail_verdict` 1.0.0 built once from the `v1.0.0` tag; SHA-256 recorded in release workflow; installed/tested artifact is the published artifact (Trusted Publishing / OIDC, no long-lived key).
+
+## [Unreleased — post-1.0 placeholder]
+
 ### Added
 - SARIF output via `railverdict check --format sarif` (pure `GateResult` projection, `version: 2.1.0`).
 - MCP stdio adapter: `railverdict mcp serve` with 7 read-only tools (`verify`, `list_findings`, `get_finding`, `build_repair_packet`, `verify_repair`, `explain`, `investigate`).

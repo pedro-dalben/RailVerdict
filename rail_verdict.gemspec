@@ -5,7 +5,7 @@ require_relative "lib/rail_verdict/version"
 Gem::Specification.new do |spec|
   spec.name = "rail_verdict"
   spec.version = RailVerdict::VERSION
-  spec.authors = ["RailVerdict Maintainers"]
+  spec.authors = ["Pedro Dalben"]
   spec.summary = "Deterministic, offline, fail-closed merge verification for Ruby on Rails projects"
   spec.description = <<~DESCRIPTION
     RailVerdict collects evidence from established Ruby and Rails quality
@@ -17,8 +17,8 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://railverdict.dev"
   spec.license = "MIT"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/railverdict/railverdict"
-  spec.metadata["changelog_uri"] = "https://github.com/railverdict/railverdict/blob/master/CHANGELOG.md"
+  spec.metadata["source_code_uri"] = "https://github.com/pedro-dalben/RailVerdict"
+  spec.metadata["changelog_uri"] = "https://github.com/pedro-dalben/RailVerdict/blob/master/CHANGELOG.md"
   spec.required_ruby_version = ">= 3.3"
 
   spec_dir = __dir__

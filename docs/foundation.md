@@ -39,7 +39,7 @@ This is a preliminary search record, not legal advice, reservation, registration
 | Ruby namespace | `RailVerdict` |
 | Executable | `railverdict` |
 | Configuration | `.railverdict.yml` |
-| Repository identity | `railverdict` |
+| Repository identity | `pedro-dalben/RailVerdict` |
 | Draft schema root | `https://railverdict.dev/schemas/` |
 
 ## Publication Gate Record
@@ -55,8 +55,8 @@ This is a preliminary search record, not legal advice, reservation, registration
 | Current-product and common-law use analysis | Unresolved; no durable multi-source record or qualified conclusion captured |
 | Qualified reviewer | Unresolved; no reviewer identity or qualifications recorded |
 | Review date and evidence | Unresolved; no completed review package or source exports recorded |
-| Copyright and trademark ownership | Unresolved; no owner identity or evidence recorded |
-| Legal contact | Unresolved; no contact identity recorded |
+| Copyright and trademark ownership | Pedro Dalben (owner recorded 2026-08-19; registration/clearance not claimed — qualified review still required) |
+| Legal contact | dev@pedrodalben.com.br (recorded 2026-08-19; qualified review still required) |
 | Final outcome | Unresolved; no clear, reject, or rename conclusion recorded |
 
 The later record must name its scope, evidence, reviewer, date, and actual conclusion. It must not infer clearance from technical-name responses. Any future brand-use policy must remain separate from software rights; see [TRADEMARKS.md](../TRADEMARKS.md).
