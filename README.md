@@ -209,6 +209,35 @@ Findings: 1 introduced (blocking), 14 existing (baseline)
 Exit: 1
 ```
 
+### Analyzer timeouts
+
+Analyzer processes have a 30-second timeout by default. For a legitimately
+long-running analyzer, use configuration schema `version: 1.5` and set the
+timeout on that analyzer only:
+
+```yaml
+version: 1.5
+mode: strict
+analyzers:
+  rubocop:
+    enabled: true
+    required: true
+  rspec:
+    enabled: true
+    required: true
+    timeout_seconds: 600
+```
+
+`timeout_seconds` must be an integer from 1 through 3600. An analyzer without
+an explicit value, including every analyzer in older configuration versions,
+continues to use 30 seconds. A timeout is incomplete evidence, never a normal
+finding: a required timeout produces `INCOMPLETE` and exit code `2`.
+
+RailVerdict 1.0.1 has no CLI timeout override; the versioned configuration is
+the supported public surface. SimpleCov accepts the same setting for a uniform
+configuration contract, but reads a local coverage artifact rather than
+starting an analyzer process.
+
 ---
 
 ## The Default Policy Model: No New Debt
@@ -267,7 +296,7 @@ All analyzers in RailVerdict are **external and owned by the target project**. R
 | **Minitest** | Unit and integration tests | `>= 5, < 7` | Consumes test results via RailVerdict's owned JSON reporter (`minitest-reporter-v1`). |
 | **RSpec** | Unit and integration specs | `>= 3.13, < 4` | Consumes test results via standard `--format json`. |
 | **SimpleCov** | Code and changed-line coverage | `>= 1, < 2` | Ingests versioned public `coverage/coverage.json` v1 (never parses internal `.resultset.json`). |
-| **bundler-audit** | Gem dependency vulnerabilities | `>= 0.9.3, < 1` | Runs `bundle exec bundler-audit check --format json` (never runs automatic updates). |
+| **bundler-audit** | Gem dependency vulnerabilities | `>= 0.9.3, < 1` | Runs `bundle exec bundler-audit check --format json` (never runs automatic updates). Robustly extracts JSON when advisory-DB download notices precede the payload. |
 
 > **Brakeman Status:** Brakeman support is **not included** in 1.0 (on HOLD pending legal and licensing review). Third-party analyzers retain their respective upstream licenses.
 
@@ -480,7 +509,7 @@ To maintain clear technical boundaries, RailVerdict is explicitly **NOT**:
 
 ## Project Status
 
-- **Release Version:** `1.0.0`
+- **Release Version:** `1.0.1`
 - **License:** [MIT](LICENSE) (see [NOTICE](NOTICE))
 - **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md)
 - **Foundation & Legal:** [docs/foundation.md](docs/foundation.md) — preliminary screen found no obvious software/tool conflict; NOT LEGAL CLEARANCE; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben).
@@ -496,7 +525,7 @@ To maintain clear technical boundaries, RailVerdict is explicitly **NOT**:
 |---|---|
 | **Product & Philosophy** | [`PROJECT.md`](PROJECT.md) · [`PHILOSOPHY.md`](PHILOSOPHY.md) · [`ARCHITECTURE.md`](ARCHITECTURE.md) · [`ROADMAP.md`](ROADMAP.md) |
 | **Contracts & Schemas** | [`docs/contracts.md`](docs/contracts.md) · [`schemas/finding-v1.schema.json`](schemas/finding-v1.schema.json) · [`schemas/configuration-v1.schema.json`](schemas/configuration-v1.schema.json) · [`schemas/result-v1.schema.json`](schemas/result-v1.schema.json) |
-| **Examples** | [`examples/finding-v1.json`](examples/finding-v1.json) · [`examples/configuration-v1.yml`](examples/configuration-v1.yml) · [`examples/result-v1.json`](examples/result-v1.json) |
+| **Examples** | [`examples/finding-v1.json`](examples/finding-v1.json) · [`examples/configuration-v1.yml`](examples/configuration-v1.yml) · [`examples/configuration-v1.5.yml`](examples/configuration-v1.5.yml) · [`examples/result-v1.json`](examples/result-v1.json) |
 | **Analyzers & Baselines** | [`docs/analyzers.md`](docs/analyzers.md) · [`docs/baselines.md`](docs/baselines.md) |
 | **CI, SARIF & Git Scope** | [`docs/github-actions.md`](docs/github-actions.md) |
 | **Rails-Aware Context** | [`docs/rails-context.md`](docs/rails-context.md) |

@@ -69,9 +69,12 @@ module RailVerdict
         return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: Shared.detail_for(result), tool_version: tool_version), []] if Shared.truncated?(result)
         return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "timed_out", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :timed_out
         return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "signaled", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :signaled
+        if result.exit_code.nil? || result.exit_code > 1
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "failed", message: Shared.execution_message(result), tool_version: tool_version), []]
+        end
 
         begin
-          document = JSON.parse(result.stdout)
+          document = parse_json_document(result.stdout)
         rescue JSON::ParserError => error
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
         end
@@ -169,6 +172,67 @@ module RailVerdict
         )
       rescue ArgumentError => error
         raise MalformedOutput, "bundler-audit entry #{index} is malformed: #{error.message}"
+      end
+
+      def parse_json_document(stdout)
+        text = stdout.to_s
+        json_start = text.index(/[\[{]/)
+        last_error = nil
+
+        while json_start
+          begin
+            json_end = json_document_end(text, json_start)
+            parsed = JSON.parse(text[json_start..json_end])
+            trailing = text[(json_end + 1)..].to_s.strip
+            unless trailing.empty?
+              raise JSON::ParserError, "trailing content after JSON document: #{trailing[0, 80]}"
+            end
+
+            return parsed
+          rescue JSON::ParserError => error
+            raise error if error.message.start_with?("trailing content")
+
+            last_error = error
+            json_start = text.index(/[\[{]/, json_start + 1)
+          end
+        end
+
+        raise(last_error || JSON::ParserError.new("no JSON document found"))
+      end
+
+      def json_document_end(text, start)
+        stack = []
+        in_string = false
+        escaped = false
+
+        text[start..].each_char.with_index do |character, offset|
+          index = start + offset
+          if in_string
+            if escaped
+              escaped = false
+            elsif character == "\\"
+              escaped = true
+            elsif character == '"'
+              in_string = false
+            end
+            next
+          end
+
+          case character
+          when '"'
+            in_string = true
+          when "{", "["
+            stack << character
+          when "}", "]"
+            expected = character == "}" ? "{" : "["
+            raise JSON::ParserError, "mismatched JSON delimiter" unless stack.last == expected
+
+            stack.pop
+            return index if stack.empty?
+          end
+        end
+
+        raise JSON::ParserError, "incomplete JSON document"
       end
 
       def map_severity(raw)

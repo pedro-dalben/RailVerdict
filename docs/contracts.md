@@ -191,6 +191,8 @@ or explicitly migrate the contract before any 1.0 compatibility claim.
 
 Configuration `schemas/configuration-v1.4.schema.json` adds optional top-level `ai` (`enabled`, `mode` `off`/`explain`/`investigate`, `provider`, `model`, `remote` {`enabled`, `trust` `redacted`/`full`}, `budgets` {`max_findings`, `max_requests`, `max_context_bytes`}, `cache` {`enabled`, `max_bytes`}). AI is off by default; remote requires explicit opt-in; `remote trust redacted` is default.
 
+Configuration `schemas/configuration-v1.5.schema.json` adds per-analyzer `timeout_seconds` (integer 1..3600) to each analyzer selection (`rubocop`, `minitest`, `rspec`, `simplecov`, `bundler_audit`). Default is 30 seconds when absent; existing `version: 1`..`1.4` configs remain valid. Invalid values fail configuration validation; timeout remains operational failure / `INCOMPLETE` (`timed_out`) and required incomplete evidence maps to exit `2`. RailVerdict 1.0.1 exposes this through configuration only; there is no CLI override. SimpleCov accepts the field for a uniform contract but does not start a subprocess.
+
 CLI additions: `railverdict explain <finding-id|fingerprint> [--preview-context] [--config PATH] [--format console|json]` and `railverdict investigate [--limit N] [--preview-context]`. `--preview-context` prints the bounded manifest without network.
 
 ## Draft Compatibility Boundary

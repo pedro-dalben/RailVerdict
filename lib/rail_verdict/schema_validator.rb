@@ -10,6 +10,7 @@ module RailVerdict
     CONFIGURATION_V12_SCHEMA = "configuration-v1.2.schema.json"
     CONFIGURATION_V13_SCHEMA = "configuration-v1.3.schema.json"
     CONFIGURATION_V14_SCHEMA = "configuration-v1.4.schema.json"
+    CONFIGURATION_V15_SCHEMA = "configuration-v1.5.schema.json"
     AI_ANALYSIS_SCHEMA = "ai-analysis-v1.schema.json"
     FINDING_SCHEMA = "finding-v1.schema.json"
     RESULT_SCHEMA = "result-v1.schema.json"
@@ -23,7 +24,9 @@ module RailVerdict
     end
 
     def self.validate_configuration(data)
-      schema_name = if data.is_a?(Hash) && data["version"] == 1.4
+      schema_name = if data.is_a?(Hash) && data["version"] == 1.5
+                      CONFIGURATION_V15_SCHEMA
+                    elsif data.is_a?(Hash) && data["version"] == 1.4
                       CONFIGURATION_V14_SCHEMA
                     elsif data.is_a?(Hash) && data["version"] == 1.3
                       CONFIGURATION_V13_SCHEMA
