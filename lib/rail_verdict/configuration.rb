@@ -5,8 +5,9 @@ require "digest"
 module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
-    CONFIGURATION_VERSION = 1.4
-    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3, 1.4].freeze
+    CONFIGURATION_VERSION = 1.5
+    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3, 1.4, 1.5].freeze
+    DEFAULT_ANALYZER_TIMEOUT_SECONDS = 30
     UTF8_BOM = "\xEF\xBB\xBF".b
 
     attr_reader :version, :mode, :analyzers, :source_path, :digest
@@ -110,6 +111,16 @@ module RailVerdict
 
     def waivers_path
       @raw_data&.dig("waivers", "path")
+    end
+
+    def analyzer_timeout_seconds(name)
+      selection = @analyzers[name.to_s]
+      return DEFAULT_ANALYZER_TIMEOUT_SECONDS unless selection
+
+      value = selection["timeout_seconds"]
+      return DEFAULT_ANALYZER_TIMEOUT_SECONDS if value.nil?
+
+      Integer(value)
     end
 
     def git_base

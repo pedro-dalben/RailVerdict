@@ -26,7 +26,7 @@ module RailVerdict
       configuration = Configuration.load(resolved_config)
       return interrupted_outcome if interrupted&.call
 
-      probes = probe_enabled_analyzers(root, configuration, runner: runner, rubocop_command_resolver: rubocop_command_resolver, timeout_seconds: analyzer_timeout_seconds)
+      probes = probe_enabled_analyzers(root, configuration, runner: runner, rubocop_command_resolver: rubocop_command_resolver, default_timeout_seconds: analyzer_timeout_seconds)
 
       analyzer_versions = probes.transform_values(&:version)
 
@@ -94,11 +94,12 @@ module RailVerdict
 
         adapter = build_adapter(name, rubocop_command_resolver)
         probe = probes[name]
+        timeout_seconds = resolve_timeout_seconds(configuration, name, analyzer_timeout_seconds)
         analyzer_result, analyzer_findings = adapter.run(
           root,
           runner: runner,
           probe_result: probe,
-          timeout_seconds: analyzer_timeout_seconds
+          timeout_seconds: timeout_seconds
         )
         analyzer_results << analyzer_result
         findings.concat(analyzer_findings)
@@ -395,7 +396,7 @@ module RailVerdict
     end
     private_class_method :summary_to_coverage_document
 
-    def probe_enabled_analyzers(root, configuration, runner:, rubocop_command_resolver:, timeout_seconds:)
+    def probe_enabled_analyzers(root, configuration, runner:, rubocop_command_resolver:, default_timeout_seconds:)
       probes = {}
       configuration.analyzers.each do |name, selection|
         next unless selection.fetch("enabled")
@@ -406,10 +407,16 @@ module RailVerdict
         adapter = build_adapter(name, rubocop_command_resolver)
         next unless adapter
 
+        timeout_seconds = resolve_timeout_seconds(configuration, name, default_timeout_seconds)
         probes[name] = adapter.probe(root, runner: runner, timeout_seconds: timeout_seconds)
       end
       probes
     end
     private_class_method :probe_enabled_analyzers
+
+    def resolve_timeout_seconds(configuration, analyzer_name, default_timeout_seconds)
+      configuration.analyzer_timeout_seconds(analyzer_name.to_s) || default_timeout_seconds
+    end
+    private_class_method :resolve_timeout_seconds
   end
 end

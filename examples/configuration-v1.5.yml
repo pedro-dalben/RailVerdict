@@ -1,0 +1,14 @@
+version: 1.5
+mode: no_new_debt
+analyzers:
+  rubocop:
+    enabled: true
+    required: true
+  rspec:
+    enabled: true
+    required: true
+    timeout_seconds: 600
+  bundler_audit:
+    enabled: true
+    required: false
+    timeout_seconds: 60

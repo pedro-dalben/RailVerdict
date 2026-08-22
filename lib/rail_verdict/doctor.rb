@@ -19,7 +19,7 @@ module RailVerdict
         adapter = build_adapter(name, rubocop_command_resolver)
         next unless adapter
 
-        probes[name] = adapter.probe(root, runner: runner)
+        probes[name] = adapter.probe(root, runner: runner, timeout_seconds: configuration.analyzer_timeout_seconds(name))
       end
       analyzer_versions = probes.transform_values(&:version)
       context = RunContext.build(

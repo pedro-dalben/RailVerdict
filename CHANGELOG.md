@@ -39,6 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Gem `rail_verdict` 1.0.0 built once from the `v1.0.0` tag; SHA-256 recorded in release workflow; installed/tested artifact is the published artifact (Trusted Publishing / OIDC, no long-lived key).
 
+## [1.0.1] — 2026-08-21
+
+### Compatibility hardening
+
+- **Configurable analyzer execution timeout:** per-analyzer `timeout_seconds` (1..3600) on `rubocop`, `minitest`, `rspec`, `simplecov`, and `bundler_audit` via `.railverdict.yml` `version: 1.5` (new compatible schema version). Default remains 30 seconds; existing `version: 1`..`1.4` configs continue to load. Invalid `timeout_seconds` (non-integer, zero, negative, >3600) fails configuration validation. Timeout remains fail-closed operational failure / `INCOMPLETE` (`timed_out`, exit 2 when required).
+- **Robust bundler-audit JSON parsing:** `bundler_audit` now robustly extracts the JSON document when informational/download notices precede the payload on stdout (e.g. `Downloading ruby-advisory-db ...`), without depending on pristine JSON. Exit-code handling, `parse_failed`/`malformed`/missing-JSON distinctions, trailing-garbage rejection, and deterministic parsing are preserved; malformed output still fails closed.
+
 ## [Unreleased — post-1.0 placeholder]
 
 ### Added
