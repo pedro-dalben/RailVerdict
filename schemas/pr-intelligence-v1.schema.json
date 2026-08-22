@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/pr-intelligence/v1.schema.json",
+  "title": "RailVerdict PR Intelligence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provenance",
+    "gate_result",
+    "change",
+    "signals",
+    "quality_delta",
+    "analyzer_evidence",
+    "test_intelligence",
+    "coverage"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "gate_result": { "type": "object" },
+    "change": { "$ref": "#/$defs/change" },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "database_change",
+        "routes_change",
+        "dependency_change",
+        "configuration_change",
+        "authorization_change",
+        "tests_change"
+      ],
+      "properties": {
+        "database_change": { "$ref": "#/$defs/signal" },
+        "routes_change": { "$ref": "#/$defs/signal" },
+        "dependency_change": { "$ref": "#/$defs/signal" },
+        "configuration_change": { "$ref": "#/$defs/signal" },
+        "authorization_change": { "$ref": "#/$defs/signal" },
+        "tests_change": { "$ref": "#/$defs/signal" }
+      }
+    },
+    "quality_delta": { "$ref": "#/$defs/quality_delta" },
+    "analyzer_evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/analyzer_evidence" }
+    },
+    "test_intelligence": { "$ref": "#/$defs/optional_evidence" },
+    "coverage": { "$ref": "#/$defs/optional_evidence" }
+  },
+  "$defs": {
+    "nullable_string": { "type": ["string", "null"] },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "head", "base", "merge_base", "configuration_digest"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/nullable_string" },
+        "head": { "$ref": "#/$defs/nullable_string" },
+        "base": { "$ref": "#/$defs/nullable_string" },
+        "merge_base": { "$ref": "#/$defs/nullable_string" },
+        "configuration_digest": { "$ref": "#/$defs/nullable_string" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "files_changed": { "type": "integer", "minimum": 0 },
+        "lines_added": { "type": ["integer", "null"], "minimum": 0 },
+        "lines_removed": { "type": ["integer", "null"], "minimum": 0 },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["added", "modified", "deleted", "renamed"],
+          "properties": {
+            "added": { "type": "integer", "minimum": 0 },
+            "modified": { "type": "integer", "minimum": 0 },
+            "deleted": { "type": "integer", "minimum": 0 },
+            "renamed": { "type": "integer", "minimum": 0 }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["files_changed", "lines_added", "lines_removed", "status_counts"] }
+        },
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "present", "evidence", "additional_evidence_count"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "present": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" }
+      }
+    },
+    "quality_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "introduced": { "type": "integer", "minimum": 0 },
+        "existing": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "changed": { "type": "integer", "minimum": 0 },
+        "moved": { "type": "integer", "minimum": 0 },
+        "waived": { "type": "integer", "minimum": 0 },
+        "orphaned_waivers": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["introduced", "existing", "resolved", "changed", "moved", "waived", "orphaned_waivers"] }
+        },
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "analyzer_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analyzer", "execution_status", "evidence_status"],
+      "properties": {
+        "analyzer": { "type": "string", "minLength": 1 },
+        "tool_version": { "type": "string", "minLength": 1 },
+        "execution_status": { "type": "string", "minLength": 1 },
+        "evidence_status": { "enum": ["complete", "incomplete"] }
+      }
+    },
+    "optional_evidence": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "analyzers": { "type": "object" },
+        "global_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "changed_lines_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "changed_lines_covered": { "type": "integer", "minimum": 0 },
+        "changed_lines_executable": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
