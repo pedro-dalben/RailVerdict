@@ -6,21 +6,32 @@ require "pathname"
 module RailVerdict
   module Git
     class ChangedFile
-      attr_reader :status, :path, :old_path, :new_path, :score
+      attr_reader :status, :path, :old_path, :new_path, :score, :lines_added, :lines_removed
       attr_accessor :binary
 
-      def initialize(status:, path:, old_path:, new_path:, score:, binary: false)
+      def initialize(status:, path:, old_path:, new_path:, score:, binary: false, lines_added: nil, lines_removed: nil)
         @status = status
         @path = path
         @old_path = old_path
         @new_path = new_path
         @score = score
         @binary = binary
+        @lines_added = lines_added
+        @lines_removed = lines_removed
         freeze
       end
 
       def to_h
-        { "status" => status.to_s, "path" => path, "old_path" => old_path, "new_path" => new_path, "score" => score, "binary" => binary }
+        {
+          "status" => status.to_s,
+          "path" => path,
+          "old_path" => old_path,
+          "new_path" => new_path,
+          "score" => score,
+          "binary" => binary,
+          "lines_added" => lines_added,
+          "lines_removed" => lines_removed
+        }
       end
     end
 
@@ -236,11 +247,19 @@ module RailVerdict
           info = numstat[key] if key
           is_binary = !!(info && info[:binary])
           binary_set.add(key) if is_binary
-          ChangedFile.new(status: file.status, path: file.path, old_path: file.old_path, new_path: file.new_path, score: file.score, binary: is_binary)
+          ChangedFile.new(
+            status: file.status,
+            path: file.path,
+            old_path: file.old_path,
+            new_path: file.new_path,
+            score: file.score,
+            binary: is_binary,
+            lines_added: info && info[:added],
+            lines_removed: info && info[:deleted]
+          )
         end
 
-        changed = enriched.reject { |file| file.status == :deleted }.sort_by { |file| file.path.to_s }
-        [changed, binary_set]
+        [enriched.sort_by { |file| (file.path || file.old_path).to_s }, binary_set]
       end
       private_class_method :resolve_changed_files
 

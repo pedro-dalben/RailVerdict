@@ -8,7 +8,7 @@ class TestCLISurface < Minitest::Test
   def test_help_prints_contracted_commands_and_exits_zero
     exit_code, stdout, = run_cli(["--help"])
     assert_equal 0, exit_code
-    %w[init doctor check baseline findings].each do |command|
+    %w[init doctor check pr baseline findings].each do |command|
       assert_includes stdout, command
     end
   end

@@ -182,6 +182,9 @@ railverdict check
 
 # 5. Inspect normalized findings
 railverdict findings
+
+# 6. Summarize one pull-request change from a single verification run
+railverdict pr --base origin/main
 ```
 
 ### Example: A Passing Gate
@@ -276,6 +279,52 @@ railverdict check --changed --base HEAD~1
 # Output versioned JSON for machine consumers
 railverdict check --changed --base origin/main --format json
 ```
+
+### PR Intelligence
+
+`railverdict pr --base origin/main` produces a deterministic, versioned summary
+of the change, quality delta, objective Rails path signals, analyzer evidence,
+test metrics, and coverage available from that same verification run. Use
+`--format json` for machine consumers. Signals are deterministic attention
+indicators, not risk probabilities; `GateResult` and policy remain the only
+verification authority.
+
+Example console output:
+
+```
+RailVerdict PR Intelligence
+
+Gate: PASS
+Completion: complete
+Revision: 3f4a2c1d9e00 (base 8a7b6c5d4e33)
+
+Change
+  4 files
+  +38 / -7
+  added 1  modified 2  deleted 0  renamed 1
+
+Quality Delta
+  introduced 0  resolved 2  existing 8
+
+Signals
+  Database       YES
+  Authorization  YES
+  Routes         NO
+  Dependencies   NO
+  Configuration  NO
+  Tests          YES
+
+Evidence
+  rubocop: succeeded
+  rspec: succeeded
+```
+
+The JSON contract is [`pr-intelligence-v1.schema.json`](schemas/pr-intelligence-v1.schema.json).
+It includes `head`, `base`, and `merge_base` provenance and nests the canonical
+`gate_result`. Without a compatible baseline, `quality_delta.available` is
+`false` with `reason: "baseline_not_available"`; it does not emit fake zeroes.
+Invalid Git bases and incomplete required evidence remain `INCOMPLETE` with
+exit code `2`.
 
 ### Key Capabilities
 

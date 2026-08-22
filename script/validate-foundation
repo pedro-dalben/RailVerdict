@@ -441,17 +441,18 @@ def check_contracts
     "`railverdict init`" => ["--config PATH", "--force"],
     "`railverdict doctor`" => ["--config PATH", "--format console|json"],
     "`railverdict check`" => ["--config PATH", "--format console|json", "--changed", "--base REV", "--baseline PATH", "--waiver PATH"],
+    "`railverdict pr`" => ["--config PATH", "--format console|json", "--base REV", "--baseline PATH", "--waiver PATH"],
     "`railverdict baseline create`" => ["--config PATH", "--output PATH", "--format console|json", "--force"],
     "`railverdict findings`" => ["--config PATH", "--format console|json"]
   }
   header, rows = markdown_table("docs/contracts.md", "## Draft CLI Surface")
   fail_check("CLI table columns changed") unless header == ["Command", "Exact draft options", "Draft read/write boundary", "Status"]
-  fail_check("CLI must contain exactly five command rows") unless rows.length == 5
+  fail_check("CLI must contain exactly six command rows") unless rows.length == 6
   fail_check("CLI command set or order changed") unless rows.map(&:first) == expected.keys
   rows.each do |row|
     options = row[1].scan(/`([^`]+)`/).flatten
     fail_check("CLI option set changed for #{row.first}") unless options == expected.fetch(row.first)
-    allowed_statuses = ["Draft / unimplemented", "Implemented in Phase 01", "Implemented boundary in Phase 01", "Implemented in Phase 03", "Implemented in Phase 04"]
+    allowed_statuses = ["Draft / unimplemented", "Implemented in Phase 01", "Implemented boundary in Phase 01", "Implemented in Phase 03", "Implemented in Phase 04", "Implemented in RailVerdict 1.1"]
     fail_check("CLI row has unknown implementation status") unless allowed_statuses.include?(row[3])
     fail_check("CLI read/write boundary is empty") if row[2].empty?
   end
