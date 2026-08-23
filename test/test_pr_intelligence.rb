@@ -52,6 +52,39 @@ class TestPRIntelligence < Minitest::Test
     [dir, `git -C #{dir} rev-parse HEAD~1`.strip]
   end
 
+  def incomplete_result(status, analyzer: "rspec")
+    analyzer_result = RailVerdict::AnalyzerResult.new(
+      analyzer: analyzer,
+      invocation: { "executable" => analyzer, "argv" => [] },
+      execution_status: status,
+      finding_ids: [],
+      failure: { "code" => status, "message" => "synthetic #{status}" }
+    )
+    RailVerdict::GateResult.new(
+      completion_status: "incomplete",
+      gate: "INCOMPLETE",
+      policy_status: "not_evaluated",
+      findings: [],
+      analyzer_results: [analyzer_result],
+      operational_failures: [{ "code" => status, "analyzer" => analyzer, "message" => "synthetic #{status}" }],
+      decision_reasons: [{ "code" => "required_evidence_incomplete", "message" => "synthetic incomplete evidence" }]
+    )
+  end
+
+  def with_stubbed_check(outcome, interrupt: false)
+    singleton = RailVerdict::Check.singleton_class
+    original = singleton.instance_method(:execute)
+    calls = 0
+    singleton.send(:define_method, :execute) do |**_options|
+      calls += 1
+      Process.kill("INT", Process.pid) if interrupt
+      outcome
+    end
+    yield -> { calls }
+  ensure
+    singleton.send(:define_method, :execute, original)
+  end
+
   def test_cli_json_contains_change_metrics_signals_and_unavailable_delta
     dir, base = changed_repo
     exit_code, stdout, stderr = run_cli(["pr", "--base", base, "--format", "json"], working_directory: dir)
@@ -102,6 +135,137 @@ class TestPRIntelligence < Minitest::Test
     assert_equal false, document.dig("change", "available")
   ensure
     FileUtils.remove_entry(dir) if dir && File.directory?(dir)
+  end
+
+  def test_pr_json_is_identical_across_checkout_directory_names
+    source, base = changed_repo
+    clones = Dir.mktmpdir("rv-pr-clones-")
+    first = File.join(clones, "consumer-a")
+    second = File.join(clones, "consumer-b")
+    system("git", "clone", "-q", source, first, exception: true, out: File::NULL, err: File::NULL)
+    system("git", "clone", "-q", source, second, exception: true, out: File::NULL, err: File::NULL)
+
+    first_exit, first_json, = run_cli(["pr", "--base", base, "--format", "json"], working_directory: first)
+    second_exit, second_json, = run_cli(["pr", "--base", base, "--format", "json"], working_directory: second)
+
+    assert_equal 0, first_exit
+    assert_equal 0, second_exit
+    assert_equal first_json, second_json
+    refute_includes first_json, File.expand_path(first)
+    refute_includes first_json, File.expand_path(second)
+    document = JSON.parse(first_json)
+    refute document.fetch("provenance").key?("repository")
+    refute document.fetch("gate_result").key?("git")
+  ensure
+    FileUtils.remove_entry(source) if source && File.directory?(source)
+    FileUtils.remove_entry(clones) if clones && File.directory?(clones)
+  end
+
+  def test_tab_in_git_filename_preserves_metrics_and_signal_evidence
+    dir = make_repo
+    path = File.join(dir, "app/policies", "tab\tpolicy.rb")
+    File.write(path, "class TabPolicy\nend\n")
+    git!(dir, "add", ".")
+    git!(dir, "commit", "-qm", "tab path base")
+    base = `git -C #{dir} rev-parse HEAD`.strip
+    File.write(path, "class TabPolicy\ndef rule\nend\n")
+    git!(dir, "add", ".")
+    git!(dir, "commit", "-qm", "tab path change")
+
+    exit_code, stdout, = run_cli(["pr", "--base", base, "--format", "json"], working_directory: dir)
+    document = JSON.parse(stdout)
+    assert_equal 0, exit_code
+    assert_equal 1, document.dig("change", "files_changed")
+    assert_equal 1, document.dig("change", "lines_added")
+    assert_equal 0, document.dig("change", "lines_removed")
+    assert_equal ["app/policies/tab\tpolicy.rb"], document.dig("signals", "authorization_change", "evidence")
+  ensure
+    FileUtils.remove_entry(dir) if dir && File.directory?(dir)
+  end
+
+  def test_pr_schema_rejects_malformed_public_nested_fields
+    dir, base = changed_repo
+    _exit_code, stdout, = run_cli(["pr", "--base", base, "--format", "json"], working_directory: dir)
+    document = JSON.parse(stdout)
+    assert_empty RailVerdict::SchemaValidator.validate_pr_intelligence(document)
+
+    invalid_gate = JSON.parse(JSON.generate(document))
+    invalid_gate["gate_result"]["gate"] = []
+    refute_empty RailVerdict::SchemaValidator.validate_pr_intelligence(invalid_gate)
+
+    invalid_tests = JSON.parse(JSON.generate(document))
+    invalid_tests["test_intelligence"] = {
+      "available" => true,
+      "analyzers" => { "rspec" => { "tests_total" => "three" } }
+    }
+    refute_empty RailVerdict::SchemaValidator.validate_pr_intelligence(invalid_tests)
+
+    invalid_coverage = JSON.parse(JSON.generate(document))
+    invalid_coverage["coverage"] = { "available" => true, "changed_lines_percent" => "75" }
+    refute_empty RailVerdict::SchemaValidator.validate_pr_intelligence(invalid_coverage)
+
+    unknown_field = JSON.parse(JSON.generate(document))
+    unknown_field["coverage"]["private_extension"] = true
+    refute_empty RailVerdict::SchemaValidator.validate_pr_intelligence(unknown_field)
+  ensure
+    FileUtils.remove_entry(dir) if dir && File.directory?(dir)
+  end
+
+  def test_pr_timeout_remains_incomplete_with_exit_two
+    outcome = RailVerdict::Check::Outcome.new(result: incomplete_result("timed_out"), context: nil, configuration: nil, findings: [])
+    with_stubbed_check(outcome) do |calls|
+      exit_code, stdout, = run_cli(["pr", "--format", "json"])
+      assert_equal 2, exit_code
+      assert_equal "timed_out", JSON.parse(stdout).dig("analyzer_evidence", 0, "execution_status")
+      assert_equal 1, calls.call
+    end
+  end
+
+  def test_pr_unavailable_remains_incomplete_with_exit_two
+    outcome = RailVerdict::Check::Outcome.new(result: incomplete_result("unavailable"), context: nil, configuration: nil, findings: [])
+    with_stubbed_check(outcome) do |calls|
+      exit_code, stdout, = run_cli(["pr", "--format", "json"])
+      assert_equal 2, exit_code
+      assert_equal "incomplete", JSON.parse(stdout).dig("gate_result", "completion_status")
+      assert_equal 1, calls.call
+    end
+  end
+
+  def test_pr_parse_failure_remains_incomplete_with_exit_two
+    outcome = RailVerdict::Check::Outcome.new(result: incomplete_result("parse_failed"), context: nil, configuration: nil, findings: [])
+    with_stubbed_check(outcome) do
+      exit_code, = run_cli(["pr", "--format", "json"])
+      assert_equal 2, exit_code
+    end
+  end
+
+  def test_pr_interruption_returns_exit_130
+    result = RailVerdict::Verification::Policy.interrupted_result
+    outcome = RailVerdict::Check::Outcome.new(result: result, context: nil, configuration: nil, findings: [])
+    with_stubbed_check(outcome, interrupt: true) do |calls|
+      exit_code, stdout, = run_cli(["pr", "--format", "json"])
+      assert_equal 130, exit_code
+      assert_equal "incomplete", JSON.parse(stdout).dig("gate_result", "completion_status")
+      assert_equal 1, calls.call
+    end
+  end
+
+  def test_pr_uses_one_canonical_check_execution
+    result = RailVerdict::GateResult.new(
+      completion_status: "complete",
+      gate: "PASS",
+      policy_status: "pass",
+      findings: [],
+      analyzer_results: [],
+      operational_failures: [],
+      decision_reasons: []
+    )
+    outcome = RailVerdict::Check::Outcome.new(result: result, context: nil, configuration: nil, findings: [])
+    with_stubbed_check(outcome) do |calls|
+      exit_code, = run_cli(["pr", "--format", "json"])
+      assert_equal 0, exit_code
+      assert_equal 1, calls.call
+    end
   end
 
   def test_quality_delta_uses_canonical_comparison

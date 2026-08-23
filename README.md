@@ -291,8 +291,9 @@ Evidence
 ```
 
 The JSON contract is [`pr-intelligence-v1.schema.json`](schemas/pr-intelligence-v1.schema.json).
-It includes `head`, `base`, and `merge_base` provenance and nests the canonical
-`gate_result`. Without a compatible baseline, `quality_delta.available` is
+It includes `head`, `base`, `merge_base`, and configuration-digest provenance,
+plus a stable projection of the canonical `gate_result` without checkout-local
+paths. Without a compatible baseline, `quality_delta.available` is
 `false` with `reason: "baseline_not_available"`; it does not emit fake zeroes.
 Invalid Git bases and incomplete required evidence remain `INCOMPLETE` with
 exit code `2`.

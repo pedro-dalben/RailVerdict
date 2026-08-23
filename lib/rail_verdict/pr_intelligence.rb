@@ -16,6 +16,10 @@ module RailVerdict
     }.freeze
     STATUS_KEYS = %w[added modified deleted renamed].freeze
     TEST_KEYS = %w[tests_total assertions failures errors skips duration_seconds seed runner].freeze
+    GATE_RESULT_KEYS = %w[
+      schema_version completion_status gate policy_status findings
+      operational_failures decision_reasons
+    ].freeze
 
     module_function
 
@@ -27,7 +31,7 @@ module RailVerdict
       document = {
         "schema_version" => SCHEMA_VERSION,
         "provenance" => provenance(outcome, git_context, git),
-        "gate_result" => result.to_schema_h,
+        "gate_result" => gate_result(result),
         "change" => change(git_context),
         "signals" => signals(git_context),
         "quality_delta" => quality_delta(result),
@@ -48,7 +52,6 @@ module RailVerdict
     def provenance(outcome, git_context, git)
       context = outcome.context
       {
-        "repository" => git_context && File.basename(git_context.repository_root),
         "head" => git_context&.head || git["head"],
         "base" => git_context&.base || git["base"],
         "merge_base" => git_context&.merge_base || git["merge_base"],
@@ -56,6 +59,12 @@ module RailVerdict
       }
     end
     private_class_method :provenance
+
+    def gate_result(result)
+      source = result.to_schema_h
+      GATE_RESULT_KEYS.to_h { |key| [key, source.fetch(key)] }
+    end
+    private_class_method :gate_result
 
     def change(git_context)
       return { "available" => false, "reason" => "git_scope_unavailable" } unless git_context

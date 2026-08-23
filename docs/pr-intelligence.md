@@ -21,7 +21,11 @@ then configured `git.base`; if neither resolves, the command fails closed.
 JSON is `PRIntelligence` schema version `1.0`, validated by
 [`schemas/pr-intelligence-v1.schema.json`](../schemas/pr-intelligence-v1.schema.json).
 It records `head`, `base`, `merge_base`, and the configuration digest, then
-nests the unchanged canonical `gate_result`.
+includes an explicit stable projection of the canonical `gate_result`. The
+projection contains the schema version, completion status, gate, policy status,
+findings, operational failures, and decision reasons; it excludes local
+checkout identity and other runtime-only fields such as the repository root,
+analyzer invocations, and raw baseline metadata.
 
 The document contains:
 
@@ -37,7 +41,7 @@ Minimal JSON shape:
 ```json
 {
   "schema_version": "1.0",
-  "provenance": { "head": "<sha>", "base": "<sha>", "merge_base": "<sha>" },
+  "provenance": { "head": "<sha>", "base": "<sha>", "merge_base": "<sha>", "configuration_digest": "<sha256>" },
   "change": { "available": true, "files_changed": 4, "lines_added": 38, "lines_removed": 7 },
   "signals": { "authorization_change": { "available": true, "present": true, "evidence": ["app/policies/user_policy.rb"] } },
   "quality_delta": { "available": false, "reason": "baseline_not_available" },

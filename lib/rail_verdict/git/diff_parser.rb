@@ -62,7 +62,7 @@ module RailVerdict
         parts.each do |entry|
           next if entry.empty?
 
-          fields = entry.split("\t")
+          fields = entry.split("\t", 3)
           next unless fields.length == 3
 
           added, deleted, path = fields
@@ -84,12 +84,12 @@ module RailVerdict
           index += 1
           next if entry.empty?
 
-          fields = entry.split("\t")
+          fields = entry.split("\t", 3)
           next unless fields.length >= 2
 
           added, deleted = fields[0], fields[1]
           binary = added == "-" || deleted == "-"
-          if fields.length >= 3
+          if fields.length >= 3 && !fields[2].empty?
             path = fields[2]
           else
             old_path = parts[index]
