@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased — post-1.0 placeholder]
 
 ### Added
+- Deterministic PR Intelligence v1 via `railverdict pr` (console/JSON), using one changed-scope verification run and preserving `GateResult` authority.
 - SARIF output via `railverdict check --format sarif` (pure `GateResult` projection, `version: 2.1.0`).
 - MCP stdio adapter: `railverdict mcp serve` with 7 read-only tools (`verify`, `list_findings`, `get_finding`, `build_repair_packet`, `verify_repair`, `explain`, `investigate`).
 

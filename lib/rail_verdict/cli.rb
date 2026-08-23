@@ -20,6 +20,7 @@ module RailVerdict
         init             Write the default .railverdict.yml configuration
         doctor           Report configuration and analyzer observations
         check            Run verification and print the gate result
+        pr               Summarize one changed-scope verification for review
         baseline create  Deferred boundary; Phase 3 owns baseline writes
         findings         Print normalized findings from the evidence run
         explain          Explain a finding with optional AI
@@ -53,6 +54,8 @@ module RailVerdict
         command_doctor(argv.drop(1))
       when "check"
         command_check(argv.drop(1))
+      when "pr"
+        command_pr(argv.drop(1))
       when "baseline"
         command_baseline(argv.drop(1))
       when "findings"
@@ -142,6 +145,38 @@ module RailVerdict
       return EXIT_NO_GATE unless render_result(outcome.result, options[:format])
 
       exit_code_for(outcome.result, interrupted: interrupted)
+    end
+
+    def command_pr(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", base: nil, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict pr [--config PATH] [--format console|json] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+      end
+      parse!(parser, argv)
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      outcome, interrupted = execute_check(options.merge(changed: true))
+      document = PRIntelligence.document(outcome)
+      if options[:format] == "json"
+        @stdout.write(JSON.generate(document) + "\n")
+      else
+        @stdout.write(Reporters::PRIntelligence.render(document))
+      end
+      exit_code_for(outcome.result, interrupted: interrupted)
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict pr: #{error.message}"
+      @stderr.puts USAGE
+      EXIT_NO_GATE
+    rescue RailVerdict::Error => error
+      @stderr.puts "railverdict pr: #{error.message}"
+      EXIT_NO_GATE
     end
 
     def command_baseline(argv)
