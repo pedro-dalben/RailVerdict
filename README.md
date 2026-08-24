@@ -229,7 +229,7 @@ an explicit value, including every analyzer in older configuration versions,
 continues to use 30 seconds. A timeout is incomplete evidence, never a normal
 finding: a required timeout produces `INCOMPLETE` and exit code `2`.
 
-RailVerdict 1.0.1 has no CLI timeout override; the versioned configuration is
+There is no CLI timeout override; the versioned configuration (`version: 1.5`) is
 the supported public surface. SimpleCov accepts the same setting for a uniform
 configuration contract, but reads a local coverage artifact rather than
 starting an analyzer process.
@@ -357,7 +357,7 @@ All analyzers in RailVerdict are **external and owned by the target project**. R
 | **SimpleCov** | Code and changed-line coverage | `>= 1, < 2` | Ingests versioned public `coverage/coverage.json` v1 (never parses internal `.resultset.json`). |
 | **bundler-audit** | Gem dependency vulnerabilities | `>= 0.9.3, < 1` | Runs `bundle exec bundler-audit check --format json` (never runs automatic updates). Robustly extracts JSON when advisory-DB download notices precede the payload. |
 
-> **Brakeman Status:** Brakeman support is **not included** in 1.0 (on HOLD pending legal and licensing review). Third-party analyzers retain their respective upstream licenses.
+> **Brakeman Status:** Brakeman support is **not included** in 1.2.0 (on HOLD pending legal and licensing review). Third-party analyzers retain their respective upstream licenses.
 
 ---
 
