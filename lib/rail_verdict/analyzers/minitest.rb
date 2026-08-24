@@ -47,7 +47,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: Shared.bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
 
         unless probe_result.status == "succeeded"
@@ -248,12 +248,8 @@ module RailVerdict
         severity = status == "errored" ? "critical" : "high"
         category = "test"
         rule_id = "minitest/test:#{class_name}##{method_name}"
-        message = (test["failure_message"] || test["method_name"]).to_s
-        message = message.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?")[0, 4096]
-        message = "test failed: #{method_name}" if message.empty?
-        unless message.is_a?(String) && message.valid_encoding? && !message.empty? && message.bytesize <= 4096
-          raise MalformedOutput, "Minitest finding message is invalid"
-        end
+        raw_msg = test["failure_message"] || test["method_name"] || "test failed: #{method_name}"
+        message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg)
 
         path = normalize_path(test["file"], class_name)
         start_line = test["line"]

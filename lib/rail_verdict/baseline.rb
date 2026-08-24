@@ -51,6 +51,10 @@ module RailVerdict
         }
       end
       entries = entries.uniq { |entry| entry.fetch("fingerprint") }.sort_by { |entry| entry.fetch("fingerprint") }
+      canonical_versions = {}
+      analyzer_versions.each do |key, value|
+        canonical_versions[key.to_s] = RailVerdict::Analyzers::Shared.canonical_tool_version(value)
+      end
       hash = {
         "schema_version" => SCHEMA_VERSION,
         "fingerprint_version" => Fingerprint::VERSION,
@@ -59,7 +63,7 @@ module RailVerdict
         "created_at" => created_at,
         "created_by" => "railverdict #{RailVerdict::VERSION}",
         "configuration_digest" => configuration.digest,
-        "analyzer_versions" => analyzer_versions.transform_keys(&:to_s).sort.to_h,
+        "analyzer_versions" => canonical_versions.sort.to_h,
         "entries" => entries
       }
       errors = SchemaValidator.validate_baseline(hash)

@@ -17,7 +17,11 @@ module RailVerdict
       @invocation = validate_invocation(invocation)
       @execution_status = validate_execution_status(execution_status)
       @evidence_status = execution_status == "succeeded" ? "complete" : "incomplete"
-      @tool_version = tool_version && require_nonempty_string(tool_version, "tool_version", 128).freeze
+      normalized_version = tool_version.nil? ? nil : tool_version.to_s.strip
+      normalized_version = nil if normalized_version && normalized_version.empty?
+      # Preserve nil for internal representation; canonical "unknown" is applied at
+      # baseline/receipt serialization boundaries via Shared.canonical_tool_version
+      @tool_version = normalized_version && require_nonempty_string(normalized_version, "tool_version", 128).freeze
       @finding_ids = validate_finding_ids(finding_ids)
       @failure = validate_failure(failure)
       @evidence_summary = validate_evidence_summary(evidence_summary)
@@ -113,7 +117,7 @@ module RailVerdict
       value.each do |key, entry|
         raise ArgumentError, "evidence_summary keys must be non-empty strings" unless key.is_a?(String) && !key.empty? && key.bytesize <= 128
         if entry.is_a?(Hash) || entry.is_a?(Array)
-          raise ArgumentError, "evidence_summary values must be primitives" unless key.start_with?("changed_") || key == "files"
+          raise ArgumentError, "evidence_summary values must be primitives" unless key.start_with?("changed_") || key == "files" || key == "_coverage_document" || key == "_files"
         else
           unless entry.is_a?(Integer) || entry.is_a?(Float) || entry.is_a?(String) || entry.nil? || entry == true || entry == false
             raise ArgumentError, "evidence_summary values must be primitives"

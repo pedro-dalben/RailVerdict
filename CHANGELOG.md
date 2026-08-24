@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] — Unreleased
 
+### Hardening (dogfooding — 2026-08-24)
+
+- **Native SimpleCov support:** `simplecov` now accepts genuine SimpleCov JSON (`simplecov_json_formatter` shape: `meta.simplecov_version`, `coverage: { "path": { "lines": [...] } }` with `ignored` → `nil`, absolute-to-relative path normalization, deterministic ordering) and normalizes it to the internal canonical coverage representation. Existing `coverage-v1` (`version`/`timestamp`/`files`) remains fully supported; no consumer conversion required. Malformed / unsupported / oversized / stale semantics are preserved (`truncated`/`malformed`/`unsupported`/`parse_failed`), and `changed_line_coverage` works on normalized native evidence.
+- **Finding message safety:** every `Finding` now carries a deterministic bounded valid non-empty UTF-8 `message` via a single canonical `Shared.normalize_finding_message` path (nil/empty/whitespace/ANSI/control/null-byte/invalid-UTF-8/oversized all map to `"<analyzer> reported a finding without a message"` or a sanitized truncated value). Analyzer adapters (RuboCop, RSpec, Minitest, bundler-audit) use the shared path; `Check` guards the analyzer→GateResult boundary so malformed messages never bypass `GateResult` JSON serialization (no raw stack trace).
+- **Unknown tool version canonicalization:** `AnalyzerResult` `tool_version` remains optional, but baseline/receipt/MCP identity now canonicalize `nil`/empty to `"unknown"` (`Shared.canonical_tool_version`). `Baseline.create` writes deterministic `"unknown"` entries, `Baseline.read` of older `"unknown"` baselines remains compatible,Receipt `sorted_analyzer_versions` and `MCP::Cache` use the same canonicalization; digests stay deterministic and fingerprints unchanged.
+- **Large analyzer output:** `ProcessRunner` now clamps `max_stdout_bytes` to `MAX_SAFE_STDOUT_BYTES` (64 MiB) and raises the RSpec default to 16 MiB (RuboCop 8 MiB) via analyzer-specific limits. Truncation is still bounded but now large legitimate RSpec JSON (e.g. 8k examples) succeeds where safe; exceeding the bound yields a controlled `truncated` `AnalyzerResult` → `INCOMPLETE` exit 2, never a truncated-JSON parse-as-success or crash. `Check` additionally fail-closes any unexpected analyzer exception to a `malformed` result.
+
 ### Highlights
 
 - **Agent Verification Protocol:** deterministic contracts that bind verification evidence to the exact observable repository state that was verified, consumable by humans, CI, and coding agents.

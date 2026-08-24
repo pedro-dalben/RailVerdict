@@ -45,7 +45,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: Shared.bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
         command = @command_resolver.call(repository_root)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
         version_invocation = Shared.invocation_for(command, ["--version"])
@@ -55,11 +55,14 @@ module RailVerdict
         end
 
         invocation = Shared.invocation_for(command, ["--format", "json"])
+        # Real-world large RSpec suites can exceed 4 MiB; use bounded but larger capture.
+        max_stdout = resolve_stdout_limit(configuration, repository_root, 16 * 1024 * 1024)
         result = runner.run(
           command.fetch(:executable),
           invocation.fetch("argv"),
           chdir: repository_root,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: timeout_seconds,
+          max_stdout_bytes: max_stdout
         )
         tool_version = probe_result.version
 
@@ -136,9 +139,8 @@ module RailVerdict
           return nil
         end
 
-        message = (example["exception"] && example["exception"]["message"]) || example["full_description"] || example["description"] || "rspec example failed"
-        message = message.to_s.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?")[0, 4096]
-        message = "rspec example failed" if message.empty?
+        raw_msg = (example["exception"] && example["exception"]["message"]) || example["full_description"] || example["description"] || nil
+        message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg.nil? || raw_msg.to_s.strip.empty? ? "rspec example failed" : raw_msg)
 
         rule_id = "rspec/example:#{example['id'] || id_for(example, index)}"
         path = normalize_path(example["file_path"] || example["file"] || "spec/unknown_spec.rb")
@@ -268,6 +270,21 @@ module RailVerdict
         }
       rescue ArgumentError, TypeError
         raise MalformedOutput, "RSpec summary fields have invalid types"
+      end
+
+      def resolve_stdout_limit(configuration, repository_root, default_bytes)
+        # Prefer explicit per-analyzer config if present (future-compatible), else default.
+        raw_limit = nil
+        if configuration
+          sel = configuration.analyzers[ANALYZER_ID] rescue nil
+          raw_limit = sel && sel["output_limit_bytes"]
+        end
+        raw_limit ||= default_bytes
+        # Clamp to safe ceiling
+        limit = Integer(raw_limit) rescue default_bytes
+        limit = default_bytes if limit <= 0
+        max = RailVerdict::ProcessRunner::MAX_SAFE_STDOUT_BYTES
+        [[limit, max].min, 1024].max
       end
     end
   end

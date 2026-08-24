@@ -7,6 +7,10 @@ module RailVerdict
     DEFAULT_TIMEOUT_SECONDS = 30.0
     DEFAULT_MAX_STDOUT_BYTES = 4 * 1024 * 1024
     DEFAULT_MAX_STDERR_BYTES = 64 * 1024
+    # Safe ceiling prevents configuration from escalating to unbounded memory.
+    MAX_SAFE_STDOUT_BYTES = 64 * 1024 * 1024
+    MAX_SAFE_STDERR_BYTES = 1 * 1024 * 1024
+    RSPEC_MAX_STDOUT_BYTES = 16 * 1024 * 1024
     READ_CHUNK_BYTES = 64 * 1024
     TERM_GRACE_SECONDS = 0.1
     REAP_POLL_SECONDS = 0.01
@@ -26,6 +30,8 @@ module RailVerdict
       def run(executable, argv, chdir:, timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
               max_stdout_bytes: DEFAULT_MAX_STDOUT_BYTES, max_stderr_bytes: DEFAULT_MAX_STDERR_BYTES,
               binary_output: false)
+        max_stdout_bytes = clamp_limit(max_stdout_bytes, DEFAULT_MAX_STDOUT_BYTES, MAX_SAFE_STDOUT_BYTES)
+        max_stderr_bytes = clamp_limit(max_stderr_bytes, DEFAULT_MAX_STDERR_BYTES, MAX_SAFE_STDERR_BYTES)
         directory = verify_directory(chdir)
         argv = argv.map { |element| validate_argv_element(element) }
         env = build_env
@@ -212,6 +218,14 @@ module RailVerdict
         Signal.signame(status.termsig)
       rescue RuntimeError
         "SIG#{status.termsig}"
+      end
+
+      def clamp_limit(requested, default_val, max_val)
+        val = requested.nil? ? default_val : Integer(requested)
+        val = default_val if val <= 0
+        [[val, max_val].min, 1024].max
+      rescue ArgumentError, TypeError
+        default_val
       end
 
       def encode_output(bytes, binary_output = false)

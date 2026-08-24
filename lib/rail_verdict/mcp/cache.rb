@@ -155,7 +155,9 @@ module RailVerdict
       def sorted_analyzer_versions(outcome)
         versions = outcome&.context&.analyzer_versions
         versions = {} unless versions.is_a?(Hash)
-        versions.transform_values(&:to_s).sort.to_h
+        canonical = {}
+        versions.each { |k, v| canonical[k.to_s] = RailVerdict::Analyzers::Shared.canonical_tool_version(v) }
+        canonical.sort.to_h
       rescue StandardError
         {}
       end
