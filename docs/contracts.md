@@ -196,6 +196,41 @@ Configuration `schemas/configuration-v1.5.schema.json` adds per-analyzer `timeou
 
 CLI additions: `railverdict explain <finding-id|fingerprint> [--preview-context] [--config PATH] [--format console|json]` and `railverdict investigate [--limit N] [--preview-context]`. `--preview-context` prints the bounded manifest without network.
 
+## Repository State Identity v1 (1.2)
+
+`RailVerdict::RepositoryState` produces the canonical, deterministic identity of the observable verification inputs of a Git working copy. Digest: `sha256:<64hex>` over canonical JSON (`CanonicalJSON`, sorted keys) of components:
+
+- `head` — full HEAD commit SHA, or literal `unborn`;
+- `index_digest` — `sha256:` over bounded raw `git ls-files -s -z` bytes (full staged snapshot; distinguishes staged-only and mixed staged/unstaged states);
+- `worktree_digest` — `sha256:` over canonical JSON of the worktree-vs-index delta from `git status --porcelain=v2 --no-renames -z --untracked-files=all`: per path `{xy, path}` plus content identity (`sha256:` of file/symlink-target bytes, or `deleted`/`directory`/`type_changed`);
+- `configuration_digest`, `baseline_digest` (`null` when absent), `waivers_digest` (`null` when absent) — `sha256:` content identities of the resolved files.
+
+Bounds (fail closed as `repository_state_unavailable:<reason>`): status output `4 MiB`, index listing `8 MiB`, `500` dirty paths, `2 MiB` per hashed file; Git failures, truncation, and unreadable files never silently degrade identity. Excludes absolute paths, hostname/user, inode/mtime, PIDs, randomness, timestamps. Restoring exact original bytes restores identity; mtime-only changes do not affect it. Identical checkouts at different paths have identical digests. See [ADR 0016](adr/0016-canonical-repository-state-identity.md). This identity is the single freshness algorithm shared by receipts and the MCP cache.
+
+## Verification Receipt v1
+
+`schemas/verification-receipt-v1.schema.json` (closed objects, Draft 2020-12). Identity-bearing fields:
+
+| Field | Content |
+|---|---|
+| `schema_version` | `"1.0"` |
+| `railverdict_version` | issuing version |
+| `environment` | `{ruby_version, analyzer_versions{}}` bounded verification environment |
+| `verification_mode` | `full` \| `changed` |
+| `changed_scope` | null \| `{base, merge_base?}` hex SHAs |
+| `repository_state` | `{head, index_digest, worktree_digest, configuration_digest, baseline_digest?, waivers_digest?}` |
+| `gate_projection` | stable GateResult projection: statuses, findings sorted by fingerprint, analyzer evidence, failure/reason codes |
+| `pr_intelligence` | null \| `{digest}` over the PR Intelligence **stable projection** (volatile `duration_seconds`/`seed` excluded) |
+| `repair` | null \| `{packet_id}` linkage to RepairPacket v1 |
+
+`receipt_id = sha256:<64hex>` over canonical JSON of all identity fields; it is excluded from the payload when recomputing integrity. Excluded from identity by design: timestamps, durations, seeds, temp/absolute paths, diagnostics text, AI output — there is no `created_at`. Volatile data is never embedded in receipt identity.
+
+`schemas/receipt-validation-v1.schema.json` defines the freshness verdict: `status` ∈ `fresh|stale|invalid|unavailable`, `reasons[]` (deterministic codes such as `head_changed`, `index_changed`, `worktree_changed`, `configuration_changed`, `baseline_changed`, `waivers_changed`, `railverdict_version_changed`, `ruby_version_changed`, `analyzer_environment_changed`, `receipt_integrity_failed`, `receipt_malformed`, `receipt_schema_invalid`, `incompatible_receipt_version`, `receipt_too_large`, `repository_state_unavailable:*`), original `gate`/`completion_status`, and `current_repository_digest`.
+
+Exit semantics: create mirrors gate exits (`0` PASS/WARN complete, `1` FAIL complete, `2` INCOMPLETE/unavailable, `130` interrupt); verify maps fresh+original gate to the same values and any stale/invalid/unavailable/fresh-INCOMPLETE to `2`.
+
+Trust boundary (mandatory): a receipt is a deterministic integrity record, NOT a signed attestation; `receipt_id` proves content identity, not authorship. A trusted CI/orchestrator must independently execute RailVerdict when adversarial forgery is in scope. See [ADR 0017](adr/0017-verification-receipts.md) and [Agent Verification Protocol](agent-verification.md).
+
 ## Draft Compatibility Boundary
 
 The schema documents, examples, command names, options, ordering, streams, and

@@ -40,12 +40,25 @@ All tools are `readOnlyHint: true, destructiveHint: false, idempotentHint: true,
 | `verify_repair` | `{packet_id: sha256:…, changed?, base?}` | `{target_status: fixed|still_present|changed|moved|regressed|incomplete, gate, completion_status, new_blocking_findings, verification_boundary_changed: {config,baseline,waivers,base,source}|false, regressed, gate_result}` | `packet_id` must match prior `build_repair_packet` in session. Re-runs `Check.execute` then `Repair::Verifier.verify`. Never trusts agent claim. Surfaces `verification_boundary_changed`. Required analyzer missing -> `incomplete` even if target vanished. |
 | `explain` | `{finding_ref, preview?}` | preview: `{preview:true, manifest}` else `{failure?, analysis?}` | Advisory. `preview` returns `ContextBuilder` manifest `64 KiB` with no network. Otherwise checks `ai.enabled && ai.remote.enabled` else `ai_disabled`. Budgets/secret/redaction enforced. |
 | `investigate` | `{limit? 1..3, preview?}` | preview: `{preview:true, manifests:[...]}` else `{results:[{failure?,analysis?}]}` | Same advisory guarantees. `limit` default 3. |
+| `get_verification_receipt` | `{}` | fresh: `{status:"fresh", receipt: Verification Receipt v1}`; otherwise `{status:"verification_required"|"state_unavailable", code, message}` | Reads the last canonical verification from cache WITHOUT rerunning analyzers. Stale cached evidence is refused with `stale_receipt` — never returned as current. |
+| `get_pr_intelligence` | `{}` | fresh changed-scope: `{status:"fresh", pr_intelligence: PR Intelligence v1}`; otherwise explicit status/code/message | Same single-execution guarantee; full-scope verifications return `pr_intelligence_unavailable`. |
 
 No `exec`, `read_file`, `edit`, `baseline_create`, `waiver` tools. Resources/Prompts not exposed.
 
 ## Capability discovery
 
-`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 7 tools.
+`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 9 tools.
+
+### Agent workflow
+
+```
+verify ──► GateResult + embedded verification_receipt
+   ├─ get_verification_receipt   (no analyzer rerun)
+   └─ get_pr_intelligence        (changed scope only; no analyzer rerun)
+edit → previous receipt/intelligence become stale → verify again
+```
+
+One agent verification executes analyzers exactly once (`verify`); derived contracts never re-execute them. See [Agent Verification Protocol](agent-verification.md).
 
 ## Structured content
 
@@ -61,7 +74,7 @@ MCP tools are `readOnlyHint: true` — RailVerdict does not intentionally mutate
 
 ## Cache semantics
 
-`verify` result is cached per server instance; `verify_repair` always re-runs fresh verification. Cache validity checks `config_digest`, `revision`, findings hash, and baseline/waiver file mtimes/sizes; external edits invalidate it. No filesystem watchers or daemon persistence.
+`verify` result is cached per server instance keyed by the shared canonical Repository State Identity v1 (HEAD + Git index snapshot + worktree-vs-index content delta + configuration/baseline/waiver digests) and the verification environment; `verify_repair` always re-runs fresh verification. External edits — including index-only staging and untracked file changes — invalidate it. Stale cached receipts/intelligence are refused explicitly. No filesystem watchers or daemon persistence.
 
 ## Dependency
 

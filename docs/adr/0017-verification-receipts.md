@@ -43,3 +43,20 @@ A pre/post repository state guard wraps guarded executions; if state changed whi
 
 - [ADR 0016](0016-canonical-repository-state-identity.md)
 - [docs/agent-verification.md](../agent-verification.md)
+
+## Deferred Work
+
+A future attestation milestone owns any cryptographic signing, PKI/Sigstore integration, or remote verification anchor; none of these may be retrofitted into receipt identity without a new decision and schema version. Broader orchestrator policy (merge automation) remains out of scope by charter.
+
+## Related Requirements
+
+- FND-08
+- DEBT-03
+- MCP read-only adapter guarantees ([ADR 0011](0011-mcp-as-an-adapter.md))
+- Repair integrity constraints (RepairPacket v1)
+
+## Related Documents
+
+- [ADR 0016](0016-canonical-repository-state-identity.md)
+- [docs/agent-verification.md](../agent-verification.md)
+- [docs/contracts.md](../contracts.md)

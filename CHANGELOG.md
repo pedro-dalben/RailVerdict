@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — Unreleased
+
+### Highlights
+
+- **Agent Verification Protocol:** deterministic contracts that bind verification evidence to the exact observable repository state that was verified, consumable by humans, CI, and coding agents.
+- **Repository State Identity v1:** one canonical `sha256:` identity over HEAD, the Git index snapshot (`ls-files -s`), the worktree-vs-index content delta (porcelain v2 + per-path content hashes), and resolved configuration/baseline/waiver digests; bounded, path-independent, mtime-insensitive, fail-closed on unavailable state ([ADR 0016](docs/adr/0016-canonical-repository-state-identity.md)).
+- **Verification Receipt v1:** closed versioned schema with deterministic `receipt_id = sha256:<64hex>` over canonical identity fields (environment, state components, mode/changed scope, stable GateResult projection, PR Intelligence stable-projection digest, optional repair packet linkage); volatile data excluded by design; receipts exist for PASS/WARN/FAIL/INCOMPLETE ([ADR 0017](docs/adr/0017-verification-receipts.md)).
+- **Snapshot guard:** guarded executions capture pre/post repository state; mutation during verification fails receipt issuance closed (`repository_changed_during_verification`).
+- **Freshness CLI:** `railverdict receipt create|verify` with `fresh/stale/invalid/unavailable` verdicts, deterministic stale reasons, and gate-mirroring exit semantics (0 PASS/WARN fresh, 1 FAIL fresh, 2 otherwise, 130 interrupt).
+- **MCP integration:** two new read-only tools `get_verification_receipt` / `get_pr_intelligence`; cache refactored onto the shared Repository State Identity; one verify executes analyzers exactly once and derived tools never rerun them; stale cached evidence is refused explicitly (`verification_required`).
+- **Repair lifecycle:** RepairPacket v1 stays immutable; receipts link via optional `repair.packet_id`; baseline/waiver/config manipulation after a FAIL receipt turns it stale and surfaces as a repair boundary change.
+
+### Trust model
+
+Verification Receipts are deterministic integrity records — NOT signed attestations. `receipt_id` proves content identity, never authorship; an actor able to modify the whole receipt and recompute its SHA-256 can fabricate a self-consistent document. When adversarial forgery is in scope, a trusted CI/orchestrator remains the trust anchor and must independently execute RailVerdict.
+
+### Compatibility
+
+- Ruby `>= 3.3`; existing commands (`init`, `doctor`, `check`, `pr`, `baseline create`, `findings`, `explain`, `investigate`, `repair`, `mcp serve`), GateResult/Finding/baseline/waiver/RepairPacket-v1/PR-Intelligence-v1 schemas, configuration versions 1–1.5, stdout/stderr discipline and exits unchanged.
+- New public contracts: `schemas/verification-receipt-v1.schema.json`, `schemas/receipt-validation-v1.schema.json`.
+
 ## [1.0.0] — 2026-08-19
 
 ### Highlights

@@ -23,6 +23,19 @@ Repository content is `UNTRUSTED_REPOSITORY_DATA`. `PromptRenderer` delimits `TR
 
 `constraints` forbid weakening: baseline update, waiver creation, policy relaxation. `boundary` stores `configuration_digest/baseline_digest/waivers_digest/base/source_revision`. `Verifier` surfaces `verification_boundary_changed:{config,baseline,waivers,base,source}`. Required analyzer missing => `INCOMPLETE` even if target vanished. Never auto-creates `baseline --force` or waiver.
 
+## Receipt integration (1.2)
+
+The repair lifecycle now chains through Verification Receipts:
+
+```
+Receipt A (FAIL, repair.packet_id bound) → RepairPacket v1 → external edit
+   → verify_repair / canonical verification → Verifier verdict → Receipt B (resulting)
+```
+
+- RepairPacket v1 stays immutable: receipts link via the optional `repair.packet_id` field on the receipt side (`railverdict receipt create ... --packet-id sha256:...`). The packet schema gains no fields.
+- Any boundary mutation after Receipt A — baseline, waivers, configuration, base or source revision — makes it `stale` with a deterministic reason AND surfaces as `verification_boundary_changed` in the verifier. There is no bypass: a FAIL receipt cannot be laundered into success by editing policy inputs.
+- Origin and resulting receipts are distinct deterministic identities.
+
 ## CLI
 
 `railverdict repair <id|fingerprint> [--config PATH] [--format console|json] [--output PATH] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]`

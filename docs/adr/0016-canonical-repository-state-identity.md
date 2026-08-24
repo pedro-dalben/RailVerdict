@@ -35,3 +35,18 @@ Operationally bounded: committed state is represented by the HEAD commit identit
 
 - [ADR 0017](0017-verification-receipts.md)
 - [docs/agent-verification.md](../agent-verification.md)
+
+## Deferred Work
+
+Future agent-protocol consumers own any additional projections built on this identity (for example remote cache coordination or orchestrator state feeds). Signed or remotely anchored state attestations remain out of scope until a dedicated decision extends this one.
+
+## Related Requirements
+
+- AGENT-01..AGENT-15 external validation scenarios (RailVerdict Lab)
+- Receipt freshness and MCP cache freshness share this algorithm
+
+## Related Documents
+
+- [ADR 0005](0005-fingerprint-baseline.md)
+- [ADR 0004](0004-versioned-schemas.md)
+- [docs/contracts.md](../contracts.md)

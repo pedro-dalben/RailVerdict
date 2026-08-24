@@ -57,6 +57,18 @@ class TestCheckE2E < Minitest::Test
     assert_incomplete(outcome, "unavailable")
   end
 
+  def test_silent_nonzero_exit_never_crashes_and_stays_incomplete
+    outcome = RailVerdict::Check.execute(
+      repository_root: CLEAN,
+      config_path: ".railverdict.yml",
+      rubocop_command_resolver: resolver("fake_rubocop_silent_exit.rb")
+    )
+    assert_incomplete(outcome, "unavailable")
+    failure = outcome.result.analyzer_results.find { |result| result.analyzer == "rubocop" }.failure
+    refute_nil failure
+    refute_empty failure.fetch("message"), "silent analyzer exits must still produce a bounded diagnostic"
+  end
+
   def test_unsupported_required_rubocop_is_incomplete
     outcome = RailVerdict::Check.execute(
       repository_root: CLEAN,

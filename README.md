@@ -334,6 +334,22 @@ exit code `2`.
 - **Changed-Line Coverage:** Evaluates whether newly added or modified executable lines are covered by tests;
 - **Fail-Closed Git Boundary:** If the base revision is missing or repository history is shallow, RailVerdict returns `INCOMPLETE` (exit code 2) rather than guessing or silently passing.
 
+### Verification Receipts (1.2)
+
+Verification is only meaningful for the exact state that was verified. RailVerdict 1.2 binds every guarded verification to a deterministic **Repository State Identity** (HEAD + Git index snapshot + worktree delta with content hashes + configuration/baseline/waiver digests) and issues a machine-readable **Verification Receipt**:
+
+```console
+$ railverdict receipt create --format json > receipt.json
+$ railverdict receipt verify receipt.json --format json
+{"schema_version":"1.0","status":"fresh","reasons":[],"gate":"PASS", ...}
+```
+
+Edit anything afterwards — source, staged index, untracked files, config, baseline, waivers — and the same receipt reports `stale` with a deterministic reason (`head_changed`, `index_changed`, `worktree_changed`, `configuration_changed`, `baseline_changed`, `waivers_changed`). If the repository mutates while analyzers run, receipt issuance fails closed with `repository_changed_during_verification`. Receipts exist for PASS, FAIL, and INCOMPLETE alike; they are deterministic integrity records, not signed attestations — a trusted CI remains the trust anchor when forgery is in scope. Coding agents follow the completion protocol in [docs/agent-verification.md](docs/agent-verification.md).
+
+```
+Deterministic Verification → PR Intelligence → Verification Receipt → Agent Verification Protocol
+```
+
 ---
 
 ## Supported Analyzers
