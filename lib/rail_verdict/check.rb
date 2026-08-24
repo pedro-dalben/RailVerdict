@@ -23,16 +23,24 @@ module RailVerdict
     # Wraps a canonical verification with a pre/post repository state guard.
     # The canonical GateResult is unchanged; the guard only attaches the two
     # observed repository states so receipt issuance can fail closed when the
-    # repository mutated while analyzers were running.
+    # repository mutated while analyzers were running. The guard binds the
+    # EFFECTIVE verification inputs (resolved config plus effective baseline
+    # and waiver paths), not merely their default locations.
     def self.execute_with_state_guard(repository_root:, **options)
       root = begin
         File.realpath(repository_root)
       rescue StandardError
         nil
       end
-      pre = capture_guard_state(root)
+      input_paths = effective_input_paths(
+        root: root,
+        config_path: options.fetch(:config_path, ".railverdict.yml"),
+        baseline_path_override: options[:baseline_path_override],
+        waiver_path_override: options[:waiver_path_override]
+      )
+      pre = capture_guard_state(root, input_paths)
       outcome = execute(repository_root: repository_root, **options)
-      post = capture_guard_state(root)
+      post = capture_guard_state(root, input_paths)
       Outcome.new(
         result: outcome.result,
         context: outcome.context,
@@ -43,10 +51,36 @@ module RailVerdict
       )
     end
 
-    def self.capture_guard_state(root)
+    # Resolves the EFFECTIVE verification input paths (config plus baseline
+    # and waivers, honoring configuration-declared paths and overrides).
+    # Shared by the guard and by receipt freshness validation so both sides
+    # bind exactly the same files.
+    def self.effective_input_paths(root:, config_path: ".railverdict.yml", baseline_path_override: nil, waiver_path_override: nil)
+      return nil if root.nil?
+
+      resolved_config = resolve_config_path(root, config_path)
+      configuration = begin
+        Configuration.load(resolved_config)
+      rescue StandardError
+        nil
+      end
+      {
+        config: resolved_config,
+        baseline: Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override),
+        waivers: WaiverStore.resolve_path(repository_root: root, configuration: configuration, waiver_override: waiver_path_override)
+      }
+    rescue StandardError
+      {
+        config: File.join(root, ".railverdict.yml"),
+        baseline: File.join(root, ".railverdict-baseline.json"),
+        waivers: File.join(root, ".railverdict-waivers.json")
+      }
+    end
+
+    def self.capture_guard_state(root, input_paths = nil)
       return RepositoryState.unavailable(:repository_root_unavailable) if root.nil?
 
-      RepositoryState.capture(repository_root: root)
+      RepositoryState.capture(repository_root: root, configuration_paths: input_paths)
     end
     private_class_method :capture_guard_state
 

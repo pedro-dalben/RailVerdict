@@ -335,16 +335,11 @@ class TestRepositoryState < Minitest::Test
     seed_config
     write("a.rb", "puts 1\n")
     commit
-    limit = RailVerdict::RepositoryState::MAX_DIRTY_PATHS
-    stub_state = Class.new(RailVerdict::RepositoryState) do
-      const_set(:MAX_DIRTY_PATHS, limit)
-    end
-    (limit + 1).times { |i| write("dirty_#{i}.rb", "n=#{i}\n") }
+    (RailVerdict::RepositoryState::MAX_DIRTY_PATHS + 1).times { |i| write("dirty_#{i}.rb", "n=#{i}\n") }
 
     result = RailVerdict::RepositoryState.capture(repository_root: @dir)
     refute result.available?
     assert_equal "too_many_dirty_paths", result.unavailable_reason
-    assert stub_state
   end
 
   def test_capture_never_raises_for_missing_root

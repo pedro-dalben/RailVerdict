@@ -23,6 +23,8 @@ The digest is `sha256:<64 hex>` over explicit canonical JSON with sorted keys an
 
 Operationally bounded: committed state is represented by the HEAD commit identity, the index by its object listing, and only dirty/untracked files are content-hashed. Exceeding bounds (status output, dirty-path count, per-file size), unreadable files, invalid encodings, or any Git failure yields an explicit unavailable result with a reason — never silent omission.
 
+Known limits, documented deliberately: the capture composes several Git reads plus direct file reads, so a mutation landing exactly between them can yield a composite of a state that never existed atomically; likewise a mutate-and-revert fully inside one guarded verification is invisible to the pre/post comparison. These are inherent to snapshot-based state binding; the guard's guarantee is "the observed pre-state equals the observed post-state", not linearizability. Effective verification inputs (resolved configuration plus effective baseline/waiver paths) are bound explicitly by both guard captures.
+
 ## Consequences
 
 - Receipt freshness and MCP cache freshness must both consume this identity; they may not fork the algorithm.

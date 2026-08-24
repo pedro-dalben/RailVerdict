@@ -117,6 +117,8 @@ Original gate: PASS (complete)
 
 Write receipts outside the repository (or to ignored paths): a receipt file created inside the repo is itself new observable state and immediately makes itself stale.
 
+Input containment is symmetric: `receipt create` and `receipt verify` reject `--config/--baseline/--waiver` paths that escape the working directory (symlink-aware), and both sides bind the EFFECTIVE inputs — configuration-declared `baseline.path`/`waivers.path` included — into the repository state identity. An input file that git cannot see (gitignored or out of root) therefore cannot silently participate in verification: either its content digest appears in the receipt, or the command refuses.
+
 ## MCP workflow
 
 MCP stays read-only. One `verify` executes analyzers exactly once; derived tools read the cached canonical outcome without rerunning them:

@@ -77,6 +77,11 @@ class TestCliReceipt < Minitest::Test
     [code, stdout, stderr]
   end
 
+  def run_validation(receipt_path, extra: [])
+    code, output, = run_cli(["receipt", "verify", receipt_path, "--format", "json"] + extra)
+    [JSON.parse(output), code]
+  end
+
   def test_create_pass_receipt_stdout_and_exit_zero
     code, stdout, stderr = create_receipt
     assert_equal 0, code, stderr
@@ -218,5 +223,68 @@ class TestCliReceipt < Minitest::Test
     assert_equal "changed", document.fetch("verification_mode")
     assert_match(/\A[0-9a-f]{7,64}\z/, document.dig("changed_scope", "base"))
     assert document.dig("pr_intelligence", "digest"), "changed scope must bind PR Intelligence digest"
+  end
+
+  def test_external_waiver_file_is_bound_into_identity_and_freshness
+    # Inputs outside the working directory are rejected outright, so an
+    # adversarial "invisible input" cannot participate in verification.
+    # Config-declared paths INSIDE the repo (including gitignored ones) must
+    # be bound into identity and freshness.
+    state_dir = File.join(@dir, ".local-state")
+    FileUtils.mkdir_p(state_dir)
+    File.write(File.join(@dir, ".gitignore"), ".local-state/\n")
+    File.write(File.join(@dir, ".railverdict.yml"),
+               "version: 1.2
+mode: strict
+waivers:
+  path: .local-state/waivers.json\nanalyzers:\n  rubocop: { enabled: true, required: true }\n")
+    commit
+    waiver = File.join(state_dir, "waivers.json")
+    File.write(waiver, '{"schema_version":"1.0","waivers":[]}')
+    code, stdout, stderr = create_receipt
+    assert_equal 0, code, stderr
+    document = JSON.parse(stdout)
+    refute_nil document.dig("repository_state", "waivers_digest"),
+              "config-declared waiver content must appear in the receipt identity"
+
+    receipt_path = File.join(state_dir, "receipt.json")
+    File.binwrite(receipt_path, JSON.generate(document))
+    validation, = run_validation(receipt_path)
+    assert_equal "fresh", validation.fetch("status")
+
+    File.write(waiver, '{"schema_version":"1.0","waivers":[{"fingerprint":"sha256:#{"a" * 64}","reason":"x","owner":"y","created_at":"2026-01-01T00:00:00Z","expires_at":"2099-01-01T00:00:00Z"}]}')
+    stale, = run_validation(receipt_path)
+    assert_equal "stale", stale.fetch("status")
+    assert_includes stale.fetch("reasons"), "waivers_changed"
+  ensure
+    FileUtils.rm_rf(state_dir) if defined?(state_dir)
+  end
+
+  def test_create_rejects_paths_escaping_working_directory
+    outside = File.join(Dir.tmpdir, "rv-outside-waivers.json")
+    File.write(outside, "{}")
+    begin
+      code, _stdout, stderr = run_cli(["receipt", "create", "--format", "json", "--waiver", outside])
+      assert_equal 2, code
+      assert_match(/escapes working directory/, stderr)
+    ensure
+      FileUtils.rm_f(outside)
+    end
+  end
+
+  def test_gitignored_input_files_are_still_bound
+    ignored_dir = File.join(@dir, ".local-state")
+    FileUtils.mkdir_p(ignored_dir)
+    File.write(File.join(@dir, ".gitignore"), ".local-state/\n")
+    commit
+    waiver = File.join(ignored_dir, "waivers.json")
+    File.write(waiver, '{"schema_version":"1.0","waivers":[]}')
+    code, stdout, = create_receipt(extra: ["--waiver", waiver])
+    assert_equal 0, code
+    document = JSON.parse(stdout)
+    refute_nil document.dig("repository_state", "waivers_digest"),
+               "gitignored inputs are invisible to git status but must still be bound by content"
+  ensure
+    FileUtils.rm_rf(ignored_dir) if defined?(ignored_dir)
   end
 end

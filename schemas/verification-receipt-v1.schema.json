@@ -82,9 +82,9 @@
       ],
       "properties": {
         "head": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "index_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "worktree_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
-        "configuration_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "index_digest": { "$ref": "#/$defs/sha256_identity" },
+        "worktree_digest": { "$ref": "#/$defs/sha256_identity" },
+        "configuration_digest": { "$ref": "#/$defs/sha256_identity" },
         "baseline_digest": {
           "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256_identity" }]
         },

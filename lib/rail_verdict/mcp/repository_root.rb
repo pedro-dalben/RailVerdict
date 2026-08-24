@@ -17,14 +17,8 @@ module RailVerdict
       end
 
       def self.contained?(root, path)
-        root = File.realpath(root) rescue File.expand_path(root)
-        target = File.expand_path(path, root)
-        real_target = begin
-          File.realpath(target)
-        rescue Errno::ENOENT
-          target
-        end
-        real_target == root || real_target.start_with?(root + File::SEPARATOR)
+        require_relative "../path_safety"
+        RailVerdict::PathSafety.contained?(root, path)
       end
     end
   end

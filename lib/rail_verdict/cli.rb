@@ -535,6 +535,9 @@ module RailVerdict
       if options[:base] && !options[:changed]
         raise RailVerdict::UsageError, "--base requires --changed"
       end
+      options[:config] = resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH))
+      options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
+      options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]
 
       outcome, interrupted = execute_check_with_guard(options)
       return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
@@ -651,11 +654,19 @@ module RailVerdict
 
       current_state = RepositoryState.capture(
         repository_root: @working_directory,
-        configuration_paths: {
-          config: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
-          baseline: resolved_override_path(options[:baseline], File.join(@working_directory, ".railverdict-baseline.json")),
-          waivers: resolved_override_path(options[:waiver], File.join(@working_directory, ".railverdict-waivers.json"))
-        }
+        configuration_paths: begin
+          effective = Check.effective_input_paths(
+            root: @working_directory,
+            config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
+            baseline_path_override: options[:baseline],
+            waiver_path_override: options[:waiver]
+          )
+          {
+            config: effective.fetch(:config),
+            baseline: effective.fetch(:baseline),
+            waivers: effective.fetch(:waivers)
+          }
+        end
       )
       document, _receipt = Receipt.evaluate(text, current_state: current_state)
       render_receipt_validation(document, options[:format])
@@ -669,10 +680,7 @@ module RailVerdict
     def resolved_override_path(value, default)
       return default if value.nil? || value.to_s.strip.empty?
 
-      expanded = File.expand_path(value.to_s, @working_directory)
-      raise RailVerdict::UsageError, "path escapes working directory: #{value}" unless expanded.start_with?(File.realpath(@working_directory) + File::SEPARATOR)
-
-      expanded
+      PathSafety.assert_contained!(@working_directory, value, "path")
     end
 
     def render_receipt_validation(document, format)

@@ -54,8 +54,10 @@ module RailVerdict
       new(projection: projection, dirty_paths_count: worktree.fetch("dirty_paths_count"))
     rescue UnavailableError => error
       unavailable(error.reason)
-    rescue Errno::ENOENT, Errno::EACCES, Errno::ENOTDIR
+    rescue Errno::ENOENT, Errno::EACCES, Errno::ENOTDIR, Errno::ELOOP, Errno::EMFILE, Errno::ENAMETOOLONG
       unavailable(:repository_root_unavailable)
+    rescue StandardError
+      unavailable(:capture_failed)
     end
 
     def self.resolve_configuration_paths(root, overrides)
@@ -144,26 +146,62 @@ module RailVerdict
         when "?"
           {"xy" => "??", "path" => record[2..].to_s}
         when "1"
-          parts = record.split(" ", 9)
-          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) if parts.length < 9
+          fields, path = split_status_record(record, 8)
+          xy = fields[1]
+          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) unless valid_xy?(xy)
 
-          {"xy" => parts[1], "path" => parts[8]}
+          {"xy" => xy, "path" => path}
         when "u"
-          parts = record.split(" ", 11)
-          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) if parts.length < 11
+          fields, path = split_status_record(record, 10)
+          xy = fields[1]
+          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) unless valid_xy?(xy)
 
-          {"xy" => parts[1], "path" => parts[10]}
+          {"xy" => xy, "path" => path}
         when "2"
-          parts = record.split(" ", 11)
-          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) if parts.length < 11
+          fields, path = split_status_record(record, 9)
+          xy = fields[1]
+          raise UnavailableError.new(:invalid_status_output, detail: record.inspect) unless valid_xy?(xy)
 
-          {"xy" => parts[1], "path" => parts[10]}
+          {"xy" => xy, "path" => path}
         else
           raise UnavailableError.new(:invalid_status_output, detail: record[0, 32].inspect)
         end
       end
     end
     private_class_method :parse_status_v2
+
+    # Splits a porcelain v2 record into the first `count` single-space
+    # separated fields plus the literal remainder (the path). Unlike
+    # String#split with an awk limit, this never collapses whitespace runs,
+    # so paths containing spaces/TABs/newlines stay byte-exact, and empty or
+    # malformed prefix fields fail closed instead of mis-binding a path.
+    def self.split_status_record(record, count)
+      positions = []
+      offset = 0
+      count.times do
+        space = record.index(" ", offset)
+        raise UnavailableError.new(:invalid_status_output, detail: record[0, 32].inspect) if space.nil?
+
+        positions << space
+        offset = space + 1
+      end
+      fields = []
+      previous = 0
+      positions.each do |space|
+        fields << record[previous, space - previous]
+        previous = space + 1
+      end
+      raise UnavailableError.new(:invalid_status_output, detail: record[0, 32].inspect) if fields.any?(&:empty?)
+
+      [fields, record[previous..].to_s]
+    end
+    private_class_method :split_status_record
+
+    def self.valid_xy?(xy)
+      # porcelain v2 uses '.' for the unchanged side of either column
+      xy.is_a?(String) && xy.length == 2 && xy.match?(/\A[A-Za-z?.!]{2}\z/)
+    end
+    private_class_method :valid_xy?
 
     def self.entry_content_identity(root, entry)
       path = entry.fetch("path")

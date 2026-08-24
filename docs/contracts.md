@@ -202,7 +202,7 @@ CLI additions: `railverdict explain <finding-id|fingerprint> [--preview-context]
 
 - `head` — full HEAD commit SHA, or literal `unborn`;
 - `index_digest` — `sha256:` over bounded raw `git ls-files -s -z` bytes (full staged snapshot; distinguishes staged-only and mixed staged/unstaged states);
-- `worktree_digest` — `sha256:` over canonical JSON of the worktree-vs-index delta from `git status --porcelain=v2 --no-renames -z --untracked-files=all`: per path `{xy, path}` plus content identity (`sha256:` of file/symlink-target bytes, or `deleted`/`directory`/`type_changed`);
+- `worktree_digest` — `sha256:` over canonical JSON of the worktree-vs-index delta from `git status --porcelain=v2 --no-renames -z --untracked-files=all`: per path `{xy, path}` plus content identity (`kind` with a bare-hex `sha256` field for file/symlink-target bytes, or `deleted`/`directory`/`type_changed`);
 - `configuration_digest`, `baseline_digest` (`null` when absent), `waivers_digest` (`null` when absent) — `sha256:` content identities of the resolved files.
 
 Bounds (fail closed as `repository_state_unavailable:<reason>`): status output `4 MiB`, index listing `8 MiB`, `500` dirty paths, `2 MiB` per hashed file; Git failures, truncation, and unreadable files never silently degrade identity. Excludes absolute paths, hostname/user, inode/mtime, PIDs, randomness, timestamps. Restoring exact original bytes restores identity; mtime-only changes do not affect it. Identical checkouts at different paths have identical digests. See [ADR 0016](adr/0016-canonical-repository-state-identity.md). This identity is the single freshness algorithm shared by receipts and the MCP cache.
