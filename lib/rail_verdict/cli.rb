@@ -461,6 +461,8 @@ module RailVerdict
       parse!(parser, argv.drop(1))
       validate_format!(options[:format])
       raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
+      options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
+      options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]
 
       code, _packet = RailVerdict::Repair::Command.execute(
         repository_root: @working_directory,

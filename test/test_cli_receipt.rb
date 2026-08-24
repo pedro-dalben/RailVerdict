@@ -204,6 +204,12 @@ class TestCliReceipt < Minitest::Test
     FileUtils.rm_f(receipt_path)
   end
 
+  def test_repair_rejects_out_of_root_input_overrides
+    code, _stdout, stderr = run_cli(["repair", "rv:somewhere", "--waiver", File.join(Dir.tmpdir, "nope-waivers.json")])
+    assert_equal 2, code
+    assert_match(/escapes working directory/, stderr)
+  end
+
   def test_usage_errors
     code, _stdout, stderr = run_cli(["receipt"])
     assert_equal 2, code
