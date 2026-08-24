@@ -68,6 +68,8 @@ module RailVerdict
         require_relative "tools/verify_repair"
         require_relative "tools/explain"
         require_relative "tools/investigate"
+        require_relative "tools/get_verification_receipt"
+        require_relative "tools/get_pr_intelligence"
 
         [
           Tools::Verify,
@@ -76,7 +78,9 @@ module RailVerdict
           Tools::BuildRepairPacket,
           Tools::VerifyRepair,
           Tools::Explain,
-          Tools::Investigate
+          Tools::Investigate,
+          Tools::GetVerificationReceipt,
+          Tools::GetPRIntelligence
         ].each do |tool_class|
           instance = tool_class.new(server: self)
           mcp_server.define_tool(

@@ -2,9 +2,11 @@
 
 require "pathname"
 
+require_relative "repository_state"
+
 module RailVerdict
   module Check
-    Outcome = Struct.new(:result, :context, :configuration, :findings, keyword_init: true)
+    Outcome = Struct.new(:result, :context, :configuration, :findings, :repository_state_pre, :repository_state_post, keyword_init: true)
 
     REGISTRY = {
       "rubocop" => RailVerdict::Analyzers::RuboCop,
@@ -17,6 +19,36 @@ module RailVerdict
     def self.registry
       REGISTRY
     end
+
+    # Wraps a canonical verification with a pre/post repository state guard.
+    # The canonical GateResult is unchanged; the guard only attaches the two
+    # observed repository states so receipt issuance can fail closed when the
+    # repository mutated while analyzers were running.
+    def self.execute_with_state_guard(repository_root:, **options)
+      root = begin
+        File.realpath(repository_root)
+      rescue StandardError
+        nil
+      end
+      pre = capture_guard_state(root)
+      outcome = execute(repository_root: repository_root, **options)
+      post = capture_guard_state(root)
+      Outcome.new(
+        result: outcome.result,
+        context: outcome.context,
+        configuration: outcome.configuration,
+        findings: outcome.findings,
+        repository_state_pre: pre,
+        repository_state_post: post
+      )
+    end
+
+    def self.capture_guard_state(root)
+      return RepositoryState.unavailable(:repository_root_unavailable) if root.nil?
+
+      RepositoryState.capture(repository_root: root)
+    end
+    private_class_method :capture_guard_state
 
     module_function
 

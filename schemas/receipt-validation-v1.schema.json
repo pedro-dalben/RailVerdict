@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/receipt-validation/v1.schema.json",
+  "title": "RailVerdict Receipt Validation Result v1",
+  "description": "Deterministic freshness/integrity verdict for a Verification Receipt v1 against the current observable repository state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "receipt_id",
+    "reasons"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "status": { "enum": ["fresh", "stale", "invalid", "unavailable"] },
+    "receipt_id": { "type": ["string", "null"] },
+    "reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    },
+    "gate": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] }
+      ]
+    },
+    "completion_status": {
+      "oneOf": [
+        { "type": "null" },
+        { "enum": ["complete", "incomplete", "interrupted"] }
+      ]
+    },
+    "current_repository_digest": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      ]
+    }
+  }
+}

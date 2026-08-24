@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/verification-receipt/v1.schema.json",
+  "title": "RailVerdict Verification Receipt v1",
+  "description": "Deterministic integrity record binding a canonical GateResult to the exact observable repository state that was verified. This is NOT a signed attestation; it proves content identity, not authorship.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "railverdict_version",
+    "environment",
+    "verification_mode",
+    "changed_scope",
+    "repository_state",
+    "gate_projection",
+    "pr_intelligence",
+    "repair"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "receipt_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "railverdict_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "environment": { "$ref": "#/$defs/environment" },
+    "verification_mode": { "enum": ["full", "changed"] },
+    "changed_scope": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/changed_scope" }
+      ]
+    },
+    "repository_state": { "$ref": "#/$defs/repository_state" },
+    "gate_projection": { "$ref": "#/$defs/gate_projection" },
+    "pr_intelligence": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/pr_intelligence_binding" }
+      ]
+    },
+    "repair": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/repair_binding" }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256_identity": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "nullable_string": { "type": ["string", "null"] },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ruby_version", "analyzer_versions"],
+      "properties": {
+        "ruby_version": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "analyzer_versions": {
+          "type": "object",
+          "propertyNames": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "additionalProperties": { "type": "string", "maxLength": 128 }
+        }
+      }
+    },
+    "changed_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base"],
+      "properties": {
+        "base": { "type": "string", "pattern": "^[0-9a-f]{7,64}$" },
+        "merge_base": { "type": "string", "pattern": "^[0-9a-f]{7,64}$" }
+      }
+    },
+    "repository_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "head",
+        "index_digest",
+        "worktree_digest",
+        "configuration_digest",
+        "baseline_digest",
+        "waivers_digest"
+      ],
+      "properties": {
+        "head": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "index_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "worktree_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "configuration_digest": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "baseline_digest": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256_identity" }]
+        },
+        "waivers_digest": {
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256_identity" }]
+        }
+      }
+    },
+    "gate_projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completion_status",
+        "gate",
+        "policy_status",
+        "findings",
+        "analyzer_evidence",
+        "operational_failure_codes",
+        "decision_reason_codes"
+      ],
+      "properties": {
+        "completion_status": { "enum": ["complete", "incomplete", "interrupted"] },
+        "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+        "policy_status": { "enum": ["pass", "warn", "fail", "not_evaluated"] },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "fingerprint", "severity", "state", "blocking"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "fingerprint": { "$ref": "#/$defs/sha256_identity" },
+              "severity": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "state": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "blocking": { "type": "boolean" }
+            }
+          }
+        },
+        "analyzer_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["analyzer", "execution_status", "tool_version"],
+            "properties": {
+              "analyzer": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "execution_status": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "tool_version": { "type": ["string", "null"], "maxLength": 128 }
+            }
+          }
+        },
+        "operational_failure_codes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "decision_reason_codes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        }
+      }
+    },
+    "pr_intelligence_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest"],
+      "properties": {
+        "digest": { "$ref": "#/$defs/sha256_identity" }
+      }
+    },
+    "repair_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packet_id"],
+      "properties": {
+        "packet_id": { "$ref": "#/$defs/sha256_identity" }
+      }
+    }
+  }
+}

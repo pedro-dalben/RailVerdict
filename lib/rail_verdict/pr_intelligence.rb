@@ -49,6 +49,31 @@ module RailVerdict
       JSON.generate(document(outcome)) + "\n"
     end
 
+    # Deterministic projection used for receipt binding: identical meaningful
+    # verification inputs must produce an identical digest, so volatile test
+    # runtime fields (duration_seconds, seed) are excluded.
+    def stable_projection(document)
+      projected = deep_copy(document)
+      analyzers = projected.dig("test_intelligence", "analyzers")
+      if analyzers.is_a?(Hash)
+        analyzers.each_value do |values|
+          next unless values.is_a?(Hash)
+
+          values.delete("duration_seconds")
+          values.delete("seed")
+        end
+      end
+      projected
+    end
+
+    def deep_copy(value)
+      case value
+      when Hash then value.to_h { |k, v| [k, deep_copy(v)] }
+      when Array then value.map { |item| deep_copy(item) }
+      else value
+      end
+    end
+
     def provenance(outcome, git_context, git)
       context = outcome.context
       {
