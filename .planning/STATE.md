@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 09
-current_phase_name: 1.0-hardening
-status: technical_complete
-stopped_at: "Phase 09 1.0 Hardening — technical complete; trademark qualified review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); publication gate is release closeout"
-last_updated: "2026-08-19T00:00:00-03:00"
-last_activity: 2026-08-19
-last_activity_desc: Make qualified trademark review non-blocking for initial OSS release; preliminary screen 2026-08-19 — no obvious conflict; NOT LEGAL CLEARANCE
+milestone: v1.2
+milestone_name: 1.2-agent-verification-protocol
+current_phase: 12
+current_phase_name: 1.2-closeout
+status: released
+stopped_at: "RailVerdict 1.2.0 released 2026-08-24 (tag v1.2.0, SHA d49c204, RubyGems published); 1.1 PR Intelligence and 1.2 Agent Verification Protocol complete; closing 1.2 truth before 1.3 planning"
+last_updated: "2026-08-24T20:00:00-03:00"
+last_activity: 2026-08-24
+last_activity_desc: 1.2 closeout reconciliation — release identity, docs, Lab candidate, freshness, issue triage, external campaign, closeout report
 progress:
   total_phases: 10
   completed_phases: 10
@@ -24,16 +24,26 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** Given identical repository state, configuration, analyzer versions, and baseline, RailVerdict returns the same evidence-backed gate regardless of AI configuration.
-**Current focus:** Phase 09 — 1.0-hardening (technical complete; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19; publication gate is release closeout — no Phase 10)
+**Current focus:** 1.2 Closeout — reconciling 1.0→1.1→1.2 truth before 1.3 planning (tag v1.2.0 published, Lab certified)
 
 ## Current Position
 
-Phase: 09 (1.0-hardening) — TECHNICAL COMPLETE
-Plans: 7 + closeout
-Status: Technical 1.0 hardening complete 2026-08-19; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); preliminary screen 2026-08-19 — no obvious conflict (NOT LEGAL CLEARANCE); publication gate is release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan); no Phase 10 started
-Last activity: 2026-08-19 — Trademark non-blocking decision (Pedro Dalben) + preliminary screen refresh
+**Released:** 1.0.0 (2026-08-19, tag v1.0.0), 1.0.1 (2026-08-21, per-analyzer timeout), 1.1.0 (2026-08-23, PR Intelligence), 1.2.0 (2026-08-24, Agent Verification Protocol — tag v1.2.0 SHA d49c204, RubyGems published SHA d8e848..., Lab 81 scenarios)
 
-Progress: [██████████] 100%
+**Historical:** Phase 00–09 technical 1.0 hardening completed 2026-08-19 (see preserved history below). Qualified trademark review remains NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19; NOT LEGAL CLEARANCE.
+
+**Now:** 1.2 closeout reconciliation. See docs/release/1.2-closeout.md when complete. Do not mistake the preserved Phase 09 closeout (2026-08-19) as current status.
+
+Progress: [██████████] 100% (Phases 00–09) + 1.1 + 1.2 released
+
+---
+
+### Historical Phase 09 snapshot (preserved — 2026-08-19)
+
+Phase: 09 (1.0-hardening) — TECHNICAL COMPLETE at that time
+Plans: 7 + closeout
+Status at 2026-08-19: Technical 1.0 hardening complete; qualified trademark review NOT PERFORMED — NON-BLOCKING; publication gate was release closeout; no Phase 10 started
+Last activity at that time: 2026-08-19 — Trademark non-blocking decision + preliminary screen refresh
 
 ## Quick Tasks Completed
 

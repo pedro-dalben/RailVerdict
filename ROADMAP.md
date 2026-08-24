@@ -2,9 +2,11 @@
 
 ## Overview
 
-RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: establish the identity and trust contracts first, prove a deterministic local core, broaden objective evidence, add stable debt policy, activate trustworthy Git and pull-request scope, enrich findings with bounded Rails context, and only then add optional AI, repair packets, MCP, and the 1.0 release guarantees. Each v1 requirement belongs to exactly one phase, and later adapters consume earlier contracts without creating another source of gate authority.
+RailVerdict progressed through Phase 0–9 to 1.0 (deterministic verification), then 1.0.1 (operational compatibility), 1.1 (PR Intelligence), and 1.2 (Agent Verification Protocol). Phase 0–9 established identity, trust contracts, deterministic core, evidence, debt policy, Git/PR scope, Rails context, AI, repair, MCP, and 1.0 hardening. Later releases consumed earlier contracts without creating another source of gate authority. 1.2 closeout reconciles 1.0→1.2 truth before any 1.3 planning.
 
-## Phases
+Historical Phase 0–9 detail is preserved below. Current state: **1.2.0 released 2026-08-24** (tag v1.2.0, published). See CHANGELOG.md and docs/release/1.2-closeout.md.
+
+## Phases (historical 0–9 preserved)
 
 **Phase Numbering:**
 
@@ -21,6 +23,10 @@ RailVerdict progresses through the supplied horizontal Phase 0–9 sequence: est
 - [x] **Phase 7: Agent Repair Workflow** - Give external coding agents a deterministic machine contract for repairing and verifying failures.
 - [x] **Phase 8: MCP** - Expose stable application services through a thin read-only MCP adapter.
 - [x] **Phase 9: 1.0 Hardening** - Prove compatibility, security, provenance, documentation, and build-once publication guarantees for 1.0. Technical 1.0 hardening complete;publication gate: qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben); remaining mandatory gates are release closeout (final version/revision, gem provenance, rehearsal, configuration, private-provenance/media scan) — see Phase details.
+- [x] **1.0.1 Operational Compatibility** (2026-08-21) — per-analyzer `timeout_seconds` 1..3600 via config v1.5; robust bundler-audit JSON extraction. Tag v1.0.1.
+- [x] **1.1 PR Intelligence** (2026-08-23) — deterministic `railverdict pr` + PR Intelligence v1, SARIF, CWD-independent packaging. Tag v1.1.0.
+- [x] **1.2 Agent Verification Protocol** (2026-08-24) — Repository State Identity v1, Verification Receipt v1, snapshot guard, `receipt create|verify`, MCP `get_verification_receipt`/`get_pr_intelligence`, RepairPacket receipt binding, dogfooding hardening (native SimpleCov, message safety, unknown-version canonicalization, large-output bounds). Tag v1.2.0, RubyGems published.
+- [ ] **1.2 Closeout** (2026-08-24) — this reconciliation: release truth, docs, Lab candidate, freshness semantics, issues, external campaign, audit, closeout report. Must be YES before 1.3 planning.
 
 ## Phase Details
 

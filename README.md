@@ -78,18 +78,11 @@ The Lab exercises RailVerdict across realistic operational scenarios:
 - Exercising fail-closed behavior on missing or malformed analyzer output;
 - Testing release artifact installation from clean environments.
 
-### 21 / 21 External Validation Campaign
+### External Validation Campaign
 
-The 1.0 release closeout validated **21 out of 21** external scenarios:
+The Lab independently validates the published gem as an external consumer. 1.0 closeout validated **21 / 21** scenarios; **1.2.0** certification validates **81 scenarios** (14 categories, see Lab README) including Verification Receipts and PR Intelligence. See [railverdict-lab](https://github.com/pedro-dalben/railverdict-lab) for the canonical campaign and results.
 
-| Category | Scenarios | Result |
-|---|---:|:---:|
-| **Core Verification** | 12 / 12 | PASS |
-| **Operational & CI** | 6 / 6 | PASS |
-| **Release Closeout** | 3 / 3 | PASS |
-| **Total** | **21 / 21** | **PASS** |
-
-These controlled validation scenarios represent rigorous external regression verification rather than a claim of mathematically bug-free software. During development, the Lab uncovered real defects — such as test failure scoping edge cases — which were fixed before the 1.0 release.
+These controlled validation scenarios represent rigorous external regression verification rather than a claim of mathematically bug-free software. During development, the Lab uncovered real defects — such as test failure scoping edge cases and the 1.2 dogfooding hardening — which were fixed before release.
 
 ---
 
@@ -503,6 +496,8 @@ railverdict mcp serve
 | `verify_repair` | Reruns verification and classifies whether a repair succeeded or regressed. |
 | `explain` | Generates an advisory AI explanation for a finding. |
 | `investigate` | Investigates top blocking findings across the codebase. |
+| `get_verification_receipt` | Returns the Verification Receipt for the last `verify` without rerunning analyzers (refuses stale cache). |
+| `get_pr_intelligence` | Returns PR Intelligence derived from the last `verify`'s GateResult (no rerun). |
 
 ### MCP Security Properties
 
@@ -575,7 +570,7 @@ To maintain clear technical boundaries, RailVerdict is explicitly **NOT**:
 
 ## Project Status
 
-- **Release Version:** `1.0.1`
+- **Release Version:** `1.2.0`
 - **License:** [MIT](LICENSE) (see [NOTICE](NOTICE))
 - **Trademarks:** [TRADEMARKS.md](TRADEMARKS.md)
 - **Foundation & Legal:** [docs/foundation.md](docs/foundation.md) — preliminary screen found no obvious software/tool conflict; NOT LEGAL CLEARANCE; qualified trademark review NOT PERFORMED — NON-BLOCKING BY MAINTAINER DECISION 2026-08-19 (Pedro Dalben).
