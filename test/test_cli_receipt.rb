@@ -272,6 +272,25 @@ waivers:
     end
   end
 
+  def test_verify_rejects_out_of_root_input_overrides
+    _code, stdout, = create_receipt
+    receipt_path = File.join(@dir, "..", "#{File.basename(@dir)}.receipt.json")
+    File.binwrite(receipt_path, stdout)
+    outside = File.join(Dir.tmpdir, "rv-verify-escape-waivers.json")
+    File.write(outside, '{"schema_version":"1.0","waivers":[]}')
+    begin
+      code, _output, stderr = run_cli(["receipt", "verify", receipt_path, "--format", "json", "--waiver", outside])
+      assert_equal 2, code
+      assert_match(/escapes working directory/, stderr, "verify must reject out-of-root overrides or a fraudulent verify could mask staleness")
+      code2, _o, err2 = run_cli(["receipt", "verify", receipt_path, "--format", "json", "--baseline", outside])
+      assert_equal 2, code2
+      assert_match(/escapes working directory/, err2)
+    ensure
+      FileUtils.rm_f(receipt_path)
+      FileUtils.rm_f(outside)
+    end
+  end
+
   def test_gitignored_input_files_are_still_bound
     ignored_dir = File.join(@dir, ".local-state")
     FileUtils.mkdir_p(ignored_dir)

@@ -658,8 +658,8 @@ module RailVerdict
           effective = Check.effective_input_paths(
             root: @working_directory,
             config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
-            baseline_path_override: options[:baseline],
-            waiver_path_override: options[:waiver]
+            baseline_path_override: options[:baseline] && resolved_override_path(options[:baseline], nil),
+            waiver_path_override: options[:waiver] && resolved_override_path(options[:waiver], nil)
           )
           {
             config: effective.fetch(:config),
