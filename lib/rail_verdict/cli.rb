@@ -2,6 +2,8 @@
 
 require "optparse"
 require "json"
+require "fileutils"
+require "securerandom"
 
 module RailVerdict
   class CLI
@@ -26,6 +28,7 @@ module RailVerdict
         explain          Explain a finding with optional AI
         investigate      Investigate top findings with optional AI
         repair           Build a deterministic repair packet for a finding
+        receipt          Create or verify a Verification Receipt
         mcp              MCP adapter (serve)
 
       Global options:
@@ -66,6 +69,8 @@ module RailVerdict
         command_investigate(argv.drop(1))
       when "repair"
         command_repair(argv.drop(1))
+      when "receipt"
+        command_receipt(argv.drop(1))
       when "mcp"
         command_mcp(argv.drop(1))
       else
@@ -456,6 +461,8 @@ module RailVerdict
       parse!(parser, argv.drop(1))
       validate_format!(options[:format])
       raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
+      options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
+      options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]
 
       code, _packet = RailVerdict::Repair::Command.execute(
         repository_root: @working_directory,
@@ -476,10 +483,236 @@ module RailVerdict
       EXIT_NO_GATE
     end
 
+    def command_receipt(argv)
+      sub = argv.first
+      raise RailVerdict::UsageError, "receipt requires a subcommand: create or verify" unless %w[create verify].include?(sub)
+
+      if sub == "create"
+        command_receipt_create(argv.drop(1))
+      else
+        command_receipt_verify(argv.drop(1))
+      end
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict receipt: #{e.message}"
+      @stderr.puts receipt_usage
+      EXIT_NO_GATE
+    end
+
+    def receipt_usage
+      <<~USAGE
+        Usage: railverdict receipt create [options]
+               railverdict receipt verify PATH [options]
+
+        Create options:
+          --config PATH, --format console|json, --output PATH
+          --changed --base REV --baseline PATH --waiver PATH
+          --packet-id sha256:...   Bind an existing RepairPacket identity
+
+        Verify options:
+          --format console|json
+          --config PATH, --baseline PATH, --waiver PATH resolve state inputs
+      USAGE
+    end
+
+    def command_receipt_create(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "json", output: nil, changed: false, base: nil, baseline: nil, waiver: nil, packet_id: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict receipt create [--config PATH] [--format console|json] [--output PATH] [--changed] [--base REV] [--baseline PATH] [--waiver PATH] [--packet-id ID]"
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--output PATH", String) { |value| options[:output] = value }
+        opts.on("--changed") { options[:changed] = true }
+        opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+        opts.on("--packet-id ID", String) { |value| options[:packet_id] = value }
+      end
+      parse!(parser, argv)
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+      if options[:packet_id] && !options[:packet_id].match?(/\Asha256:[0-9a-f]{64}\z/)
+        raise RailVerdict::UsageError, "--packet-id must be a sha256:<64 hex> identity"
+      end
+      if options[:base] && !options[:changed]
+        raise RailVerdict::UsageError, "--base requires --changed"
+      end
+      options[:config] = resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH))
+      options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
+      options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]
+
+      outcome, interrupted = execute_check_with_guard(options)
+      return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
+
+      document = Receipt.build(
+        outcome: outcome,
+        pr_intelligence_document: pr_intelligence_document_for(outcome),
+        repair_packet_id: options[:packet_id]
+      )
+      write_receipt_file(document, options[:output]) if options[:output]
+      render_receipt(document, options[:format], output_path: options[:output])
+      exit_code_for(outcome.result, interrupted: interrupted)
+    rescue Receipt::BuildError => error
+      payload = { "status" => "unavailable", "reasons" => ["#{error.code}: #{error.message}"] }
+      render_receipt_unavailable(payload, options && options[:format])
+      EXIT_NO_GATE
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict receipt create: #{error.message}"
+      @stderr.puts receipt_usage
+      EXIT_NO_GATE
+    end
+
+    def execute_check_with_guard(options)
+      interrupted = false
+      previous = Signal.trap("INT") do
+        interrupted = true
+        RailVerdict::ProcessRunner.registry.terminate_all
+      end
+      execute_options = {
+        repository_root: @working_directory,
+        config_path: options[:config],
+        interrupted: -> { interrupted }
+      }
+      execute_options[:baseline_path_override] = options[:baseline] if options[:baseline]
+      execute_options[:waiver_path_override] = options[:waiver] if options[:waiver]
+      execute_options[:changed] = true if options[:changed]
+      execute_options[:base] = options[:base] if options[:base]
+      outcome = Check.execute_with_state_guard(**execute_options)
+      [outcome, interrupted]
+    ensure
+      Signal.trap("INT", previous) if previous
+    end
+
+    def pr_intelligence_document_for(outcome)
+      return nil unless outcome.context&.git_context || outcome.result.git.is_a?(Hash)
+
+      PRIntelligence.document(outcome)
+    rescue RailVerdict::Error, ArgumentError
+      nil
+    end
+
+    def write_receipt_file(document, path)
+      dir = File.dirname(File.expand_path(path))
+      FileUtils.mkdir_p(dir)
+      tmp = File.join(dir, ".#{File.basename(path)}.tmp.#{Process.pid}.#{SecureRandom.hex(8)}")
+      begin
+        File.open(tmp, "wb", 0o600) do |file|
+          file.write(JSON.generate(document) + "\n")
+          file.flush
+          file.fsync
+        end
+        File.rename(tmp, path)
+      ensure
+        File.unlink(tmp) if File.exist?(tmp)
+      end
+    end
+
+    def render_receipt(document, format, output_path: nil)
+      if format == "json"
+        @stdout.write(JSON.generate(document) + "\n")
+      else
+        @stdout.puts "Receipt: #{document['receipt_id']}"
+        @stdout.puts "Gate: #{document['gate_projection']['gate']} (#{document['gate_projection']['completion_status']})"
+        @stdout.puts "Verification mode: #{document['verification_mode']}"
+        @stdout.puts "Repository state: bound" if document['repository_state']
+        @stdout.puts "Written to #{output_path}" if output_path
+      end
+    end
+
+    def render_receipt_unavailable(payload, format)
+      if format == "json"
+        @stdout.write(JSON.generate(payload) + "\n")
+      else
+        @stdout.puts "Receipt unavailable: #{payload['reasons'].join('; ')}"
+      end
+    end
+
+    def command_receipt_verify(argv)
+      options = { format: "json", config: DEFAULT_CONFIG_PATH, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict receipt verify PATH [--format console|json] [--config PATH] [--baseline PATH] [--waiver PATH]"
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+      end
+      begin
+        rest = parser.parse(argv.dup)
+      rescue OptionParser::ParseError => error
+        raise RailVerdict::UsageError, error.message
+      end
+      path = rest.first
+      raise RailVerdict::UsageError, "verify requires the receipt file path" if path.nil?
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      text = begin
+        File.binread(path)
+      rescue StandardError => error
+        @stderr.puts "railverdict receipt verify: cannot read receipt: #{error.message}"
+        return EXIT_NO_GATE
+      end
+
+      current_state = RepositoryState.capture(
+        repository_root: @working_directory,
+        configuration_paths: begin
+          effective = Check.effective_input_paths(
+            root: @working_directory,
+            config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
+            baseline_path_override: options[:baseline] && resolved_override_path(options[:baseline], nil),
+            waiver_path_override: options[:waiver] && resolved_override_path(options[:waiver], nil)
+          )
+          {
+            config: effective.fetch(:config),
+            baseline: effective.fetch(:baseline),
+            waivers: effective.fetch(:waivers)
+          }
+        end
+      )
+      document, _receipt = Receipt.evaluate(text, current_state: current_state)
+      render_receipt_validation(document, options[:format])
+      exit_code_for_validation(document)
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict receipt verify: #{error.message}"
+      @stderr.puts receipt_usage
+      EXIT_NO_GATE
+    end
+
+    def resolved_override_path(value, default)
+      return default if value.nil? || value.to_s.strip.empty?
+
+      PathSafety.assert_contained!(@working_directory, value, "path")
+    end
+
+    def render_receipt_validation(document, format)
+      if format == "json"
+        @stdout.write(JSON.generate(document) + "\n")
+      else
+        @stdout.puts "Receipt validation: #{document['status']}"
+        document["reasons"].each { |reason| @stdout.puts "  reason: #{reason}" } unless document["reasons"].empty?
+        gate_line = "Original gate: #{document['gate'] || 'unknown'}"
+        gate_line += " (#{document['completion_status']})" if document["completion_status"]
+        @stdout.puts gate_line
+        @stdout.puts "Current repository digest: #{document['current_repository_digest']}" if document["current_repository_digest"]
+      end
+    end
+
+    def exit_code_for_validation(document)
+      case document.fetch("status")
+      when "fresh"
+        return EXIT_NO_GATE if document["completion_status"] != "complete"
+        return EXIT_POLICY_FAIL if document["gate"] == "FAIL"
+
+        EXIT_OK
+      else
+        EXIT_NO_GATE
+      end
+    end
+
     def command_mcp(argv)
       sub = argv.first
       raise RailVerdict::UsageError, "mcp requires subcommand: serve" unless sub == "serve"
-
       options = { repository_root: @working_directory }
       parser = OptionParser.new do |opts|
         opts.banner = "Usage: railverdict mcp serve [--repository-root PATH]"

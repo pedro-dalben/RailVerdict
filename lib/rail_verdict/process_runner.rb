@@ -7,6 +7,10 @@ module RailVerdict
     DEFAULT_TIMEOUT_SECONDS = 30.0
     DEFAULT_MAX_STDOUT_BYTES = 4 * 1024 * 1024
     DEFAULT_MAX_STDERR_BYTES = 64 * 1024
+    # Safe ceiling prevents configuration from escalating to unbounded memory.
+    MAX_SAFE_STDOUT_BYTES = 64 * 1024 * 1024
+    MAX_SAFE_STDERR_BYTES = 1 * 1024 * 1024
+    RSPEC_MAX_STDOUT_BYTES = 16 * 1024 * 1024
     READ_CHUNK_BYTES = 64 * 1024
     TERM_GRACE_SECONDS = 0.1
     REAP_POLL_SECONDS = 0.01
@@ -24,7 +28,10 @@ module RailVerdict
 
     class << self
       def run(executable, argv, chdir:, timeout_seconds: DEFAULT_TIMEOUT_SECONDS,
-              max_stdout_bytes: DEFAULT_MAX_STDOUT_BYTES, max_stderr_bytes: DEFAULT_MAX_STDERR_BYTES)
+              max_stdout_bytes: DEFAULT_MAX_STDOUT_BYTES, max_stderr_bytes: DEFAULT_MAX_STDERR_BYTES,
+              binary_output: false)
+        max_stdout_bytes = clamp_limit(max_stdout_bytes, DEFAULT_MAX_STDOUT_BYTES, MAX_SAFE_STDOUT_BYTES)
+        max_stderr_bytes = clamp_limit(max_stderr_bytes, DEFAULT_MAX_STDERR_BYTES, MAX_SAFE_STDERR_BYTES)
         directory = verify_directory(chdir)
         argv = argv.map { |element| validate_argv_element(element) }
         env = build_env
@@ -52,7 +59,7 @@ module RailVerdict
         stdout_write.close
         stderr_write.close
 
-        execute_child(pid, stdout_read, stderr_read, timeout_seconds, max_stdout_bytes, max_stderr_bytes)
+        execute_child(pid, stdout_read, stderr_read, timeout_seconds, max_stdout_bytes, max_stderr_bytes, binary_output)
       ensure
         registry.unregister(pid) if pid
         [stdout_read, stdout_write, stderr_read, stderr_write].compact.each do |io|
@@ -104,7 +111,7 @@ module RailVerdict
         element
       end
 
-      def execute_child(pid, stdout_read, stderr_read, timeout_seconds, max_stdout_bytes, max_stderr_bytes)
+      def execute_child(pid, stdout_read, stderr_read, timeout_seconds, max_stdout_bytes, max_stderr_bytes, binary_output)
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout_seconds
         output = { buffer: String.new(encoding: Encoding::BINARY), cap: max_stdout_bytes, truncated: false }
         errors = { buffer: String.new(encoding: Encoding::BINARY), cap: max_stderr_bytes, truncated: false }
@@ -112,7 +119,7 @@ module RailVerdict
 
         timed_out = drain_streams(streams, deadline) == :timed_out
         status, timed_out = await_child(pid, deadline, timed_out)
-        build_result(status, timed_out, output, errors, timeout_seconds)
+        build_result(status, timed_out, output, errors, timeout_seconds, binary_output)
       end
 
       def drain_streams(streams, deadline)
@@ -165,14 +172,14 @@ module RailVerdict
         end
       end
 
-      def build_result(status, timed_out, output, errors, timeout_seconds)
+      def build_result(status, timed_out, output, errors, timeout_seconds, binary_output = false)
         if timed_out
           return RunResult.new(
             status: :timed_out,
             exit_code: nil,
             signal: nil,
-            stdout: encode_output(output[:buffer]),
-            stderr: encode_output(errors[:buffer]),
+            stdout: encode_output(output[:buffer], binary_output),
+            stderr: encode_output(errors[:buffer], binary_output),
             stdout_truncated: output[:truncated],
             stderr_truncated: errors[:truncated],
             detail: "process exceeded the #{timeout_seconds}s monotonic timeout and was terminated"
@@ -184,8 +191,8 @@ module RailVerdict
             status: :exited,
             exit_code: status.exitstatus,
             signal: nil,
-            stdout: encode_output(output[:buffer]),
-            stderr: encode_output(errors[:buffer]),
+            stdout: encode_output(output[:buffer], binary_output),
+            stderr: encode_output(errors[:buffer], binary_output),
             stdout_truncated: output[:truncated],
             stderr_truncated: errors[:truncated],
             detail: nil
@@ -196,8 +203,8 @@ module RailVerdict
             status: :signaled,
             exit_code: nil,
             signal: signal_name,
-            stdout: encode_output(output[:buffer]),
-            stderr: encode_output(errors[:buffer]),
+            stdout: encode_output(output[:buffer], binary_output),
+            stderr: encode_output(errors[:buffer], binary_output),
             stdout_truncated: output[:truncated],
             stderr_truncated: errors[:truncated],
             detail: "process terminated by signal #{signal_name}"
@@ -213,7 +220,17 @@ module RailVerdict
         "SIG#{status.termsig}"
       end
 
-      def encode_output(bytes)
+      def clamp_limit(requested, default_val, max_val)
+        val = requested.nil? ? default_val : Integer(requested)
+        val = default_val if val <= 0
+        [[val, max_val].min, 1024].max
+      rescue ArgumentError, TypeError
+        default_val
+      end
+
+      def encode_output(bytes, binary_output = false)
+        return bytes.dup.freeze if binary_output
+
         bytes.dup.force_encoding(Encoding::UTF_8).scrub("\uFFFD").freeze
       end
 

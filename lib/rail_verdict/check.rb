@@ -2,9 +2,11 @@
 
 require "pathname"
 
+require_relative "repository_state"
+
 module RailVerdict
   module Check
-    Outcome = Struct.new(:result, :context, :configuration, :findings, keyword_init: true)
+    Outcome = Struct.new(:result, :context, :configuration, :findings, :repository_state_pre, :repository_state_post, keyword_init: true)
 
     REGISTRY = {
       "rubocop" => RailVerdict::Analyzers::RuboCop,
@@ -17,6 +19,70 @@ module RailVerdict
     def self.registry
       REGISTRY
     end
+
+    # Wraps a canonical verification with a pre/post repository state guard.
+    # The canonical GateResult is unchanged; the guard only attaches the two
+    # observed repository states so receipt issuance can fail closed when the
+    # repository mutated while analyzers were running. The guard binds the
+    # EFFECTIVE verification inputs (resolved config plus effective baseline
+    # and waiver paths), not merely their default locations.
+    def self.execute_with_state_guard(repository_root:, **options)
+      root = begin
+        File.realpath(repository_root)
+      rescue StandardError
+        nil
+      end
+      input_paths = effective_input_paths(
+        root: root,
+        config_path: options.fetch(:config_path, ".railverdict.yml"),
+        baseline_path_override: options[:baseline_path_override],
+        waiver_path_override: options[:waiver_path_override]
+      )
+      pre = capture_guard_state(root, input_paths)
+      outcome = execute(repository_root: repository_root, **options)
+      post = capture_guard_state(root, input_paths)
+      Outcome.new(
+        result: outcome.result,
+        context: outcome.context,
+        configuration: outcome.configuration,
+        findings: outcome.findings,
+        repository_state_pre: pre,
+        repository_state_post: post
+      )
+    end
+
+    # Resolves the EFFECTIVE verification input paths (config plus baseline
+    # and waivers, honoring configuration-declared paths and overrides).
+    # Shared by the guard and by receipt freshness validation so both sides
+    # bind exactly the same files.
+    def self.effective_input_paths(root:, config_path: ".railverdict.yml", baseline_path_override: nil, waiver_path_override: nil)
+      return nil if root.nil?
+
+      resolved_config = resolve_config_path(root, config_path)
+      configuration = begin
+        Configuration.load(resolved_config)
+      rescue StandardError
+        nil
+      end
+      {
+        config: resolved_config,
+        baseline: Baseline.resolve_path(repository_root: root, configuration: configuration, output_override: baseline_path_override),
+        waivers: WaiverStore.resolve_path(repository_root: root, configuration: configuration, waiver_override: waiver_path_override)
+      }
+    rescue StandardError
+      {
+        config: File.join(root, ".railverdict.yml"),
+        baseline: File.join(root, ".railverdict-baseline.json"),
+        waivers: File.join(root, ".railverdict-waivers.json")
+      }
+    end
+
+    def self.capture_guard_state(root, input_paths = nil)
+      return RepositoryState.unavailable(:repository_root_unavailable) if root.nil?
+
+      RepositoryState.capture(repository_root: root, configuration_paths: input_paths)
+    end
+    private_class_method :capture_guard_state
 
     module_function
 
@@ -95,12 +161,26 @@ module RailVerdict
         adapter = build_adapter(name, rubocop_command_resolver)
         probe = probes[name]
         timeout_seconds = resolve_timeout_seconds(configuration, name, analyzer_timeout_seconds)
-        analyzer_result, analyzer_findings = adapter.run(
-          root,
-          runner: runner,
-          probe_result: probe,
-          timeout_seconds: timeout_seconds
-        )
+        begin
+          analyzer_result, analyzer_findings = adapter.run(
+            root,
+            runner: runner,
+            probe_result: probe,
+            timeout_seconds: timeout_seconds,
+            configuration: configuration
+          )
+        rescue StandardError => error
+          # Guarded boundary: analyzer normalization must never bypass GateResult
+          message = RailVerdict::Analyzers::Shared.bounded_message("#{error.class}: #{error.message}")
+          analyzer_result = RailVerdict::Analyzers::Shared.failure_result(
+            analyzer_id: name,
+            invocation: { "executable" => name, "argv" => [] },
+            status: "malformed",
+            message: message,
+            tool_version: probe&.version
+          )
+          analyzer_findings = []
+        end
         analyzer_results << analyzer_result
         findings.concat(analyzer_findings)
       end
@@ -259,6 +339,18 @@ module RailVerdict
           operational_failures: [{ "code" => "failed", "message" => error.message }],
           code: "execution_failed",
           message: "Verification could not complete."
+        ),
+        context: nil,
+        configuration: nil,
+        findings: [].freeze
+      )
+    rescue StandardError => error
+      # Fail-closed for any unexpected error that escaped analyzer guard
+      Outcome.new(
+        result: Verification::Policy.incomplete_result(
+          operational_failures: [{ "code" => "failed", "message" => RailVerdict::Analyzers::Shared.bounded_message("#{error.class}: #{error.message}") }],
+          code: "execution_failed",
+          message: "Verification could not complete due to an unexpected error."
         ),
         context: nil,
         configuration: nil,

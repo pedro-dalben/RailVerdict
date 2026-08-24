@@ -71,10 +71,15 @@ module RailVerdict
             end
 
             outcome = @server.synchronized_verification { run_check(changed: changed, base: base_validated, config_path: config_file, baseline_path: baseline_path, waiver_path: waiver_path) }
-            @server.cache.store_outcome(outcome)
+            receipt_document = build_receipt_document(outcome)
+            pr_intelligence_document = build_pr_intelligence_document(outcome)
+            @server.cache.store_verification(outcome: outcome, receipt_document: receipt_document, pr_intelligence_document: pr_intelligence_document)
             structured = Serializers.gate_result_to_structured(outcome)
             structured = Validators.scrub_text(structured) if structured.is_a?(String)
             structured = Serializers.scrub(structured)
+            if receipt_document.is_a?(Hash) && structured.is_a?(Hash)
+              structured["verification_receipt"] = Serializers.scrub(receipt_document)
+            end
             Serializers.tool_response(structured, error: false)
           rescue ArgumentError => e
             Serializers.error_response(e.message, code: "invalid_arguments")
@@ -85,6 +90,30 @@ module RailVerdict
 
         private
 
+        # One canonical Check execution per verify call; the receipt and PR
+        # Intelligence are derived from that same outcome — analyzers never run
+        # twice for one verification.
+        def build_receipt_document(outcome)
+          RailVerdict::Receipt.build(
+            outcome: outcome,
+            pr_intelligence_document: (pr_intelligence_document(outcome) rescue nil)
+          )
+        rescue RailVerdict::Receipt::BuildError => error
+          {"status" => "unavailable", "code" => error.code}
+        end
+
+        def pr_intelligence_document(outcome)
+          return nil unless outcome.context&.git_context || outcome.result.git.is_a?(Hash)
+
+          PRIntelligence.document(outcome)
+        end
+
+        def build_pr_intelligence_document(outcome)
+          pr_intelligence_document(outcome)
+        rescue StandardError
+          nil
+        end
+
         def run_check(changed:, base:, config_path:, baseline_path:, waiver_path:)
           root = @server.repository_root
           opts = { repository_root: root, config_path: config_path }
@@ -94,7 +123,7 @@ module RailVerdict
           waiver_resolved = resolve_contained_path(waiver_path, "waiver_path") if waiver_path && !waiver_path.to_s.strip.empty?
           opts[:baseline_path_override] = baseline_resolved if baseline_resolved
           opts[:waiver_path_override] = waiver_resolved if waiver_resolved
-          Check.execute(**opts)
+          Check.execute_with_state_guard(**opts)
         end
 
         def resolve_contained_path(raw_path, field_name)

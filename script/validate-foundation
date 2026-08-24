@@ -32,6 +32,8 @@ ADR_FILES = %w[
   0013-information-firewall.md
   0014-apache-2-license.md
   0015-separate-trademark-policy.md
+  0016-canonical-repository-state-identity.md
+  0017-verification-receipts.md
 ].freeze
 
 ARTIFACT_MANIFEST = (
@@ -479,7 +481,7 @@ end
 
 def check_adrs
   actual = Dir.children(ROOT.join("docs/adr")).select { |name| name.end_with?(".md") }.sort
-  fail_check("ADR file set must be exactly the approved fifteen") unless actual == ADR_FILES
+  fail_check("ADR file set must be exactly the approved seventeen") unless actual == ADR_FILES
 
   decisions = {
     "0001-deterministic-pass-fail.md" => /sole authority for PASS and FAIL.*incomplete cannot produce PASS/im,
@@ -496,7 +498,9 @@ def check_adrs
     "0012-third-party-license-review.md" => /Every third-party license and commercial-use boundary receives a dated, source-linked review/im,
     "0013-information-firewall.md" => /synthetic, English-only information firewall/im,
     "0014-apache-2-license.md" => /Superseded by MIT|MIT License.*current/im,
-    "0015-separate-trademark-policy.md" => /Trademark and source-confusion rules remain in a separate policy/im
+    "0015-separate-trademark-policy.md" => /Trademark and source-confusion rules remain in a separate policy/im,
+    "0016-canonical-repository-state-identity.md" => /identity v1 is the single source of truth/im,
+    "0017-verification-receipts.md" => /introduces Verification Receipt v1/im
   }
   owners = {
     "0001-deterministic-pass-fail.md" => /Phase 1 owns/,
@@ -513,7 +517,9 @@ def check_adrs
     "0012-third-party-license-review.md" => /Each implementing adapter phase owns/,
     "0013-information-firewall.md" => /Phase 9 owns/,
     "0014-apache-2-license.md" => /Phase 9 owns/,
-    "0015-separate-trademark-policy.md" => /Phase 0 owns/
+    "0015-separate-trademark-policy.md" => /Phase 0 owns/,
+    "0016-canonical-repository-state-identity.md" => /agent-protocol consumers own/,
+    "0017-verification-receipts.md" => /attestation milestone owns/
   }
 
   ADR_FILES.each do |name|
@@ -524,6 +530,9 @@ def check_adrs
     if name == "0014-apache-2-license.md"
       fail_check("#{name} is not Superseded") unless text.match?(/^Status: Superseded$/)
       fail_check("#{name} does not retain Superseded status") unless text.match?(/^Implementation status: Superseded$/)
+    elsif name.match?(/\A001[67]-/)
+      fail_check("#{name} is not Accepted") unless text.match?(/^Status: Accepted$/)
+      fail_check("#{name} implementation status is not canonical") unless text.match?(/^Implementation status: Implemented in RailVerdict \d/m)
     elsif name.match?(/\A000[1-7]-/)
       fail_check("#{name} status is not canonical") unless text.match?(/\A#.*\n\nStatus: (?:Accepted|Superseded)/m)
       fail_check("#{name} implementation status is not canonical") unless text.match?(/^Implementation status: (?:Not started|Implemented in Phase \d+)/m)
@@ -754,7 +763,7 @@ def check_provenance
 end
 
 def check_whitespace
-  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 33
+  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 35
   ARTIFACT_MANIFEST.each do |relative|
     bytes = read_file(relative)
     fail_check("missing final newline: #{relative}") unless bytes.end_with?("\n")

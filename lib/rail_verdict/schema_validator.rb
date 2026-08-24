@@ -19,6 +19,8 @@ module RailVerdict
     WAIVERS_SCHEMA = "waivers-v1.schema.json"
     REPAIR_PACKET_SCHEMA = "repair-packet-v1.schema.json"
     PR_INTELLIGENCE_SCHEMA = "pr-intelligence-v1.schema.json"
+    VERIFICATION_RECEIPT_SCHEMA = "verification-receipt-v1.schema.json"
+    RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
 
     def self.schema_dir
       File.expand_path("../../schemas", __dir__)
@@ -71,6 +73,14 @@ module RailVerdict
 
     def self.validate_pr_intelligence(data)
       validate(data, PR_INTELLIGENCE_SCHEMA)
+    end
+
+    def self.validate_receipt(data)
+      validate(data, VERIFICATION_RECEIPT_SCHEMA)
+    end
+
+    def self.validate_receipt_validation(data)
+      validate(data, RECEIPT_VALIDATION_SCHEMA)
     end
 
     def self.validate(data, schema_name)

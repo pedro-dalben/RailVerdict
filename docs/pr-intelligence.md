@@ -1,5 +1,11 @@
 # PR Intelligence v1
 
+Deterministic, machine-readable summary of one changed-scope verification. PR Intelligence is a projection of the canonical `GateResult` and Git change scope — never a second policy authority and never produced by rerunning analyzers.
+
+## Receipt binding (1.2)
+
+When a changed-scope verification produces a Verification Receipt, the receipt binds PR Intelligence by digest over its **stable projection** (`RailVerdict::PRIntelligence.stable_projection`). Volatile test-runtime fields inside `test_intelligence.analyzers.*` — `duration_seconds` and `seed` — are excluded from the binding so identical meaningful inputs yield identical receipts. The public PR Intelligence document itself is unchanged; see [Agent Verification Protocol](agent-verification.md) and [ADR 0017](adr/0017-verification-receipts.md).
+
 `railverdict pr` explains a pull-request-sized change. It is a read-only
 projection over exactly one `Check.execute(changed: true, base: ...)` run.
 It does not rerun analyzers, create a second comparison engine, or introduce a

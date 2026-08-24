@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — Unreleased
+
+### Hardening (dogfooding — 2026-08-24)
+
+- **Native SimpleCov support:** `simplecov` now accepts genuine SimpleCov JSON (`simplecov_json_formatter` shape: `meta.simplecov_version`, `coverage: { "path": { "lines": [...] } }` with `ignored` → `nil`, absolute-to-relative path normalization, deterministic ordering) and normalizes it to the internal canonical coverage representation. Existing `coverage-v1` (`version`/`timestamp`/`files`) remains fully supported; no consumer conversion required. Malformed / unsupported / oversized / stale semantics are preserved (`truncated`/`malformed`/`unsupported`/`parse_failed`), and `changed_line_coverage` works on normalized native evidence.
+- **Finding message safety:** every `Finding` now carries a deterministic bounded valid non-empty UTF-8 `message` via a single canonical `Shared.normalize_finding_message` path (nil/empty/whitespace/ANSI/control/null-byte/invalid-UTF-8/oversized all map to `"<analyzer> reported a finding without a message"` or a sanitized truncated value). Analyzer adapters (RuboCop, RSpec, Minitest, bundler-audit) use the shared path; `Check` guards the analyzer→GateResult boundary so malformed messages never bypass `GateResult` JSON serialization (no raw stack trace).
+- **Unknown tool version canonicalization:** `AnalyzerResult` `tool_version` remains optional, but baseline/receipt/MCP identity now canonicalize `nil`/empty to `"unknown"` (`Shared.canonical_tool_version`). `Baseline.create` writes deterministic `"unknown"` entries, `Baseline.read` of older `"unknown"` baselines remains compatible,Receipt `sorted_analyzer_versions` and `MCP::Cache` use the same canonicalization; digests stay deterministic and fingerprints unchanged.
+- **Large analyzer output:** `ProcessRunner` now clamps `max_stdout_bytes` to `MAX_SAFE_STDOUT_BYTES` (64 MiB) and raises the RSpec default to 16 MiB (RuboCop 8 MiB) via analyzer-specific limits. Truncation is still bounded but now large legitimate RSpec JSON (e.g. 8k examples) succeeds where safe; exceeding the bound yields a controlled `truncated` `AnalyzerResult` → `INCOMPLETE` exit 2, never a truncated-JSON parse-as-success or crash. `Check` additionally fail-closes any unexpected analyzer exception to a `malformed` result.
+
+### Highlights
+
+- **Agent Verification Protocol:** deterministic contracts that bind verification evidence to the exact observable repository state that was verified, consumable by humans, CI, and coding agents.
+- **Repository State Identity v1:** one canonical `sha256:` identity over HEAD, the Git index snapshot (`ls-files -s`), the worktree-vs-index content delta (porcelain v2 + per-path content hashes), and resolved configuration/baseline/waiver digests; bounded, path-independent, mtime-insensitive, fail-closed on unavailable state ([ADR 0016](docs/adr/0016-canonical-repository-state-identity.md)).
+- **Verification Receipt v1:** closed versioned schema with deterministic `receipt_id = sha256:<64hex>` over canonical identity fields (environment, state components, mode/changed scope, stable GateResult projection, PR Intelligence stable-projection digest, optional repair packet linkage); volatile data excluded by design; receipts exist for PASS/WARN/FAIL/INCOMPLETE ([ADR 0017](docs/adr/0017-verification-receipts.md)).
+- **Snapshot guard:** guarded executions capture pre/post repository state; mutation during verification fails receipt issuance closed (`repository_changed_during_verification`).
+- **Freshness CLI:** `railverdict receipt create|verify` with `fresh/stale/invalid/unavailable` verdicts, deterministic stale reasons, and gate-mirroring exit semantics (0 PASS/WARN fresh, 1 FAIL fresh, 2 otherwise, 130 interrupt).
+- **MCP integration:** two new read-only tools `get_verification_receipt` / `get_pr_intelligence`; cache refactored onto the shared Repository State Identity; one verify executes analyzers exactly once and derived tools never rerun them; stale cached evidence is refused explicitly (`verification_required`).
+- **Repair lifecycle:** RepairPacket v1 stays immutable; receipts link via optional `repair.packet_id`; baseline/waiver/config manipulation after a FAIL receipt turns it stale and surfaces as a repair boundary change.
+
+### Trust model
+
+Verification Receipts are deterministic integrity records — NOT signed attestations. `receipt_id` proves content identity, never authorship; an actor able to modify the whole receipt and recompute its SHA-256 can fabricate a self-consistent document. When adversarial forgery is in scope, a trusted CI/orchestrator remains the trust anchor and must independently execute RailVerdict.
+
+### Compatibility
+
+- Ruby `>= 3.3`; existing commands (`init`, `doctor`, `check`, `pr`, `baseline create`, `findings`, `explain`, `investigate`, `repair`, `mcp serve`), GateResult/Finding/baseline/waiver/RepairPacket-v1/PR-Intelligence-v1 schemas, configuration versions 1–1.5, stdout/stderr discipline and exits unchanged.
+- New public contracts: `schemas/verification-receipt-v1.schema.json`, `schemas/receipt-validation-v1.schema.json`.
+
 ## [1.0.0] — 2026-08-19
 
 ### Highlights
