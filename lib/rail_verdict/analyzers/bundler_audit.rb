@@ -47,7 +47,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: Shared.bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
         command = @command_resolver.call(repository_root)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
         version_invocation = Shared.invocation_for(command, ["version"])
@@ -143,9 +143,8 @@ module RailVerdict
         gem_name = "unknown" if gem_name.to_s.empty?
 
         severity = map_severity(advisory["criticality"] || advisory["severity"] || entry["criticality"] || entry["severity"])
-        message = (advisory["title"] || advisory["description"] || entry["title"] || entry["description"] || "vulnerability in #{gem_name}").to_s
-        message = message.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?")[0, 4096]
-        message = "vulnerability in #{gem_name}" if message.empty?
+        raw_msg = advisory["title"] || advisory["description"] || entry["title"] || entry["description"] || "vulnerability in #{gem_name}"
+        message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg)
 
         rule_id = "bundler_audit/advisory:#{id}"
         category = "dependency"

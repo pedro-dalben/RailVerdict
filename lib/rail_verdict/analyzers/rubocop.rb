@@ -55,7 +55,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
         command = @command_resolver.call(repository_root)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
         version_invocation = invocation_for(command, ["--version"])
@@ -65,11 +65,13 @@ module RailVerdict
         end
 
         invocation = invocation_for(command, ["--format", "json"])
+        max_stdout = resolve_stdout_limit(configuration, 8 * 1024 * 1024)
         result = runner.run(
           command.fetch(:executable),
           invocation.fetch("argv"),
           chdir: repository_root,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: timeout_seconds,
+          max_stdout_bytes: max_stdout
         )
         tool_version = probe_result.version
 
@@ -255,10 +257,8 @@ module RailVerdict
           raise MalformedOutput, "RuboCop offense line range is invalid"
         end
 
-        message = offense["message"]
-        unless message.is_a?(String) && message.valid_encoding? && !message.empty? && message.bytesize <= 4096
-          raise MalformedOutput, "RuboCop offense message is invalid"
-        end
+        raw_msg = offense["message"]
+        message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg)
 
         fingerprint = Finding.fingerprint_for(
           analyzer: ANALYZER_ID,
@@ -283,6 +283,14 @@ module RailVerdict
         raise MalformedOutput, "RuboCop offense has unknown severity"
       rescue ArgumentError => error
         raise MalformedOutput, "RuboCop offense #{file_index}:#{offense_index} is malformed: #{error.message}"
+      end
+
+      def resolve_stdout_limit(configuration, default_bytes)
+        raw = configuration && configuration.analyzers["rubocop"] && configuration.analyzers["rubocop"]["output_limit_bytes"]
+        raw ||= default_bytes
+        limit = Integer(raw) rescue default_bytes
+        limit = default_bytes if limit <= 0
+        [[limit, RailVerdict::ProcessRunner::MAX_SAFE_STDOUT_BYTES].min, 1024].max
       end
     end
   end

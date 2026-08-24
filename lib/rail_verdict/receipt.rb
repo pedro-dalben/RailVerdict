@@ -95,12 +95,14 @@ module RailVerdict
       versions = {}
       context_versions = outcome.context&.analyzer_versions
       if context_versions.is_a?(Hash) && !context_versions.empty?
-        versions = context_versions.transform_values(&:to_s)
+        context_versions.each do |key, value|
+          versions[key.to_s] = RailVerdict::Analyzers::Shared.canonical_tool_version(value)
+        end
       else
         Array(outcome.result.analyzer_results).each do |analyzer|
-          next unless analyzer.tool_version.is_a?(String)
+          next unless analyzer.tool_version.is_a?(String) && !analyzer.tool_version.strip.empty?
 
-          versions[analyzer.analyzer] = analyzer.tool_version
+          versions[analyzer.analyzer] = RailVerdict::Analyzers::Shared.canonical_tool_version(analyzer.tool_version)
         end
       end
       versions.sort.to_h

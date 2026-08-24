@@ -161,12 +161,26 @@ module RailVerdict
         adapter = build_adapter(name, rubocop_command_resolver)
         probe = probes[name]
         timeout_seconds = resolve_timeout_seconds(configuration, name, analyzer_timeout_seconds)
-        analyzer_result, analyzer_findings = adapter.run(
-          root,
-          runner: runner,
-          probe_result: probe,
-          timeout_seconds: timeout_seconds
-        )
+        begin
+          analyzer_result, analyzer_findings = adapter.run(
+            root,
+            runner: runner,
+            probe_result: probe,
+            timeout_seconds: timeout_seconds,
+            configuration: configuration
+          )
+        rescue StandardError => error
+          # Guarded boundary: analyzer normalization must never bypass GateResult
+          message = RailVerdict::Analyzers::Shared.bounded_message("#{error.class}: #{error.message}")
+          analyzer_result = RailVerdict::Analyzers::Shared.failure_result(
+            analyzer_id: name,
+            invocation: { "executable" => name, "argv" => [] },
+            status: "malformed",
+            message: message,
+            tool_version: probe&.version
+          )
+          analyzer_findings = []
+        end
         analyzer_results << analyzer_result
         findings.concat(analyzer_findings)
       end
@@ -325,6 +339,18 @@ module RailVerdict
           operational_failures: [{ "code" => "failed", "message" => error.message }],
           code: "execution_failed",
           message: "Verification could not complete."
+        ),
+        context: nil,
+        configuration: nil,
+        findings: [].freeze
+      )
+    rescue StandardError => error
+      # Fail-closed for any unexpected error that escaped analyzer guard
+      Outcome.new(
+        result: Verification::Policy.incomplete_result(
+          operational_failures: [{ "code" => "failed", "message" => RailVerdict::Analyzers::Shared.bounded_message("#{error.class}: #{error.message}") }],
+          code: "execution_failed",
+          message: "Verification could not complete due to an unexpected error."
         ),
         context: nil,
         configuration: nil,
