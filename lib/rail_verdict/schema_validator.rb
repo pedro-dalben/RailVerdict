@@ -21,6 +21,7 @@ module RailVerdict
     PR_INTELLIGENCE_SCHEMA = "pr-intelligence-v1.schema.json"
     VERIFICATION_RECEIPT_SCHEMA = "verification-receipt-v1.schema.json"
     RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
+    VERIFICATION_HANDOFF_SCHEMA = "verification-handoff-v1.schema.json"
 
     def self.schema_dir
       File.expand_path("../../schemas", __dir__)
@@ -81,6 +82,10 @@ module RailVerdict
 
     def self.validate_receipt_validation(data)
       validate(data, RECEIPT_VALIDATION_SCHEMA)
+    end
+
+    def self.validate_handoff(data)
+      validate(data, VERIFICATION_HANDOFF_SCHEMA)
     end
 
     def self.validate(data, schema_name)

@@ -67,6 +67,8 @@ require_relative "rail_verdict/repair/packet"
 require_relative "rail_verdict/repair/context_assembler"
 require_relative "rail_verdict/repair/verifier"
 require_relative "rail_verdict/repair/command"
+require_relative "rail_verdict/handoff"
+require_relative "rail_verdict/reuse"
 
 module RailVerdict
 end

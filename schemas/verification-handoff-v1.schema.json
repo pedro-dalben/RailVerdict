@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/verification-handoff/v1.schema.json",
+  "title": "RailVerdict Verification Handoff v1",
+  "description": "Deterministic bounded transport envelope for evidence reuse evaluation. Proves content identity via handoff_id, NOT authorship/signature. Receiver must independently re-observe state/environment to decide REUSABLE vs VERIFICATION_REQUIRED.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "handoff_id", "railverdict_version", "receipt", "evidence_set"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "handoff_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "railverdict_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "receipt": { "$ref": "verification-receipt-v1.schema.json" },
+    "evidence_set": { "$ref": "#/$defs/evidence_set" },
+    "evidence_provenance": { "$ref": "#/$defs/evidence_provenance" },
+    "source_scope": { "$ref": "#/$defs/source_scope" }
+  },
+  "$defs": {
+    "evidence_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analyzer_results"],
+      "properties": {
+        "analyzer_results": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/analyzer_evidence" }
+        }
+      }
+    },
+    "analyzer_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analyzer", "execution_status"],
+      "properties": {
+        "analyzer": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "execution_status": { "enum": ["success", "incomplete"] },
+        "tool_version": { "type": ["string", "null"], "maxLength": 128 },
+        "findings": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": { "$ref": "finding-v1.schema.json" }
+        }
+      }
+    },
+    "evidence_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "analyzer_versions": {
+          "type": "object",
+          "propertyNames": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "additionalProperties": { "type": "string", "maxLength": 128 }
+        },
+        "advisory_db_revision": { "type": ["string", "null"], "maxLength": 128 }
+      }
+    },
+    "source_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "verification_mode": { "enum": ["full", "changed"] },
+        "changed_base": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,64}$" },
+        "changed_merge_base": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,64}$" }
+      }
+    }
+  }
+}
