@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Demo: CI-job-to-CI-job Handoff (file-based, no service)
+# Job A: checkout → verify → handoff artifact
+# Job B: equivalent checkout → receive handoff → REUSABLE or VERIFICATION_REQUIRED
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LAB_ROOT="/home/pedro/Documentos/rails-verdict/railverdict-lab"
+if [ ! -f "$LAB_ROOT/.railverdict.yml" ]; then
+  echo "Lab fixture not found at $LAB_ROOT" >&2; exit 2
+fi
+echo "=== Job A: create handoff (Lab fixture) ==="
+( cd "$LAB_ROOT" && ruby -I "$ROOT/lib" "$ROOT/exe/railverdict" handoff create --output /tmp/ci-handoff.json --format json > /tmp/ci-job-a.json )
+echo "Job A handoff_id: $(python3 -c "import json; print(json.load(open('/tmp/ci-handoff.json'))['handoff_id'])")"
+echo "Job A receipt_id: $(python3 -c "import json; print(json.load(open('/tmp/ci-handoff.json'))['receipt']['receipt_id'])")"
+# Simulate clone-to-clone via git clone
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+git clone -q "$LAB_ROOT" "$TMPDIR/clone-b"
+echo "=== Job B: equivalent clone checkout, verify handoff ==="
+( cd "$TMPDIR/clone-b" && ruby -I "$ROOT/lib" "$ROOT/exe/railverdict" handoff verify /tmp/ci-handoff.json --format json > /tmp/ci-verify.json || true )
+cat /tmp/ci-verify.json | python3 -m json.tool
+DECISION=$(python3 -c "import json; print(json.load(open('/tmp/ci-verify.json'))['decision'])")
+echo "Job B decision: $DECISION"
+if [ "$DECISION" = "VERIFICATION_REQUIRED" ]; then
+  echo "Expected for full Lab config (rspec required): VERIFICATION_REQUIRED due to analyzer_not_reusable:rspec (RECEIPT_FRESH != EVIDENCE_REUSABLE)"
+fi
+# Rubocop-only demo for REUSABLE
+cat > "$LAB_ROOT/.rubocop-only.yml" <<'YML'
+version: 1.3
+mode: no_new_debt
+analyzers:
+  rubocop: { enabled: true, required: true }
+  rspec: { enabled: false, required: false }
+  minitest: { enabled: false, required: false }
+  simplecov: { enabled: false, required: false }
+  bundler_audit: { enabled: false, required: false }
+YML
+echo "=== Job A (rubocop-only): create handoff ==="
+( cd "$LAB_ROOT" && ruby -I "$ROOT/lib" "$ROOT/exe/railverdict" handoff create --config .rubocop-only.yml --output /tmp/ci-handoff-rubocop.json --format json > /tmp/ci-job-a-rubocop.json )
+( cd "$LAB_ROOT" && ruby -I "$ROOT/lib" "$ROOT/exe/railverdict" handoff verify --config .rubocop-only.yml /tmp/ci-handoff-rubocop.json --format json > /tmp/ci-verify-rubocop.json )
+cat /tmp/ci-verify-rubocop.json | python3 -m json.tool
+DECISION2=$(python3 -c "import json; print(json.load(open('/tmp/ci-verify-rubocop.json'))['decision'])")
+echo "Rubocop-only decision: $DECISION2 (expected REUSABLE)"
+rm -f "$LAB_ROOT/.rubocop-only.yml"
+echo "=== check --handoff demo (clone) ==="
+# Use rubocop handoff with check --handoff
+cp /tmp/ci-handoff-rubocop.json "$TMPDIR/clone-b/handoff.json"
+# Need a rubocop-only config in clone too
+cat > "$TMPDIR/clone-b/.rubocop-only.yml" <<'YML'
+version: 1.3
+mode: no_new_debt
+analyzers:
+  rubocop: { enabled: true, required: true }
+  rspec: { enabled: false, required: false }
+  minitest: { enabled: false, required: false }
+  simplecov: { enabled: false, required: false }
+  bundler_audit: { enabled: false, required: false }
+YML
+( cd "$TMPDIR/clone-b" && ruby -I "$ROOT/lib" "$ROOT/exe/railverdict" check --config .rubocop-only.yml --handoff handoff.json --format json > /tmp/ci-check-handoff.json )
+cat /tmp/ci-check-handoff.json | python3 -m json.tool | head -60
+echo "Demo complete — file-based Handoff portable outside GitHub (no service, no DB)"
