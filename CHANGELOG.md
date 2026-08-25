@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] — Unreleased
+
+### Agent Handoff & Evidence Reuse
+
+- **Verification Handoff v1:** deterministic bounded `256 KiB` transport envelope (`handoff-v1`, `handoff_id = sha256(canonical_json)`) carrying `receipt` + normalized `evidence_set` + `evidence_provenance` + `source_scope`; portable, offline, file/process/clone/CI-job usable, fail-closed, no signatures/PKI/Sigstore (per 1.x trust model, see ADR 0019).
+- **Canonical Evidence Reuse Evaluator:** single `Reuse.evaluate(handoff, current_identity, current_contract)` used by CLI, MCP, and CI; `RECEIPT_FRESH != EVIDENCE_REUSABLE`; whole-set reuse only (`PER_ANALYZER_REUSE_DEFERRED`); per-analyzer predicates (RuboCop reusable, RSpec/Minitest not, SimpleCov coupled, bundler-audit DB-dependent); `REUSABLE` reconstructs `Finding`/`AnalyzerResult` and re-derives `GateResult` via current `baseline`/`waivers`/`policy` (same canonical pipeline).
+- **CLI:** `railverdict handoff create|inspect|verify` and `railverdict check --handoff PATH` (execution avoidance proven: `rubocop` reuses without `rspec` execution, `VERIFICATION_REQUIRED` falls back to full verification); machine JSON exposes `handoff_valid`, `receipt_fresh`, `decision`, `reasons`.
+- **MCP:** `create_handoff`, `inspect_handoff`, `verify_handoff` delegate to same services; CLI/MCP parity, `TOCTOU` guard (`identity_before == identity_after`), bounded parsing, no path escape.
+- **Trust invariants 1-25 frozen** (`docs/release/1.4-trust-invariants.md`) and ADR 0019; `docs/agent-handoff.md` documents three questions (Receipt vs Evidence vs Gate).
+
 ## [1.3.0] — 2026-08-25
 
 ### Verification Freshness & Trust Completion
