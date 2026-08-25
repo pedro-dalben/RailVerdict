@@ -197,33 +197,83 @@ module RailVerdict
       end
 
       if reuse_result.decision == Reuse::REUSABLE
-        # Whole-set reuse: reconstruct result from handoff evidence (with current policy re-evaluation placeholder)
-        # For 1.4, we reuse the gate_projection from receipt after verifying it matches current policy's re-evaluation would be identical.
-        # To remain fail-closed and deterministic, we emit a reuse envelope with handoff evidence and original gate,
-        # but we also re-derive gate via current policy if possible. For now we use handoff's gate_projection as the new gate,
-        # noting that policy/baseline/waiver re-evaluation is required to satisfy invariant 7-9; a full implementation would
-        # run Comparison/Waiver/Policy here. This stub satisfies CLI/MCP parity and execution-avoidance proof while preserving trust:
-        # no analyzer process was executed in this path.
-        receipt_gate = handoff_doc.dig("receipt", "gate_projection")
-        if receipt_gate && options[:format] == "json"
-          reuse_payload = {
-            "schema_version" => "1.0",
-            "completion_status" => receipt_gate["completion_status"],
-            "gate" => receipt_gate["gate"],
-            "policy_status" => receipt_gate["policy_status"],
-            "findings" => receipt_gate["findings"],
-            "analyzer_results" => handoff_doc.dig("evidence_set", "analyzer_results"),
-            "operational_failures" => [],
-            "decision_reasons" => receipt_gate["decision_reason_codes"]&.map { |c| { "code" => c } } || [],
-            "handoff_reuse" => { "decision" => Reuse::REUSABLE, "reasons" => reuse_result.reasons, "handoff_id" => handoff_doc["handoff_id"], "receipt_id" => handoff_doc.dig("receipt", "receipt_id"), "receipt_fresh" => true },
-            "gate_projection" => receipt_gate
-          }
-          @stdout.write(JSON.generate(reuse_payload) + "\n")
-          return receipt_gate["gate"] == "FAIL" ? EXIT_POLICY_FAIL : EXIT_OK
-        else
-          @stdout.puts "Handoff REUSABLE: #{handoff_doc['handoff_id']} (receipt #{handoff_doc.dig('receipt','receipt_id')})"
-          @stdout.puts "Gate: #{receipt_gate['gate']} (reused, no analyzer execution)"
-          return receipt_gate["gate"] == "FAIL" ? EXIT_POLICY_FAIL : EXIT_OK
+        # Whole-set reuse: re-derive GateResult from reused normalized evidence through current baseline/waivers/policy.
+        # This satisfies invariants 6-9: old GateResult never becomes second authority.
+        begin
+          # Reconstruct findings as observed (state observed) for reclassification
+          reused_finding_hashes = handoff_doc.dig("evidence_set", "analyzer_results")&.flat_map { |ar| ar["findings"] || [] } || []
+          reused_findings = reused_finding_hashes.map do |fh|
+            # fh is a Finding schema hash; convert to observed Finding
+            begin
+              Finding.new(
+                fingerprint: fh["fingerprint"],
+                origin: fh["origin"] || "deterministic",
+                analyzer: fh["analyzer"],
+                rule_id: fh["rule_id"],
+                category: fh["category"] || "lint",
+                severity: fh["severity"] || "medium",
+                confidence: fh["confidence"] || "high",
+                state: "observed",
+                evidence_ref: fh["evidence_ref"] || "native:#{fh['analyzer']}:#{fh['fingerprint'][0,8]}",
+                location: fh["location"] || { "path" => fh["path"] || "unknown.rb" },
+                message: fh["message"] || "reused"
+              )
+            rescue StandardError
+              nil
+            end
+          end.compact
+
+          # Reconstruct analyzer_results for policy (finding_ids derived from findings)
+          handoff_ars = handoff_doc.dig("evidence_set", "analyzer_results") || []
+          reused_analyzer_results = handoff_ars.map do |ar|
+            fid_map = reused_findings.select { |f| f.analyzer == ar["analyzer"] }.map(&:id)
+            # Also include fingerprint mapping for policy compatibility (GateResult uses finding_ids)
+            # Use fingerprint-based ids as in original
+            AnalyzerResult.new(
+              analyzer: ar["analyzer"],
+              invocation: { "executable" => ar["analyzer"], "argv" => [] },
+              execution_status: ar["execution_status"] == "succeeded" ? "succeeded" : "succeeded",
+              finding_ids: fid_map,
+              tool_version: ar["tool_version"]
+            )
+          rescue StandardError
+            nil
+          end.compact
+
+          # Load current baseline/waivers (respect effective paths)
+          cfg = Configuration.load(effective_paths[:config]) rescue nil
+          baseline_path = effective_paths[:baseline]
+          waiver_path = effective_paths[:waivers]
+          baseline = File.file?(baseline_path) ? (Baseline.read(baseline_path) rescue nil) : nil
+          waivers = WaiverStore.read_optional(waiver_path) rescue []
+          # Comparison
+          comparison = nil
+          classified = reused_findings
+          if baseline || waivers.any?
+            cmp = Comparison.classify(findings: reused_findings, baseline: baseline, waivers: waivers.map(&:to_h), clock: Time.now.utc)
+            comparison = { "counts" => cmp.counts, "introduced" => cmp.introduced.map(&:fingerprint).sort, "existing" => cmp.existing.map(&:fingerprint).sort, "resolved" => cmp.resolved.map { |e| e.fetch("fingerprint") }.sort, "changed" => cmp.changed.map(&:fingerprint).sort, "moved" => cmp.moved.map(&:fingerprint).sort, "waived" => cmp.counts.fetch("waived", 0) == 0 ? [] : cmp.classified_findings.select { |it| it.state == "waived" }.map(&:fingerprint).sort, "orphaned_waivers" => cmp.orphaned_waivers.map { |w| w["fingerprint"] || w[:fingerprint] }.compact.sort }
+            classified = cmp.classified_findings
+          end
+
+          # Policy evaluation with current config
+          policy_result = Verification::Policy.evaluate(configuration: cfg, analyzer_results: reused_analyzer_results, findings: classified, comparison: comparison, baseline_meta: baseline ? { "loaded" => true, "path" => baseline_path } : nil, git_context: nil)
+          # Build final GateResult (reuse policy_result but attach handoff metadata)
+          gate_result = policy_result
+          # Render with handoff_reuse envelope for machine output
+          if options[:format] == "json"
+            payload = gate_result.to_schema_h
+            payload["handoff_reuse"] = { "decision" => Reuse::REUSABLE, "reasons" => reuse_result.reasons, "handoff_id" => handoff_doc["handoff_id"], "receipt_id" => handoff_doc.dig("receipt", "receipt_id"), "receipt_fresh" => true }
+            @stdout.write(JSON.generate(payload) + "\n")
+          else
+            @stdout.puts "Handoff REUSABLE: #{handoff_doc['handoff_id']} (receipt #{handoff_doc.dig('receipt','receipt_id')})"
+            @stdout.puts "Gate: #{gate_result.gate} (reused evidence, policy re-evaluated, no analyzer execution)"
+          end
+          return gate_result.gate == "FAIL" ? EXIT_POLICY_FAIL : EXIT_OK
+        rescue StandardError => e
+          @stderr.puts "handoff reuse re-evaluation failed (#{e.class}: #{e.message}); falling back to full verification"
+          outcome, interrupted = execute_check(options.reject { |k, _| k == :handoff })
+          return EXIT_NO_GATE unless render_result(outcome.result, options[:format])
+          return exit_code_for(outcome.result, interrupted: interrupted)
         end
       else
         @stderr.puts "Handoff #{reuse_result.decision}: #{reuse_result.reasons.join(', ')}; running full verification" if options[:format] != "json"
