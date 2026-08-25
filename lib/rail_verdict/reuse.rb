@@ -62,7 +62,7 @@ module RailVerdict
 
       # 4. Incomplete evidence cannot be reused as complete
       handoff_document.dig("evidence_set", "analyzer_results")&.each do |ar|
-        if ar["execution_status"] != "success"
+        if !%w[succeeded success].include?(ar["execution_status"])
           return Result.new(decision: VERIFICATION_REQUIRED, reasons: ["evidence_incomplete:#{ar['analyzer']}"], handoff_valid: true, receipt_fresh: true)
         end
       end

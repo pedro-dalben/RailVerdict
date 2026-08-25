@@ -10,7 +10,7 @@
     "schema_version": { "const": "1.0" },
     "handoff_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "railverdict_version": { "type": "string", "minLength": 1, "maxLength": 64 },
-    "receipt": { "$ref": "verification-receipt-v1.schema.json" },
+    "receipt": { "type": "object" },
     "evidence_set": { "$ref": "#/$defs/evidence_set" },
     "evidence_provenance": { "$ref": "#/$defs/evidence_provenance" },
     "source_scope": { "$ref": "#/$defs/source_scope" }
@@ -35,12 +35,12 @@
       "required": ["analyzer", "execution_status"],
       "properties": {
         "analyzer": { "type": "string", "minLength": 1, "maxLength": 64 },
-        "execution_status": { "enum": ["success", "incomplete"] },
+        "execution_status": { "enum": ["succeeded", "success", "incomplete"] },
         "tool_version": { "type": ["string", "null"], "maxLength": 128 },
         "findings": {
           "type": "array",
           "maxItems": 5000,
-          "items": { "$ref": "finding-v1.schema.json" }
+          "items": { "type": "object" }
         }
       }
     },

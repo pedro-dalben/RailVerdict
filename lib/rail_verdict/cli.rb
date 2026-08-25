@@ -29,6 +29,7 @@ module RailVerdict
         investigate      Investigate top findings with optional AI
         repair           Build a deterministic repair packet for a finding
         receipt          Create or verify a Verification Receipt
+        handoff          Create or verify a Verification Handoff (evidence reuse)
         mcp              MCP adapter (serve)
 
       Global options:
@@ -69,8 +70,10 @@ module RailVerdict
         command_investigate(argv.drop(1))
       when "repair"
         command_repair(argv.drop(1))
-      when "receipt"
+        when "receipt"
         command_receipt(argv.drop(1))
+      when "handoff"
+        command_handoff(argv.drop(1))
       when "mcp"
         command_mcp(argv.drop(1))
       else
@@ -708,6 +711,216 @@ module RailVerdict
         EXIT_OK
       else
         EXIT_NO_GATE
+      end
+    end
+
+    def command_handoff(argv)
+      sub = argv.first
+      raise RailVerdict::UsageError, "handoff requires a subcommand: create, inspect, or verify" unless %w[create inspect verify].include?(sub)
+
+      case sub
+      when "create" then command_handoff_create(argv.drop(1))
+      when "inspect" then command_handoff_inspect(argv.drop(1))
+      when "verify" then command_handoff_verify(argv.drop(1))
+      end
+    rescue RailVerdict::UsageError => e
+      @stderr.puts "railverdict handoff: #{e.message}"
+      @stderr.puts handoff_usage
+      EXIT_NO_GATE
+    end
+
+    def handoff_usage
+      <<~USAGE
+        Usage: railverdict handoff create [options]
+               railverdict handoff inspect PATH [options]
+               railverdict handoff verify PATH [options]
+
+        Create options:
+          --config PATH, --format console|json, --output PATH
+          --changed --base REV --baseline PATH --waiver PATH
+
+        Inspect options:
+          --format console|json
+
+        Verify options:
+          --format console|json
+          --config PATH, --baseline PATH, --waiver PATH
+      USAGE
+    end
+
+    def command_handoff_create(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "json", output: nil, changed: false, base: nil, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict handoff create [--config PATH] [--format console|json] [--output PATH] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--output PATH", String) { |v| options[:output] = v }
+        opts.on("--changed") { options[:changed] = true }
+        opts.on("--base REV", String) { |v| options[:base] = v }
+        opts.on("--baseline PATH", String) { |v| options[:baseline] = v }
+        opts.on("--waiver PATH", String) { |v| options[:waiver] = v }
+      end
+      parse!(parser, argv)
+      raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+      options[:config] = resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH))
+      options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
+      options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]
+
+      outcome, interrupted = execute_check_with_guard(options)
+      return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
+
+      receipt = Receipt.build(outcome: outcome, pr_intelligence_document: pr_intelligence_document_for(outcome))
+      evidence_set = {
+        "analyzer_results" => outcome.result.analyzer_results.map do |ar|
+          h = { "analyzer" => ar.analyzer, "execution_status" => ar.execution_status, "tool_version" => ar.tool_version }
+          # Include normalized findings for reuse (bounded) — use canonical Finding hashes
+          findings = outcome.findings.select { |f| f.analyzer == ar.analyzer }.map(&:to_schema_h).sort_by { |ff| ff["fingerprint"] }
+          h["findings"] = findings if findings.any?
+          h
+        end
+      }
+      provenance = { "analyzer_versions" => outcome.context&.analyzer_versions || {} }
+      scope = {
+        "verification_mode" => outcome.result.git ? "changed" : "full",
+        "changed_base" => outcome.result.git && outcome.result.git["base"],
+        "changed_merge_base" => outcome.result.git && outcome.result.git["merge_base"]
+      }
+      handoff = Handoff.build(receipt: receipt, evidence_set: evidence_set, evidence_provenance: provenance, source_scope: scope)
+      write_handoff_file(handoff, options[:output]) if options[:output]
+      render_handoff(handoff, options[:format], output_path: options[:output])
+      exit_code_for(outcome.result, interrupted: interrupted)
+    rescue Handoff::BuildError, Receipt::BuildError => e
+      payload = { "status" => "unavailable", "reasons" => ["#{e.code}: #{e.message}"] }
+      render_handoff_unavailable(payload, options && options[:format])
+      EXIT_NO_GATE
+    end
+
+    def command_handoff_inspect(argv)
+      options = { format: "json" }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict handoff inspect PATH [--format console|json]"
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+      end
+      rest = begin parser.parse(argv.dup) rescue raise RailVerdict::UsageError, $!.message end
+      path = rest.first
+      raise RailVerdict::UsageError, "inspect requires the handoff file path" if path.nil?
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}"
+      end
+      text = begin File.binread(path) rescue (@stderr.puts "railverdict handoff inspect: cannot read handoff: #{$!.message}"; return EXIT_NO_GATE) end
+      doc, err = Handoff.parse(text)
+      if doc
+        render_handoff(doc, options[:format])
+        EXIT_OK
+      else
+        payload = { "status" => "invalid", "reasons" => [err.to_s] }
+        render_handoff_unavailable(payload, options[:format])
+        EXIT_NO_GATE
+      end
+    end
+
+    def command_handoff_verify(argv)
+      options = { format: "json", config: DEFAULT_CONFIG_PATH, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict handoff verify PATH [--format console|json] [--config PATH] [--baseline PATH] [--waiver PATH]"
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--baseline PATH", String) { |v| options[:baseline] = v }
+        opts.on("--waiver PATH", String) { |v| options[:waiver] = v }
+      end
+      rest = begin parser.parse(argv.dup) rescue raise RailVerdict::UsageError, $!.message end
+      path = rest.first
+      raise RailVerdict::UsageError, "verify requires the handoff file path" if path.nil?
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}"
+      end
+      text = begin File.binread(path) rescue (@stderr.puts "railverdict handoff verify: cannot read handoff: #{$!.message}"; return EXIT_NO_GATE) end
+      doc, err = Handoff.parse(text)
+      unless doc
+        payload = { "handoff_valid" => false, "receipt_fresh" => false, "decision" => Reuse::INVALID, "reasons" => [err.to_s] }
+        render_handoff_verify(payload, options[:format])
+        return EXIT_NO_GATE
+      end
+      effective_paths = Check.effective_input_paths(root: @working_directory, config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)), baseline_path_override: options[:baseline] && resolved_override_path(options[:baseline], nil), waiver_path_override: options[:waiver] && resolved_override_path(options[:waiver], nil))
+      before_state = RepositoryState.capture(repository_root: @working_directory, configuration_paths: effective_paths)
+      current_state = before_state
+      current_env_obj = VerificationEnvironment.capture(repository_root: @working_directory)
+      current_env = {
+        "ruby_engine" => current_env_obj.ruby_engine,
+        "ruby_version" => current_env_obj.ruby_version,
+        "railverdict_version" => current_env_obj.railverdict_version,
+        "analyzer_versions" => current_env_obj.analyzer_versions
+      }
+      # Evaluate via canonical Reuse
+      config = Configuration.load(effective_paths[:config]) rescue nil
+      required = config ? config.analyzers.select { |_, s| s["enabled"] && s["required"] }.keys.map(&:to_s) : []
+      contract = { "required_analyzers" => required, "verification_mode" => doc.dig("source_scope", "verification_mode"), "changed_base" => doc.dig("source_scope", "changed_base") }
+      result = Reuse.evaluate(handoff_document: doc, current_repository_state: current_state, current_environment: current_env, current_contract: contract)
+      # TOCTOU guard: re-observe repository state
+      after_state = RepositoryState.capture(repository_root: @working_directory, configuration_paths: effective_paths)
+      if before_state && after_state && before_state.digest != after_state.digest
+        result = Reuse::Result.new(decision: Reuse::VERIFICATION_REQUIRED, reasons: result.reasons + ["reuse_toctou"], handoff_valid: result.handoff_valid, receipt_fresh: result.receipt_fresh)
+      end
+      payload = { "handoff_valid" => result.handoff_valid, "receipt_fresh" => result.receipt_fresh, "decision" => result.decision, "reasons" => result.reasons, "handoff_id" => doc["handoff_id"], "receipt_id" => doc.dig("receipt", "receipt_id") }
+      render_handoff_verify(payload, options[:format])
+      result.decision == Reuse::REUSABLE ? EXIT_OK : EXIT_NO_GATE
+    end
+
+    def capture_current_env
+      # Minimal env capture for reuse freshness — reuse VerificationEnvironment where possible
+      begin
+        VerificationEnvironment.capture(repository_root: @working_directory)
+      rescue StandardError
+        { "ruby_engine" => RUBY_ENGINE, "ruby_version" => RUBY_VERSION, "railverdict_version" => RailVerdict::VERSION, "analyzer_versions" => {} }
+      end
+    end
+
+    def write_handoff_file(document, path)
+      dir = File.dirname(File.expand_path(path))
+      FileUtils.mkdir_p(dir)
+      tmp = File.join(dir, ".#{File.basename(path)}.tmp.#{Process.pid}.#{SecureRandom.hex(8)}")
+      begin
+        File.open(tmp, "wb", 0o600) do |file|
+          file.write(JSON.generate(document) + "\n")
+          file.flush
+          file.fsync
+        end
+        File.rename(tmp, path)
+      ensure
+        File.unlink(tmp) if File.exist?(tmp)
+      end
+    end
+
+    def render_handoff(document, format, output_path: nil)
+      if format == "json"
+        @stdout.write(JSON.generate(document) + "\n")
+      else
+        @stdout.puts "Handoff: #{document['handoff_id']}"
+        @stdout.puts "Receipt: #{document.dig('receipt', 'receipt_id')}"
+        @stdout.puts "Evidence analyzers: #{Array(document.dig('evidence_set', 'analyzer_results')).map { |ar| ar['analyzer'] }.join(', ')}"
+        @stdout.puts "Written to #{output_path}" if output_path
+      end
+    end
+
+    def render_handoff_unavailable(payload, format)
+      if format == "json"
+        @stdout.write(JSON.generate(payload) + "\n")
+      else
+        @stdout.puts "Handoff unavailable: #{payload['reasons'].join('; ')}"
+      end
+    end
+
+    def render_handoff_verify(payload, format)
+      if format == "json"
+        @stdout.write(JSON.generate(payload) + "\n")
+      else
+        @stdout.puts "Handoff: #{payload['handoff_id']} valid=#{payload['handoff_valid']}"
+        @stdout.puts "Receipt fresh: #{payload['receipt_fresh']}"
+        @stdout.puts "Decision: #{payload['decision']}"
+        @stdout.puts "Reasons: #{payload['reasons'].join(', ')}" unless payload["reasons"].empty?
       end
     end
 
