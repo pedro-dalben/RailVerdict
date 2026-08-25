@@ -4,9 +4,9 @@
 
 RailVerdict progressed through Phase 0–9 to 1.0 (deterministic verification), then 1.0.1 (operational compatibility), 1.1 (PR Intelligence), and 1.2 (Agent Verification Protocol). Phase 0–9 established identity, trust contracts, deterministic core, evidence, debt policy, Git/PR scope, Rails context, AI, repair, MCP, and 1.0 hardening. Later releases consumed earlier contracts without creating another source of gate authority. 1.2 closeout reconciles 1.0→1.2 truth before any 1.3 planning.
 
-Historical Phase 0–9 detail is preserved below. Current state: **1.2.0 released 2026-08-24** (tag v1.2.0, published). See CHANGELOG.md and docs/release/1.2-closeout.md.
+Historical Phase 0–9 detail is preserved below. Current state: **1.3.0 released 2026-08-25** (tag v1.3.0 `980e940`, gem `1405a77`, `118 PASS`). **1.4.0 Agent Handoff & Evidence Reuse** candidate `abffc9b` (`1.4.0`, Handoff v1, `Reuse.evaluate` whole-set `PER_ANALYZER_REUSE_DEFERRED`, `check --handoff`, MCP parity) in progress on `lab/1.4-handoff` (catalog `4.0`). See CHANGELOG.md and `docs/release/1.4-*`.
 
-## Phases (historical 0–9 preserved)
+## Phases (historical 0–9 preserved + 1.3/1.4)
 
 **Phase Numbering:**
 
@@ -26,7 +26,9 @@ Historical Phase 0–9 detail is preserved below. Current state: **1.2.0 release
 - [x] **1.0.1 Operational Compatibility** (2026-08-21) — per-analyzer `timeout_seconds` 1..3600 via config v1.5; robust bundler-audit JSON extraction. Tag v1.0.1.
 - [x] **1.1 PR Intelligence** (2026-08-23) — deterministic `railverdict pr` + PR Intelligence v1, SARIF, CWD-independent packaging. Tag v1.1.0.
 - [x] **1.2 Agent Verification Protocol** (2026-08-24) — Repository State Identity v1, Verification Receipt v1, snapshot guard, `receipt create|verify`, MCP `get_verification_receipt`/`get_pr_intelligence`, RepairPacket receipt binding, dogfooding hardening (native SimpleCov, message safety, unknown-version canonicalization, large-output bounds). Tag v1.2.0, RubyGems published.
-- [ ] **1.2 Closeout** (2026-08-24) — this reconciliation: release truth, docs, Lab candidate, freshness semantics, issues, external campaign, audit, closeout report. Must be YES before 1.3 planning.
+- [x] **1.2 Closeout** (2026-08-24) — release truth, docs, Lab candidate, freshness semantics, external campaign `118 PASS`, audit, closeout report.
+- [x] **1.3 Verification Freshness & Trust Completion** (2026-08-25) — Verification Environment Identity v1 (`railverdict_version`, `ruby_engine`, `ruby_version`, `analyzer_versions` sorted `unknown`-excluded), canonical `Receipt.validate_freshness` (`RepositoryState`+`VerificationEnvironment`), `receipt verify`/`MCP` re-observe, `RVLAB-16` `boundary_changed`, `37→118` expansion. Tag v1.3.0 `980e940`, gem `1405a77`, `RAILVERDICT_1_3_CLOSEOUT_COMPLETE` (`docs/release/1.3-implementation-report.md`).
+- [ ] **1.4 Agent Handoff & Evidence Reuse** (in progress, `1.4.0` candidate `abffc9b`) — Stage -1 closeout `RECEIPT_FRESH != EVIDENCE_REUSABLE`, Stage 0 investigation 15 sections `PER_ANALYZER_REUSE_DEFERRED` (whole-set only), invariants 1-25, ADR 0019, Handoff v1 `256 KiB` `handoff_id`, `Reuse.evaluate` single authority, `check --handoff` + `handoff create|inspect|verify` + MCP `create/inspect/verify_handoff` parity, `TOCTOU` guard, `script/demo-handoff-ci` clone-to-clone, `557 runs` green (`test_handoff` 7 + adversarial 11). Remaining: Lab `HANDOFF-*` expansion (`118→~150`), audit (`P0:0`), perf.
 
 ## Phase Details
 
