@@ -52,6 +52,7 @@
       "additionalProperties": false,
       "required": ["ruby_version", "analyzer_versions"],
       "properties": {
+        "ruby_engine": { "type": "string", "minLength": 1, "maxLength": 32 },
         "ruby_version": { "type": "string", "minLength": 1, "maxLength": 32 },
         "analyzer_versions": {
           "type": "object",

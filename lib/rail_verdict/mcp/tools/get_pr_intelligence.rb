@@ -48,10 +48,23 @@ module RailVerdict
         end
 
         def call(**_rest)
-          current_state = RailVerdict::RepositoryState.capture(repository_root: @server.repository_root)
-          case @server.cache.verification_state(current_state)
+          root = @server.repository_root
+          effective_paths = begin
+            RailVerdict::Check.effective_input_paths(root: File.realpath(root), config_path: File.join(File.realpath(root), ".railverdict.yml"))
+          rescue StandardError
+            nil
+          end
+          current_state = RailVerdict::RepositoryState.capture(repository_root: root, configuration_paths: effective_paths)
+          current_env = begin
+            outcome = @server.cache.fetch_outcome
+            config = outcome&.configuration
+            RailVerdict::VerificationEnvironment.capture(repository_root: root, configuration: config)
+          rescue StandardError
+            nil
+          end
+          case @server.cache.verification_state(current_state, current_env)
           when "fresh"
-            entry = @server.cache.fresh_entry(current_state)
+            entry = @server.cache.fresh_entry(current_state, current_env)
             document = entry&.pr_intelligence_document
             if document.is_a?(Hash)
               payload = { "status" => "fresh", "pr_intelligence" => Serializers.scrub(document) }
