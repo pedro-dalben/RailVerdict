@@ -654,23 +654,24 @@ module RailVerdict
         return EXIT_NO_GATE
       end
 
+      effective_paths = begin
+        effective = Check.effective_input_paths(
+          root: @working_directory,
+          config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
+          baseline_path_override: options[:baseline] && resolved_override_path(options[:baseline], nil),
+          waiver_path_override: options[:waiver] && resolved_override_path(options[:waiver], nil)
+        )
+        {
+          config: effective.fetch(:config),
+          baseline: effective.fetch(:baseline),
+          waivers: effective.fetch(:waivers)
+        }
+      end
       current_state = RepositoryState.capture(
         repository_root: @working_directory,
-        configuration_paths: begin
-          effective = Check.effective_input_paths(
-            root: @working_directory,
-            config_path: resolved_override_path(options[:config], File.join(@working_directory, DEFAULT_CONFIG_PATH)),
-            baseline_path_override: options[:baseline] && resolved_override_path(options[:baseline], nil),
-            waiver_path_override: options[:waiver] && resolved_override_path(options[:waiver], nil)
-          )
-          {
-            config: effective.fetch(:config),
-            baseline: effective.fetch(:baseline),
-            waivers: effective.fetch(:waivers)
-          }
-        end
+        configuration_paths: effective_paths
       )
-      document, _receipt = Receipt.evaluate(text, current_state: current_state)
+      document, _receipt = Receipt.evaluate(text, current_state: current_state, repository_root: @working_directory, configuration_paths: effective_paths)
       render_receipt_validation(document, options[:format])
       exit_code_for_validation(document)
     rescue RailVerdict::UsageError => error

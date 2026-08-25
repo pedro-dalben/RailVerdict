@@ -6,6 +6,7 @@ require "json"
 
 require_relative "../canonical_json"
 require_relative "../repository_state"
+require_relative "../verification_environment"
 
 module RailVerdict
   module MCP
@@ -39,22 +40,31 @@ module RailVerdict
         nil
       end
 
-      # Returns the cached entry only when the CURRENT observable state still
-      # matches the state that was verified. Never reruns analyzers.
-      def fresh_entry(current_state)
+      # Returns the cached entry only when the CURRENT observable identity
+      # (repository + environment) still matches what was verified. Never reruns analyzers,
+      # but does perform lightweight version probes for environment observation.
+      def fresh_entry(current_state, current_environment = nil)
         entry = @mutex.synchronize { @entry }
         return nil if entry.nil? || entry.state_digest.nil?
         return nil if current_state.nil? || !current_state.available?
         return nil if current_state.digest != entry.state_digest
 
+        current_env = current_environment || current_environment_for(entry.outcome)
+        return nil if current_env.nil? || !current_env.available?
+        return nil if current_env.digest != entry.environment_digest
+
         entry
       end
 
-      def verification_state(current_state)
+      def verification_state(current_state, current_environment = nil)
         entry = @mutex.synchronize { @entry }
         return "verification_required" if entry.nil? || entry.state_digest.nil?
         return "state_unavailable" if current_state.nil? || !current_state.available?
         return "stale" if current_state.digest != entry.state_digest
+
+        current_env = current_environment || current_environment_for(entry.outcome)
+        return "state_unavailable" if current_env.nil? || !current_env.available?
+        return "stale" if current_env.digest != entry.environment_digest
 
         "fresh"
       end
@@ -78,8 +88,11 @@ module RailVerdict
         current = current_state_for(entry.outcome)
         return false if current.nil? || !current.available?
 
+        current_env = current_environment_for(entry.outcome)
+        return false if current_env.nil? || !current_env.available?
+
         current.digest == entry.state_digest &&
-          environment_digest_for(entry.outcome) == entry.environment_digest
+          current_env.digest == entry.environment_digest
       rescue StandardError
         false
       end
@@ -143,10 +156,31 @@ module RailVerdict
         }
       end
 
+      def current_environment_for(outcome)
+        root = outcome&.context&.repository_root
+        root ||= outcome&.result&.git&.fetch("repository_root", nil) rescue nil
+        return nil unless root.is_a?(String) && File.directory?(root)
+
+        real = begin
+          File.realpath(root)
+        rescue StandardError
+          return nil
+        end
+        config = outcome&.configuration
+        VerificationEnvironment.capture(repository_root: real, configuration: config)
+      rescue StandardError
+        nil
+      end
+
       def environment_digest_for(outcome)
+        env = current_environment_for(outcome)
+        return env.digest if env&.available? && env.digest
+
+        # Fallback for cases where current capture fails (e.g., no config)
         payload = {
           "railverdict_version" => RailVerdict::VERSION,
-          "ruby_version" => RUBY_VERSION,
+          "ruby_engine" => RUBY_ENGINE.to_s,
+          "ruby_version" => RUBY_VERSION.to_s,
           "analyzer_versions" => sorted_analyzer_versions(outcome)
         }
         Digest::SHA256.hexdigest(CanonicalJSON.generate(payload))

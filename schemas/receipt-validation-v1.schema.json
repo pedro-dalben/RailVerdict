@@ -36,6 +36,12 @@
         { "type": "null" },
         { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
       ]
+    },
+    "current_environment_digest": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      ]
     }
   }
 }

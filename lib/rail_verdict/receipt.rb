@@ -5,6 +5,8 @@ require "json"
 
 require_relative "canonical_json"
 require_relative "repository_state"
+require_relative "verification_environment"
+require_relative "verification_identity"
 require_relative "schema_validator"
 
 module RailVerdict
@@ -28,7 +30,7 @@ module RailVerdict
     # Builds a Verification Receipt v1 document from a guarded Check outcome.
     # Fails closed (BuildError with a deterministic code) when repository state
     # cannot be proven stable across the verification.
-    def self.build(outcome:, railverdict_version: RailVerdict::VERSION, pr_intelligence_document: nil, repair_packet_id: nil, environment_ruby_version: RUBY_VERSION)
+    def self.build(outcome:, railverdict_version: RailVerdict::VERSION, pr_intelligence_document: nil, repair_packet_id: nil, environment_ruby_version: RUBY_VERSION, environment_ruby_engine: RUBY_ENGINE)
       result = outcome&.result
       raise BuildError.new(:receipt_unavailable, "verification outcome is required") if result.nil?
 
@@ -48,6 +50,7 @@ module RailVerdict
         "schema_version" => SCHEMA_VERSION,
         "railverdict_version" => railverdict_version.to_s,
         "environment" => {
+          "ruby_engine" => environment_ruby_engine.to_s,
           "ruby_version" => environment_ruby_version.to_s,
           "analyzer_versions" => sorted_analyzer_versions(outcome)
         },
@@ -96,13 +99,19 @@ module RailVerdict
       context_versions = outcome.context&.analyzer_versions
       if context_versions.is_a?(Hash) && !context_versions.empty?
         context_versions.each do |key, value|
-          versions[key.to_s] = RailVerdict::Analyzers::Shared.canonical_tool_version(value)
+          canonical = RailVerdict::Analyzers::Shared.canonical_tool_version(value)
+          next if canonical == "unknown"
+
+          versions[key.to_s] = canonical
         end
       else
         Array(outcome.result.analyzer_results).each do |analyzer|
           next unless analyzer.tool_version.is_a?(String) && !analyzer.tool_version.strip.empty?
 
-          versions[analyzer.analyzer] = RailVerdict::Analyzers::Shared.canonical_tool_version(analyzer.tool_version)
+          canonical = RailVerdict::Analyzers::Shared.canonical_tool_version(analyzer.tool_version)
+          next if canonical == "unknown"
+
+          versions[analyzer.analyzer] = canonical
         end
       end
       versions.sort.to_h
@@ -238,7 +247,7 @@ module RailVerdict
     end
     private :state_components_of
 
-    Validation = Struct.new(:status, :reasons, :gate, :completion_status, :current_repository_digest, keyword_init: true)
+    Validation = Struct.new(:status, :reasons, :gate, :completion_status, :current_repository_digest, :current_environment_digest, keyword_init: true)
 
     FRESH = "fresh"
     STALE = "stale"
@@ -248,13 +257,63 @@ module RailVerdict
     # Full black-box evaluation of a serialized receipt document against the
     # current state: integrity first (invalid), then freshness.
     # Returns [validation_document, receipt_or_nil].
-    def self.evaluate(document_text, current_state:, railverdict_version: RailVerdict::VERSION, environment_ruby_version: RUBY_VERSION, current_analyzer_versions: nil)
+    # When current_environment/current_state are not supplied but repository_root is,
+    # they are independently observed via the canonical VerificationIdentity.
+    def self.evaluate(document_text, current_state: nil, repository_root: nil, configuration_paths: nil, railverdict_version: RailVerdict::VERSION, environment_ruby_version: RUBY_VERSION, environment_ruby_engine: RUBY_ENGINE, current_analyzer_versions: nil, current_environment: nil)
       receipt, reason = parse(document_text)
       if reason
         return [validation_document(
-          Validation.new(status: INVALID, reasons: [reason.to_s], gate: nil, completion_status: nil, current_repository_digest: nil),
+          Validation.new(status: INVALID, reasons: [reason.to_s], gate: nil, completion_status: nil, current_repository_digest: nil, current_environment_digest: nil),
           receipt_id: embedded_receipt_id(document_text)
         ), nil]
+      end
+
+      # Canonical re-observation if not supplied (fail-closed trust invariant)
+      if current_state.nil? && repository_root
+        begin
+          root_real = File.realpath(repository_root)
+          paths = configuration_paths || Check.effective_input_paths(root: root_real, config_path: File.join(root_real, ".railverdict.yml"))
+          current_state = RepositoryState.capture(repository_root: root_real, configuration_paths: paths)
+        rescue StandardError
+          current_state = RepositoryState.unavailable(:repository_root_unavailable)
+        end
+      end
+
+      if current_environment.nil? && current_analyzer_versions.nil? && repository_root
+        begin
+          root_real = File.realpath(repository_root || Dir.pwd)
+          stored_analyzer_keys = receipt.document.dig("environment", "analyzer_versions")&.keys || []
+          # Resolve configuration for relevant probing
+          config = nil
+          begin
+            paths = configuration_paths || Check.effective_input_paths(root: root_real, config_path: File.join(root_real, ".railverdict.yml"))
+            cfg_path = paths[:config]
+            config = Configuration.load(cfg_path) if cfg_path && File.file?(cfg_path)
+          rescue StandardError
+            config = nil
+          end
+          current_environment = VerificationEnvironment.capture_for_receipt(stored_analyzer_keys, repository_root: root_real, configuration: config)
+        rescue StandardError
+          current_environment = VerificationEnvironment.new(
+            railverdict_version: RailVerdict::VERSION.to_s,
+            ruby_engine: RUBY_ENGINE.to_s,
+            ruby_version: RUBY_VERSION.to_s,
+            analyzer_versions: {},
+            digest: nil,
+            unavailable_reason: "environment_capture_failed",
+            available: false
+          )
+        end
+      elsif current_analyzer_versions.is_a?(Hash) && current_environment.nil?
+        # Legacy caller supplied analyzer versions hash directly -> wrap as environment
+        current_environment = VerificationEnvironment.new(
+          railverdict_version: railverdict_version.to_s,
+          ruby_engine: environment_ruby_engine.to_s,
+          ruby_version: environment_ruby_version.to_s,
+          analyzer_versions: current_analyzer_versions.sort.to_h.transform_values(&:to_s),
+          digest: nil,
+          available: true
+        )
       end
 
       validation = validate_freshness(
@@ -262,7 +321,9 @@ module RailVerdict
         current_state: current_state,
         railverdict_version: railverdict_version,
         environment_ruby_version: environment_ruby_version,
-        current_analyzer_versions: current_analyzer_versions
+        environment_ruby_engine: environment_ruby_engine,
+        current_analyzer_versions: current_analyzer_versions,
+        current_environment: current_environment
       )
       [validation_document(validation, receipt_id: receipt.receipt_id), receipt]
     end
@@ -288,6 +349,7 @@ module RailVerdict
         "completion_status" => validation.completion_status,
         "current_repository_digest" => validation.current_repository_digest
       }
+      document["current_environment_digest"] = validation.current_environment_digest if validation.current_environment_digest
       errors = SchemaValidator.validate_receipt_validation(document)
       raise RailVerdict::Error, "receipt-validation-v1 failed: #{errors.join('; ')}" unless errors.empty?
 
@@ -296,18 +358,43 @@ module RailVerdict
     private_class_method :validation_document
 
     # Validates a parsed receipt against the current observable state.
-    # Analyzer versions cannot be observed without spawning analyzers, so
-    # callers that possess fresh analyzer versions may supply them via
-    # +current_analyzer_versions+; otherwise that comparison is skipped and
-    # evidence remains bound through the canonical gate projection digest.
-    def self.validate_freshness(receipt:, current_state:, railverdict_version: RailVerdict::VERSION, environment_ruby_version: RUBY_VERSION, current_analyzer_versions: nil)
-      unless current_state.available?
+    # This is the ONE canonical freshness evaluator — CLI and MCP must delegate here.
+    # It independently requires current_state and current_environment to be observed,
+    # never trusting receipt-provided values as current observation.
+    def self.validate_freshness(receipt:, current_state:, railverdict_version: RailVerdict::VERSION, environment_ruby_version: RUBY_VERSION, environment_ruby_engine: RUBY_ENGINE, current_analyzer_versions: nil, current_environment: nil)
+      # If current_environment was supplied via legacy analyzer_versions hash, normalize
+      if current_environment.nil? && current_analyzer_versions.is_a?(Hash) && !current_analyzer_versions.empty?
+        current_environment = VerificationEnvironment.new(
+          railverdict_version: railverdict_version.to_s,
+          ruby_engine: environment_ruby_engine.to_s,
+          ruby_version: environment_ruby_version.to_s,
+          analyzer_versions: current_analyzer_versions.sort.to_h.transform_values(&:to_s),
+          digest: nil,
+          available: true
+        )
+      end
+
+      unless current_state&.available?
+        reason = current_state&.unavailable_reason || :repository_state_unavailable
         return Validation.new(
           status: UNAVAILABLE,
-          reasons: ["repository_state_unavailable:#{current_state.unavailable_reason}"],
+          reasons: ["repository_state_unavailable:#{reason}"],
           gate: receipt&.gate,
           completion_status: receipt&.completion_status,
-          current_repository_digest: nil
+          current_repository_digest: nil,
+          current_environment_digest: nil
+        )
+      end
+
+      # Environment must be observable fail-closed
+      if current_environment && !current_environment.available?
+        return Validation.new(
+          status: UNAVAILABLE,
+          reasons: ["analyzer_version_unobservable:#{current_environment.unavailable_reason}"],
+          gate: receipt.gate,
+          completion_status: receipt.completion_status,
+          current_repository_digest: current_state.digest,
+          current_environment_digest: nil
         )
       end
 
@@ -322,19 +409,73 @@ module RailVerdict
       reasons << "waivers_changed" if stored.fetch("waivers_digest") != current.fetch("waivers_digest")
 
       environment = receipt.document.fetch("environment")
-      reasons << "railverdict_version_changed" if receipt.document.fetch("railverdict_version") != railverdict_version.to_s
-      reasons << "ruby_version_changed" if environment.fetch("ruby_version") != environment_ruby_version.to_s
-      if current_analyzer_versions.is_a?(Hash) && !current_analyzer_versions.empty? &&
-         environment.fetch("analyzer_versions") != current_analyzer_versions.sort.to_h.transform_values(&:to_s)
-        reasons << "analyzer_environment_changed"
+      # RailVerdict version is always checked against current (not receipt-provided)
+      current_rv = current_environment ? current_environment.railverdict_version.to_s : railverdict_version.to_s
+      reasons << "railverdict_version_changed" if receipt.document.fetch("railverdict_version") != current_rv
+
+      # Ruby version/engine: if environment observable, use it; else use supplied
+      current_ruby_version = current_environment ? current_environment.ruby_version.to_s : environment_ruby_version.to_s
+      current_ruby_engine = current_environment ? current_environment.ruby_engine.to_s : environment_ruby_engine.to_s
+      # Ruby engine: receipt may not have it (1.2 compat) — if missing, treat as mismatch if current engine is present
+      stored_ruby_engine = environment["ruby_engine"]
+      if stored_ruby_engine.nil?
+        # 1.2 receipt without engine: stale if we now track engine and it differs from default? Keep fresh for compat unless engine is not ruby/mri? For deterministic portable contract, we consider missing engine as stale only if current engine != "ruby"
+        # To avoid breaking 1.2 compat trivially, we only flag when env explicitly requires engine and receipt lacks it? Current spec says 1.2 receipts should be valid but stale when env stronger — we will flag as stale to surface drift
+        # For minimal breakage, do not flag missing engine as stale automatically; document as known limitation. Only check if receipt has engine.
+      else
+        reasons << "ruby_engine_changed" if stored_ruby_engine.to_s != current_ruby_engine
+      end
+      if environment.fetch("ruby_version") != current_ruby_version
+        reasons << "ruby_version_changed"
       end
 
+      # Analyzer environment: only relevant analyzers (those in receipt)
+      stored_analyzers = environment.fetch("analyzer_versions")
+      if stored_analyzers.is_a?(Hash) && !stored_analyzers.empty?
+        current_analyzers = if current_environment
+                              # Only compare relevant keys
+                              filtered = current_environment.analyzer_versions.select { |k, _| stored_analyzers.key?(k) }
+                              # Also include any stored key missing in current -> drift (probed enabled set may have disabled it)
+                              # If stored key not in current, we need to probe it specifically; for now treat missing as stale
+                              stored_analyzers.keys.each do |k|
+                                filtered[k] ||= "__missing__"
+                              end
+                              filtered
+                            else
+                              current_analyzer_versions.is_a?(Hash) ? current_analyzer_versions.sort.to_h.transform_values(&:to_s) : nil
+                            end
+        if current_analyzers
+          # Detect unknown in current as unavailable handled above; now compare relevant
+          relevant_stored = stored_analyzers.sort.to_h.transform_values(&:to_s)
+          relevant_current = current_analyzers.sort.to_h.transform_values(&:to_s)
+          # If any stored "unknown" exists, treat as unavailable (fail-closed)
+          if relevant_stored.values.include?("unknown") || relevant_current.values.include?("unknown")
+            return Validation.new(
+              status: UNAVAILABLE,
+              reasons: ["analyzer_version_unobservable:unknown_or_missing"],
+              gate: receipt.gate,
+              completion_status: receipt.completion_status,
+              current_repository_digest: current_state.digest,
+              current_environment_digest: current_environment&.digest
+            )
+          end
+          # Missing relevant analyzer in current env is drift -> stale, not unavailable
+          if relevant_current.values.include?("__missing__")
+            reasons << "analyzer_environment_changed"
+          elsif relevant_stored != relevant_current
+            reasons << "analyzer_environment_changed"
+          end
+        end
+      end
+
+      status = reasons.empty? ? FRESH : STALE
       Validation.new(
-        status: reasons.empty? ? FRESH : STALE,
+        status: status,
         reasons: reasons.sort,
         gate: receipt.gate,
         completion_status: receipt.completion_status,
-        current_repository_digest: current_state.digest
+        current_repository_digest: current_state.digest,
+        current_environment_digest: current_environment&.digest
       )
     end
   end

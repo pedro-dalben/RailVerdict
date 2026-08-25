@@ -229,10 +229,72 @@ an explicit value, including every analyzer in older configuration versions,
 continues to use 30 seconds. A timeout is incomplete evidence, never a normal
 finding: a required timeout produces `INCOMPLETE` and exit code `2`.
 
-RailVerdict 1.0.1 has no CLI timeout override; the versioned configuration is
+There is no CLI timeout override; the versioned configuration (`version: 1.5`) is
 the supported public surface. SimpleCov accepts the same setting for a uniform
 configuration contract, but reads a local coverage artifact rather than
 starting an analyzer process.
+
+### 30-Second Demonstration (real output)
+
+```console
+$ railverdict check
+
+RailVerdict Verification: PASS
+Policy: no_new_debt (complete)
+Analyzers: 5 run (5 complete)
+Findings: 0 introduced, 0 existing, 0 blocking
+Exit: 0
+```
+
+Introduce a controlled defect:
+
+```ruby
+# app/models/user.rb:42
+unused = "oops" # Lint/UselessAssignment
+```
+
+```console
+$ railverdict check
+
+RailVerdict Verification: FAIL
+Policy: no_new_debt (failed)
+Findings: 1 introduced (blocking), 0 existing
+  - [rubocop] Lint/UselessAssignment in app/models/user.rb:42 (introduced)
+Exit: 1
+```
+
+Fix it, rerun → `PASS`. See `docs/release/1.2-clean-room-rehearsal.md` for automated reproduction.
+
+### Why not just CI?
+
+CI answers **“did these jobs execute successfully?”** across fragmented outputs. RailVerdict answers **“given required evidence, repository state, baseline and policy, what is the deterministic verification decision for this change?”** — normalized findings, baseline-aware policy (`no_new_debt`), changed-scope (`--changed --base`), fail-closed `INCOMPLETE` on missing evidence, and machine contracts (JSON/SARIF/exits) plus Repository State Identity and Verification Receipts. It complements CI; the example in [GitHub Actions Integration](#github-actions-integration) runs RailVerdict inside CI.
+
+### Why not just RSpec + RuboCop?
+
+Those are the evidence. RailVerdict is the verifier:
+
+```
+RSpec says:       42 tests passed.
+RuboCop says:     3 offenses.
+SimpleCov says:   91.3% coverage.
+Git says:         these 7 lines changed.
+RailVerdict says: FAIL — this change introduced a blocking finding.
+```
+
+They produce facts; policy owns the gate. `rubocop` + `rspec` + `minitest` + `simplecov` + `bundler-audit` + `Git` are inputs; `PASS/WARN/FAIL/INCOMPLETE` is the `GateResult` (see `docs/contracts.md`).
+
+### Why this matters for AI agents
+
+An AI agent can write code, run tests, and declare itself finished — but it should not be the authority deciding whether its own work is acceptable.
+
+```
+Agent --modifies--> Repository --verify--> RailVerdict
+                                           |--> deterministic evidence
+                                           |--> GateResult
+                                           `--> Verification Receipt
+```
+
+The agent proposes; the verification system decides. Receipts let agents (and humans) prove `fresh` vs `stale` after any edit — see below. AI inside RailVerdict (`explain`/`investigate`) is advisory only and never changes `GateResult`.
 
 ---
 
@@ -332,12 +394,28 @@ exit code `2`.
 Verification is only meaningful for the exact state that was verified. RailVerdict 1.2 binds every guarded verification to a deterministic **Repository State Identity** (HEAD + Git index snapshot + worktree delta with content hashes + configuration/baseline/waiver digests) and issues a machine-readable **Verification Receipt**:
 
 ```console
-$ railverdict receipt create --format json > receipt.json
+$ railverdict check
+# => RailVerdict Verification: PASS (exit 0)
+$ railverdict receipt create > receipt.json
+# receipt_id = sha256:<64 hex>  (no created_at, no timestamps)
+
 $ railverdict receipt verify receipt.json --format json
-{"schema_version":"1.0","status":"fresh","reasons":[],"gate":"PASS", ...}
+{"schema_version":"1.0","status":"fresh","reasons":[],"gate":"PASS"}
 ```
 
-Edit anything afterwards — source, staged index, untracked files, config, baseline, waivers — and the same receipt reports `stale` with a deterministic reason (`head_changed`, `index_changed`, `worktree_changed`, `configuration_changed`, `baseline_changed`, `waivers_changed`). If the repository mutates while analyzers run, receipt issuance fails closed with `repository_changed_during_verification`. Receipts exist for PASS, FAIL, and INCOMPLETE alike; they are deterministic integrity records, not signed attestations — a trusted CI remains the trust anchor when forgery is in scope. Coding agents follow the completion protocol in [docs/agent-verification.md](docs/agent-verification.md).
+Edit anything afterwards and the same receipt reports `stale`:
+
+```console
+$ echo "# changed after verification" >> app/models/user.rb
+$ railverdict receipt verify receipt.json --format json
+{"schema_version":"1.0","status":"stale","reasons":["worktree_changed"],"gate":"PASS"}
+# exit 2 — current state is not what was verified
+
+# Same for staged, config, baseline, waiver edits:
+# head_changed | index_changed | worktree_changed | configuration_changed | baseline_changed | waivers_changed
+```
+
+If the repository mutates while analyzers run, receipt issuance fails closed with `repository_changed_during_verification`. Receipts exist for `PASS`, `FAIL`, and `INCOMPLETE`; they are deterministic integrity records — **not signed attestations** — a trusted CI remains the trust anchor when forgery is in scope. Full protocol in [docs/agent-verification.md](docs/agent-verification.md).
 
 ```
 Deterministic Verification → PR Intelligence → Verification Receipt → Agent Verification Protocol
@@ -357,7 +435,7 @@ All analyzers in RailVerdict are **external and owned by the target project**. R
 | **SimpleCov** | Code and changed-line coverage | `>= 1, < 2` | Ingests versioned public `coverage/coverage.json` v1 (never parses internal `.resultset.json`). |
 | **bundler-audit** | Gem dependency vulnerabilities | `>= 0.9.3, < 1` | Runs `bundle exec bundler-audit check --format json` (never runs automatic updates). Robustly extracts JSON when advisory-DB download notices precede the payload. |
 
-> **Brakeman Status:** Brakeman support is **not included** in 1.0 (on HOLD pending legal and licensing review). Third-party analyzers retain their respective upstream licenses.
+> **Brakeman Status:** Brakeman support is **not included** in 1.2.0 (on HOLD pending legal and licensing review). Third-party analyzers retain their respective upstream licenses.
 
 ---
 
@@ -443,7 +521,44 @@ See [`docs/ai.md`](docs/ai.md) and [`docs/privacy.md`](docs/privacy.md) for deta
 
 ## Coding Agents & The Repair Loop
 
-RailVerdict provides a structured verification loop for AI coding agents (such as Claude, Codex, or custom agents):
+### Agent Completion Protocol (copyable for AGENTS.md / CLAUDE.md / Codex)
+
+Before declaring any code-changing task complete:
+
+1. Run the required project tests.
+2. Run `bundle exec railverdict check` (or `check --changed --base <main>` in PRs).
+3. If `FAIL`: remediate findings and rerun until `PASS` or explicitly report the blocker.
+4. If `INCOMPLETE` (exit 2): do not claim verification succeeded — fix the evidence gap (missing analyzer, bad base, shallow history).
+5. After final `PASS`, create `bundle exec railverdict receipt create > receipt.json`.
+6. Do not modify repository state after receipt creation without reverifying — `receipt verify` must stay `fresh`.
+
+`FAIL` means remediation required. `INCOMPLETE` must never be represented as `PASS`. See `docs/agent-verification.md` for the formal contract.
+
+<details><summary>AGENTS.md snippet (paste into your repo)</summary>
+
+```markdown
+## Verification
+
+Before completing any code-changing task:
+
+bundle exec railverdict check
+
+A task may only be reported as verified when RailVerdict returns PASS (exit 0).
+
+FAIL (exit 1) means remediation is required.
+
+INCOMPLETE (exit 2) means required evidence could not be obtained and must never be represented as PASS.
+
+After the final PASS, create a verification receipt: bundle exec railverdict receipt create > receipt.json
+
+Do not modify repository state after receipt creation without reverifying (receipt verify must be fresh).
+```
+
+Validated against 1.2.0: `init`, `doctor`, `check`, `pr`, `baseline create`, `findings`, `repair`, `receipt create|verify`, `mcp serve`.
+
+</details>
+
+RailVerdict also provides a structured verification loop for AI coding agents (such as Claude, Codex, or custom agents):
 
 ```
 Agent modifies code
@@ -600,9 +715,32 @@ To maintain clear technical boundaries, RailVerdict is explicitly **NOT**:
 
 ---
 
+## Try RailVerdict Challenge (5 minutes)
+
+1. `bundle add rail_verdict --group development,test --require false && bundle install`
+2. `bundle exec railverdict init && bundle exec railverdict doctor`
+3. `bundle exec railverdict baseline create` (or skip for greenfield) → `bundle exec railverdict check` → first gate
+4. Introduce a controlled RuboCop offense, rerun → `FAIL`, fix → `PASS`, then `railverdict receipt create && railverdict receipt verify`
+
+Tell us where it confused (see `docs/troubleshooting.md` and `docs/launch/try-challenge.md`).
+
+## FAQ
+
+**Is RailVerdict a test framework? Does it replace RSpec/RuboCop/CI?** No — it consumes them; they are evidence, it is the verifier. Run it inside CI.
+
+**Does it upload source? Require AI? Does AI decide PASS?** No/no/no — offline by default, AI advisory only off by default (`trust: redacted`).
+
+**Legacy apps?** Yes — `no_new_debt` baseline.
+
+**INCOMPLETE vs FAIL?** `FAIL` = complete verification rejected new debt; `INCOMPLETE` = required evidence missing → no gate (exit 2), never PASS.
+
+**Baseline / waiver / receipt?** Baseline snapshots current debt; waiver is exact-fingerprint, UTC-expired exemption; receipt is an integrity record (`receipt_id = sha256:`) — **not signed**, forgeable via whole-file rewrite — trusted CI is the trust anchor. Mutating after `PASS` makes receipt `stale`.
+
+**Brakeman / Ruby / Rails?** Brakeman not in 1.2.0 (HOLD); Ruby `>=3.3`, Rails `>=8.0` bounded.
+
 ## Contributing & Issues
 
-Contributions and issue reports are welcome. Please open an issue on GitHub for:
+Contributions and issue reports are welcome. See `CONTRIBUTING.md` for “how to run tests / add regression”. Issue templates: Bug, Feature request, Compatibility report. Please open an issue on GitHub for:
 
 - Analyzer compatibility and version range feedback;
 - False positives or false negatives in evidence normalization;

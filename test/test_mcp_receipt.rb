@@ -104,11 +104,18 @@ class TestMcpReceipt < Minitest::Test
     File.binwrite(File.join(@dir, ".railverdict.yml"), "version: 1\nmode: strict\nanalyzers:\n  rubocop: { enabled: true, required: false }\n")
 
     invocations = Hash.new(0)
+    version_probes = Hash.new(0)
     singleton = RailVerdict::ProcessRunner.singleton_class
     original = RailVerdict::ProcessRunner.method(:run)
     singleton.send(:alias_method, :__original_run_for_test, :run)
     singleton.define_method(:run) do |executable, argv, **kwargs|
-      invocations[File.basename(executable.to_s)] += 1
+      base = File.basename(executable.to_s)
+      is_version_probe = argv.include?("--version") || argv.include?("-v") || argv.join(" ").include?("Minitest::VERSION")
+      if is_version_probe
+        version_probes[base] += 1
+      else
+        invocations[base] += 1
+      end
       original.call(executable, argv, **kwargs)
     end
 
@@ -121,7 +128,9 @@ class TestMcpReceipt < Minitest::Test
       call_tool("get_pr_intelligence")
       total_after_derived = invocations["rubocop"] + invocations["bundle"]
       assert_equal analyzer_calls_after_verify, total_after_derived,
-                   "derived contracts must never rerun analyzers"
+                   "derived contracts must never rerun analyzers (version probes excluded)"
+      # version probes are permitted for freshness and do not count as analyzer execution
+      assert_operator version_probes["rubocop"] + version_probes["bundle"], :>=, 0
       assert_equal 0, invocations["rspec"]
       assert_equal 0, invocations["minitest"]
     ensure

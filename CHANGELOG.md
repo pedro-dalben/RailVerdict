@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — Unreleased
+
+### Verification Freshness & Trust Completion
+
+- **Verification Environment Identity v1:** canonical `VerificationEnvironment` over `railverdict_version`, `ruby_engine`, `ruby_version`, and relevant enabled analyzer versions (sorted, `unknown`-excluded) with deterministic `environment_digest`. Excluded: hostname, PID, time, absolute path, machine ID, platform – preserves clone portability ([ADR 0018](docs/adr/0018-verification-environment-identity.md)).
+- **Canonical Freshness Evaluator:** single `Receipt.validate_freshness` / `Receipt.evaluate` that independently re-observes repository state and environment via `VerificationIdentity`; CLI and MCP delegate to it. Trust Invariant Zero enforced – receipt-provided values are never used as current observation.
+- **Complete Public Receipt Verification:** `railverdict receipt verify` and MCP `get_verification_receipt` / `get_pr_intelligence` now automatically observe all freshness dimensions (ruby engine/version, analyzer versions via bounded version probes, 5s timeout, no suite execution) and fail-closed on `analyzer_version_unobservable`.
+- **MCP Cache Hardening:** cache now stores `state_digest` + `environment_digest`; `fresh_entry` and `verification_state` re-observe environment with lightweight probes; custom `config`/`baseline`/`waivers` paths use the same `Check.effective_input_paths` as CLI; analyzer execution count remains one per `verify`.
+- **Repair Boundary Hardening (closes RVLAB-16):** `Repair::Verifier` keeps `gate` honest but `overall_status` is `boundary_changed` whenever `verification_boundary_changed` is non-empty; waiver/baseline/config cheating can never be `successful` even if `gate` is `PASS`. `gate` remains the current policy evaluation, not falsified.
+- **Portable Verification:** equivalent clones (same HEAD, index, worktree, config, baseline, waivers, relevant environment) validate the same receipt as `fresh` regardless of absolute path or process; `receipt_id` and digests are deterministic and clone-independent.
+- **Receipt Schema:** `verification-receipt-v1` now allows optional `environment.ruby_engine`; `sorted_analyzer_versions` excludes `unknown` so receipts are not polluted; `1.2` receipts without `ruby_engine` remain valid but are `stale` under the stronger check (prefer `stale` over `invalid`).
+- **Lab 1.3 Expansion:** 37 new external scenarios (freshness, environment, portability, MCP, repair, receipt) – total 118 scenarios, all PASS. `RVLAB-16` now PASS (waiver cheat exposed as `boundary_changed` with `gate: PASS`).
+
+### Compatibility
+
+- Ruby `>= 3.3`; `receipt verify` now automatically checks environment – 1.2 receipts are still structurally valid but will be `stale` or `unavailable` when the stronger environment check applies, which is intentional.
+
 ## [1.2.0] — 2026-08-24
 
 ### Hardening (dogfooding — 2026-08-24)
