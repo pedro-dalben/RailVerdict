@@ -115,6 +115,16 @@ module RailVerdict
         @mutex.synchronize { @last_packets[packet_id] }
       end
 
+      def store_handoff(handoff)
+        @mutex.synchronize do
+          @last_handoff = handoff
+        end
+      end
+
+      def fetch_handoff
+        @mutex.synchronize { @last_handoff }
+      end
+
       private
 
       def state_digest_for(outcome)

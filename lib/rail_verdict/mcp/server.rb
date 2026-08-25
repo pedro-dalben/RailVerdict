@@ -70,6 +70,9 @@ module RailVerdict
         require_relative "tools/investigate"
         require_relative "tools/get_verification_receipt"
         require_relative "tools/get_pr_intelligence"
+        require_relative "tools/create_handoff"
+        require_relative "tools/inspect_handoff"
+        require_relative "tools/verify_handoff"
 
         [
           Tools::Verify,
@@ -80,7 +83,10 @@ module RailVerdict
           Tools::Explain,
           Tools::Investigate,
           Tools::GetVerificationReceipt,
-          Tools::GetPRIntelligence
+          Tools::GetPRIntelligence,
+          Tools::CreateHandoff,
+          Tools::InspectHandoff,
+          Tools::VerifyHandoff
         ].each do |tool_class|
           instance = tool_class.new(server: self)
           mcp_server.define_tool(
