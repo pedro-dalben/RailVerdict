@@ -14,20 +14,30 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     FileUtils.remove_entry(@tmpdir) if File.exist?(@tmpdir)
   end
 
-  # RH-01: RSpec stdout pollution breaks stdout JSON parsing
-  def test_rspec_stdout_pollution_causes_parse_failure_in_stdout_transport
+  # RH-01: RSpec isolated JSON transport via --out succeeds even with noisy stdout
+  def test_rspec_stdout_pollution_isolated_via_tempfile_transport
+    valid_json = JSON.generate({
+      "version" => "3.13.0",
+      "summary" => { "duration" => 0.1, "example_count" => 1, "failure_count" => 0, "pending_count" => 0, "errors" => 0 },
+      "examples" => [{ "description" => "passes", "full_description" => "passes", "status" => "passed", "file_path" => "./spec/sample_spec.rb", "line_number" => 5 }]
+    })
     noisy_stdout = <<~OUTPUT
       [AUDIT][2026-08-26] Starting test suite
-      {"version":"3.13.0","summary":{"duration":0.1,"example_count":1,"failure_count":0,"pending_count":0,"errors":0},"examples":[{"description":"passes","full_description":"passes","status":"passed","file_path":"./spec/sample_spec.rb","line_number":5}]}
       JSON Coverage report generated for RSpec to coverage/coverage.json
     OUTPUT
 
     fake_runner = Class.new do
-      def initialize(stdout)
+      def initialize(stdout, json)
         @stdout = stdout
+        @json = json
       end
 
-      def run(_executable, _argv, chdir:, timeout_seconds:, max_stdout_bytes: nil)
+      def run(_executable, argv, chdir:, timeout_seconds:, max_stdout_bytes: nil)
+        out_idx = argv.index("--out")
+        if out_idx
+          out_path = argv[out_idx + 1]
+          File.write(out_path, @json)
+        end
         RailVerdict::ProcessRunner::RunResult.new(
           status: :exited,
           exit_code: 0,
@@ -39,39 +49,45 @@ class TestReleaseHardeningCharacterization < Minitest::Test
           detail: nil
         )
       end
-    end.new(noisy_stdout)
+    end.new(noisy_stdout, valid_json)
 
     analyzer = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_) { { executable: "rspec", args_prefix: [] } })
     probe_res = RailVerdict::Analyzers::RSpec::Probe.new(status: "succeeded", version: "3.13.0")
     result, findings = analyzer.run(@tmpdir, runner: fake_runner, probe_result: probe_res)
 
-    # In current buggy code, this fails with parse_failed because it parses result.stdout
-    assert_equal "parse_failed", result.execution_status
+    assert_equal "succeeded", result.execution_status
+    assert_equal "complete", result.evidence_status
     assert_empty findings
+    assert_equal 1, result.evidence_summary["tests_total"]
   end
 
-  # RH-02: RSpec nonzero exit with 0 failed examples accepted as succeeded (False PASS)
-  def test_rspec_nonzero_exit_with_zero_failures_accepted_as_succeeded_in_current_code
+  # RH-02: RSpec nonzero exit with 0 failed examples fails closed (failed)
+  def test_rspec_nonzero_exit_with_zero_failures_fails_closed
     valid_json_zero_failures = JSON.generate({
       "version" => "3.13.0",
       "summary" => { "duration" => 0.1, "example_count" => 2, "failure_count" => 0, "pending_count" => 0, "errors" => 0 },
       "examples" => [
-        { "description" => "test1", "status" => "passed", "file_path" => "./spec/sample_spec.rb", "line_number": 5 },
-        { "description" => "test2", "status" => "passed", "file_path" => "./spec/sample_spec.rb", "line_number": 10 }
+        { "description" => "test1", "status" => "passed", "file_path" => "./spec/sample_spec.rb", "line_number" => 5 },
+        { "description" => "test2", "status" => "passed", "file_path" => "./spec/sample_spec.rb", "line_number" => 10 }
       ]
     })
 
     fake_runner = Class.new do
-      def initialize(stdout)
-        @stdout = stdout
+      def initialize(json)
+        @json = json
       end
 
-      def run(_executable, _argv, chdir:, timeout_seconds:, max_stdout_bytes: nil)
+      def run(_executable, argv, chdir:, timeout_seconds:, max_stdout_bytes: nil)
+        out_idx = argv.index("--out")
+        if out_idx
+          out_path = argv[out_idx + 1]
+          File.write(out_path, @json)
+        end
         RailVerdict::ProcessRunner::RunResult.new(
           status: :exited,
           exit_code: 1, # Nonzero exit from RSpec process!
           signal: nil,
-          stdout: @stdout,
+          stdout: "",
           stderr: "Failure after suite execution in after(:suite) hook",
           stdout_truncated: false,
           stderr_truncated: false,
@@ -84,13 +100,13 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     probe_res = RailVerdict::Analyzers::RSpec::Probe.new(status: "succeeded", version: "3.13.0")
     result, findings = analyzer.run(@tmpdir, runner: fake_runner, probe_result: probe_res)
 
-    # In current buggy code, exit_code is completely ignored and it returns "succeeded" with 0 findings!
-    assert_equal "succeeded", result.execution_status
+    assert_equal "failed", result.execution_status
+    assert_equal "incomplete", result.evidence_status
     assert_empty findings
   end
 
-  # RH-03: Minitest nonzero exit with 0 failed tests accepted as succeeded (False PASS)
-  def test_minitest_nonzero_exit_with_zero_failures_accepted_as_succeeded_in_current_code
+  # RH-03: Minitest nonzero exit with 0 failed tests fails closed (failed)
+  def test_minitest_nonzero_exit_with_zero_failures_fails_closed
     valid_reporter_json = JSON.generate({
       "schema_version" => "1.0",
       "runner" => "minitest 5.20.0",
@@ -131,21 +147,22 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     probe_res = RailVerdict::Analyzers::Minitest::Probe.new(status: "succeeded", version: "5.20.0")
     result, findings = analyzer.run(@tmpdir, runner: fake_runner, probe_result: probe_res)
 
-    # In current buggy code, exit_code is ignored and it returns "succeeded" with 0 findings!
-    assert_equal "succeeded", result.execution_status
+    assert_equal "failed", result.execution_status
+    assert_equal "incomplete", result.evidence_status
     assert_empty findings
   end
 
-  # RH-04: Minitest resolve_reporter_path queries Gem::Specification.find_all_by_name first
-  def test_minitest_reporter_resolves_via_find_all_by_name
+  # RH-04: Minitest resolve_reporter_path binds to current distribution
+  def test_minitest_reporter_resolves_from_current_distribution
     analyzer = RailVerdict::Analyzers::Minitest.new
     path = analyzer.send(:resolve_reporter_path)
     assert File.file?(path)
-    assert path.end_with?("railverdict-minitest-reporter.rb")
+    assert path.end_with?("exe/railverdict-minitest-reporter.rb")
+    assert_equal File.expand_path("../exe/railverdict-minitest-reporter.rb", __dir__), path
   end
 
-  # RH-05: SimpleCov native parser accepts version 0.20.0 despite >= 1 declared contract
-  def test_simplecov_native_accepts_unsupported_0_20_in_current_code
+  # RH-05: SimpleCov rejects 0.20.0 as unsupported (contract >= 1, < 2)
+  def test_simplecov_native_rejects_unsupported_0_20
     native_json = JSON.generate({
       "meta" => { "simplecov_version" => "0.20.0" },
       "coverage" => {
@@ -170,14 +187,13 @@ class TestReleaseHardeningCharacterization < Minitest::Test
 
     analyzer = RailVerdict::Analyzers::SimpleCov.new
     probe_res = analyzer.probe(@tmpdir)
-
-    # In current buggy code, it accepts 0.20.0 as succeeded!
-    assert_equal "succeeded", probe_res.status
-    assert_equal "0.20.0", probe_res.version
+    assert_equal "unsupported", probe_res.status
+    result, = analyzer.run(@tmpdir)
+    assert_equal "unsupported", result.execution_status
   end
 
-  # RH-06: SimpleCov missing timestamp falls back to Time.now.to_i
-  def test_simplecov_missing_timestamp_uses_time_now_in_current_code
+  # RH-06: SimpleCov missing timestamp uses deterministic sentinel 0
+  def test_simplecov_missing_timestamp_uses_deterministic_sentinel_0
     native_json = JSON.generate({
       "meta" => { "simplecov_version" => "1.0.0" },
       "coverage" => {
@@ -201,17 +217,13 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     YAML
 
     analyzer = RailVerdict::Analyzers::SimpleCov.new
-    t1 = Time.now.to_i
     result, = analyzer.run(@tmpdir)
     cov_doc = result.evidence_summary["_coverage_document"]
-
-    # In current buggy code, timestamp is Time.now.to_i (>= t1)
-    assert cov_doc["timestamp"].is_a?(Integer)
-    assert_operator cov_doc["timestamp"], :>=, t1
+    assert_equal 0, cov_doc["timestamp"]
   end
 
-  # RH-07: SimpleCov external path /etc/passwd stripped to "etc/passwd"
-  def test_simplecov_external_path_aliased_to_relative_in_current_code
+  # RH-07: SimpleCov external path /etc/passwd rejected as malformed
+  def test_simplecov_external_path_rejected_as_malformed
     native_json = JSON.generate({
       "meta" => { "simplecov_version" => "1.0.0" },
       "coverage" => {
@@ -235,16 +247,13 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     YAML
 
     analyzer = RailVerdict::Analyzers::SimpleCov.new
-    result, = analyzer.run(@tmpdir)
-    cov_doc = result.evidence_summary["_coverage_document"]
-    filenames = cov_doc["files"].map { |f| f["filename"] }
-
-    # In current buggy code, "/etc/passwd" becomes "etc/passwd" and is accepted!
-    assert_includes filenames, "etc/passwd"
+    result, findings = analyzer.run(@tmpdir)
+    assert_equal "malformed", result.execution_status
+    assert_empty findings
   end
 
-  # RH-08: SimpleCov configured coverage_path allows external file path
-  def test_simplecov_configured_coverage_path_allows_external_file_in_current_code
+  # RH-08: SimpleCov configured coverage_path escaping repo is rejected
+  def test_simplecov_configured_coverage_path_escaping_repo_rejected
     outside_dir = Dir.mktmpdir("rv-outside-")
     outside_cov = File.join(outside_dir, "coverage.json")
     File.write(outside_cov, JSON.generate({
@@ -268,14 +277,15 @@ class TestReleaseHardeningCharacterization < Minitest::Test
 
     analyzer = RailVerdict::Analyzers::SimpleCov.new
     probe_res = analyzer.probe(@tmpdir)
-    # In current buggy code, it reads outside_cov directly and succeeds!
-    assert_equal "succeeded", probe_res.status
+    assert_equal "malformed", probe_res.status
+    result, = analyzer.run(@tmpdir)
+    assert_equal "malformed", result.execution_status
   ensure
     FileUtils.remove_entry(outside_dir) if outside_dir && File.exist?(outside_dir)
   end
 
-  # RH-09: VerificationEnvironment falls back to global binary when bundle exec fails
-  def test_verification_environment_falls_back_to_global_when_bundle_fails_in_current_code
+  # RH-09: VerificationEnvironment marks environment unavailable when bundle exec fails
+  def test_verification_environment_unobservable_when_bundle_fails
     File.write(File.join(@tmpdir, "Gemfile"), "source https://rubygems.org\n")
     File.write(File.join(@tmpdir, ".railverdict.yml"), <<~YAML)
       version: 1.5
@@ -318,14 +328,12 @@ class TestReleaseHardeningCharacterization < Minitest::Test
     end.new
 
     env = RailVerdict::VerificationEnvironment.capture(repository_root: @tmpdir, runner: fake_runner)
-
-    # In current buggy code, probe_fallback succeeds using global executable!
-    assert_equal true, env.available?
-    assert_equal "3.13.0", env.analyzer_versions["rspec"]
+    assert_equal false, env.available?
+    assert_match(/analyzer_version_unobservable:rspec/, env.unavailable_reason)
   end
 
-  # RH-10: resolve_probe_timeout passes 600s suite timeout into probe
-  def test_resolve_probe_timeout_leaks_600s_timeout_in_current_code
+  # RH-10: resolve_probe_timeout clamps probe timeout to 5.0 seconds
+  def test_resolve_probe_timeout_clamps_to_five_seconds
     File.write(File.join(@tmpdir, ".railverdict.yml"), <<~YAML)
       version: 1.5
       mode: no_new_debt
@@ -339,9 +347,7 @@ class TestReleaseHardeningCharacterization < Minitest::Test
           timeout_seconds: 600
     YAML
     config = RailVerdict::Configuration.load(File.join(@tmpdir, ".railverdict.yml"))
-
-    # In current buggy code, resolve_probe_timeout returns 600
     timeout = RailVerdict::VerificationEnvironment.send(:resolve_probe_timeout, config, "rspec", 5.0)
-    assert_equal 600, timeout
+    assert_equal 5.0, timeout
   end
 end
