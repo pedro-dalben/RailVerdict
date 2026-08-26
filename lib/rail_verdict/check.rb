@@ -499,7 +499,7 @@ module RailVerdict
         adapter = build_adapter(name, rubocop_command_resolver)
         next unless adapter
 
-        timeout_seconds = resolve_timeout_seconds(configuration, name, default_timeout_seconds)
+        timeout_seconds = [[resolve_timeout_seconds(configuration, name, default_timeout_seconds).to_f, 5.0].min, 1.0].max
         probes[name] = adapter.probe(root, runner: runner, timeout_seconds: timeout_seconds)
       end
       probes

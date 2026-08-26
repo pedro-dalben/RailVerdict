@@ -318,4 +318,48 @@ class TestReceipt < Minitest::Test
     assert_includes validations[:config].fetch("reasons"), "configuration_changed"
     assert_includes validations[:index].fetch("reasons"), "index_changed"
   end
+
+  def test_verification_environment_unobservable_when_bundle_probe_fails
+    write_config("version: 1.5\nmode: no_new_debt\nanalyzers:\n  rubocop: { enabled: false, required: false }\n  rspec: { enabled: true, required: true }\n")
+    write("Gemfile", "source 'https://rubygems.org'\n")
+    fake_runner = Class.new do
+      def run(executable, _argv, chdir:, timeout_seconds:, max_stdout_bytes: nil)
+        if executable == "bundle"
+          RailVerdict::ProcessRunner::RunResult.new(
+            status: :exited,
+            exit_code: 7,
+            signal: nil,
+            stdout: "",
+            stderr: "Could not find gem 'rspec'",
+            stdout_truncated: false,
+            stderr_truncated: false,
+            detail: "exit 7"
+          )
+        else
+          RailVerdict::ProcessRunner::RunResult.new(
+            status: :exited,
+            exit_code: 0,
+            signal: nil,
+            stdout: "3.13.0\n",
+            stderr: "",
+            stdout_truncated: false,
+            stderr_truncated: false,
+            detail: "exit 0"
+          )
+        end
+      end
+    end.new
+
+    env = RailVerdict::VerificationEnvironment.capture(repository_root: @dir, runner: fake_runner)
+    assert_equal false, env.available?
+    assert_match(/analyzer_version_unobservable:rspec/, env.unavailable_reason)
+  end
+
+  def test_resolve_probe_timeout_clamps_to_five_seconds
+    write_config("version: 1.5\nmode: no_new_debt\nanalyzers:\n  rubocop: { enabled: false, required: false }\n  rspec: { enabled: true, required: true, timeout_seconds: 600 }\n")
+    cfg = RailVerdict::Configuration.load(File.join(@dir, ".railverdict.yml"))
+    timeout = RailVerdict::VerificationEnvironment.send(:resolve_probe_timeout, cfg, "rspec", 5.0)
+    assert_equal 5.0, timeout
+  end
 end
+

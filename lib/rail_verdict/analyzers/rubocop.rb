@@ -27,13 +27,14 @@ module RailVerdict
       end
 
       def probe(repository_root, runner: ProcessRunner, timeout_seconds: 15.0)
+        effective_timeout = [timeout_seconds.to_f, 5.0].min
         command = @command_resolver.call(repository_root)
         invocation = invocation_for(command, ["--version"])
         result = runner.run(
           command.fetch(:executable),
           invocation.fetch("argv"),
           chdir: repository_root,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: effective_timeout
         )
 
         return Probe.new(status: "unavailable", message: detail_for(result)) if result.status == :spawn_failed
