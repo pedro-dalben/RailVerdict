@@ -169,4 +169,81 @@ class TestMinitestAdapter < Minitest::Test
       assert_equal "complete", gate.completion_status
     end
   end
+
+  def test_minitest_nonzero_exit_with_zero_failures_fails_closed
+    with_tmpdir do |dir|
+      stub = File.join(dir, "exit1_minitest.rb")
+      json_payload = JSON.generate(
+        "schema_version" => "1.0",
+        "runner" => "minitest 6.0.6",
+        "seed" => 42,
+        "tests_total" => 1,
+        "assertions" => 1,
+        "failures" => 0,
+        "errors" => 0,
+        "skips" => 0,
+        "duration_seconds" => 0.01,
+        "tests" => [
+          { "class_name" => "FooTest", "method_name" => "test_bar", "status" => "passed" }
+        ]
+      )
+      File.write(stub, <<~RUBY)
+        if ARGV.include?("--version")
+          puts "6.0.6"
+        else
+          out = ENV["RAILVERDICT_MINITEST_OUTPUT"]
+          File.write(out, #{json_payload.inspect}) if out
+          STDERR.puts "at_exit crash"
+          exit 1
+        end
+      RUBY
+      adapter = RailVerdict::Analyzers::Minitest.new(command_resolver: ->(_root) { { executable: RUBY, args_prefix: [stub] } })
+      result, findings = adapter.run(dir)
+      assert_equal "failed", result.execution_status
+      assert_equal "incomplete", result.evidence_status
+      assert_empty findings
+    end
+  end
+
+  def test_minitest_missing_reporter_fails_closed_no_stdout_fallback
+    with_tmpdir do |dir|
+      stub = File.join(dir, "stdout_only_minitest.rb")
+      json_payload = JSON.generate(
+        "schema_version" => "1.0",
+        "runner" => "minitest 6.0.6",
+        "seed" => 42,
+        "tests_total" => 1,
+        "assertions" => 1,
+        "failures" => 0,
+        "errors" => 0,
+        "skips" => 0,
+        "duration_seconds" => 0.01,
+        "tests" => [
+          { "class_name" => "FooTest", "method_name" => "test_bar", "status" => "passed" }
+        ]
+      )
+      File.write(stub, <<~RUBY)
+        if ARGV.include?("--version")
+          puts "6.0.6"
+        else
+          # Do NOT write to ENV["RAILVERDICT_MINITEST_OUTPUT"], only stdout
+          puts #{json_payload.inspect}
+        end
+      RUBY
+      adapter = RailVerdict::Analyzers::Minitest.new(command_resolver: ->(_root) { { executable: RUBY, args_prefix: [stub] } })
+      result, findings = adapter.run(dir)
+      assert_equal "malformed", result.execution_status
+      assert_equal "incomplete", result.evidence_status
+      assert_empty findings
+    end
+  end
+
+  def test_minitest_reporter_resolves_from_current_distribution
+    adapter = RailVerdict::Analyzers::Minitest.new
+    path = adapter.send(:resolve_reporter_path)
+    assert File.file?(path)
+    assert path.end_with?("exe/railverdict-minitest-reporter.rb")
+    assert_equal File.expand_path("../exe/railverdict-minitest-reporter.rb", __dir__), path
+  end
 end
+

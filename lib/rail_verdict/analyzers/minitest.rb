@@ -21,13 +21,14 @@ module RailVerdict
       end
 
       def probe(repository_root, runner: ProcessRunner, timeout_seconds: 15.0)
+        effective_timeout = [timeout_seconds.to_f, 5.0].min
         command = @command_resolver.call(repository_root)
         probe_argv = probe_argv_for(command, repository_root)
         result = runner.run(
           command.fetch(:executable),
           probe_argv,
           chdir: repository_root,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: effective_timeout
         )
 
         return Probe.new(status: "unavailable", message: Shared.detail_for(result)) if result.status == :spawn_failed
@@ -63,7 +64,7 @@ module RailVerdict
         end
 
         invocation = Shared.invocation_for(command, ["run"])
-        output_path = File.join(repository_root, ".railverdict-minitest-#{SecureRandom.hex(6)}.json")
+        output_path = File.join(Dir.tmpdir, "railverdict-minitest-#{SecureRandom.hex(8)}.json")
         env_reset_required = false
         previous_env = ENV["RAILVERDICT_MINITEST_OUTPUT"]
         begin
@@ -93,7 +94,25 @@ module RailVerdict
             return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
           end
 
-          analyzer_result = AnalyzerResult.new(
+          # Process exit reconciliation (RH-03):
+failures_and_errors = (summary["failures"] || 0) + (summary["errors"] || 0)
+if result.exit_code == 0
+  if failures_and_errors > 0 || !findings.empty?
+    return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: "Minitest exited with status 0 but reported #{failures_and_errors} failures/errors", tool_version: tool_version), []]
+  end
+elsif result.exit_code == 1
+  if failures_and_errors == 0 && findings.empty?
+    detail = Shared.detail_for(result)
+    msg = detail.strip.empty? ? "Minitest exited with status 1 but reported 0 failed tests" : detail
+    return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "failed", message: msg, tool_version: tool_version), []]
+  end
+else
+  detail = Shared.detail_for(result)
+  msg = detail.strip.empty? ? "Minitest exited with unexpected status #{result.exit_code}" : detail
+  return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "failed", message: msg, tool_version: tool_version), []]
+end
+
+analyzer_result = AnalyzerResult.new(
             analyzer: ANALYZER_ID,
             tool_version: tool_version,
             invocation: invocation,
@@ -141,16 +160,11 @@ module RailVerdict
 
       def resolve_reporter_path
         candidates = []
-        begin
-          specs = Gem::Specification.find_all_by_name("rail_verdict")
-          if specs.any?
-            best = specs.max_by(&:version)
-            candidates << File.join(best.full_gem_path, "exe", "railverdict-minitest-reporter.rb")
-          end
-        rescue StandardError
-          nil
-        end
         candidates << File.expand_path("../../../exe/railverdict-minitest-reporter.rb", __dir__)
+        if defined?(Gem) && Gem.respond_to?(:loaded_specs) && Gem.loaded_specs["rail_verdict"]
+          spec = Gem.loaded_specs["rail_verdict"]
+          candidates << File.join(spec.full_gem_path, "exe", "railverdict-minitest-reporter.rb")
+        end
         candidates.find { |path| File.file?(path) && File.readable?(path) }
       end
 
@@ -177,31 +191,30 @@ module RailVerdict
       end
 
       def load_reporter_document(output_path, run_result, invocation, tool_version)
-        if File.file?(output_path)
-          begin
-            bytes = File.binread(output_path)
-          rescue SystemCallError => error
-            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-          end
-          if bytes.bytesize > 4 * 1024 * 1024
-            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: "Minitest reporter output exceeds 4 MiB", tool_version: tool_version), []]
-          end
-          text = bytes.dup.force_encoding(Encoding::UTF_8)
-          unless text.valid_encoding?
-            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: "Minitest reporter output is not valid UTF-8", tool_version: tool_version), []]
-          end
-          begin
-            return JSON.parse(text)
-          rescue JSON::ParserError => error
-            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-          end
+        unless File.file?(output_path)
+          detail = Shared.detail_for(run_result)
+          msg = detail.strip.empty? ? "Minitest reporter did not produce output" : detail
+          status = run_result.exit_code && run_result.exit_code != 0 ? "failed" : "malformed"
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: status, message: msg, tool_version: tool_version), []]
         end
-        stdout = run_result.stdout.to_s
-        if stdout.strip.empty?
-          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: "Minitest reporter did not produce output", tool_version: tool_version), []]
-        end
+
         begin
-          JSON.parse(stdout)
+          bytes = File.binread(output_path)
+        rescue SystemCallError => error
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+        end
+
+        if bytes.bytesize > 4 * 1024 * 1024
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: "Minitest reporter output exceeds 4 MiB", tool_version: tool_version), []]
+        end
+
+        text = bytes.dup.force_encoding(Encoding::UTF_8)
+        unless text.valid_encoding?
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: "Minitest reporter output is not valid UTF-8", tool_version: tool_version), []]
+        end
+
+        begin
+          JSON.parse(text)
         rescue JSON::ParserError => error
           [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
         end
