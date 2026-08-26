@@ -3,7 +3,7 @@ require "json"
 if ARGV.include?("--version")
   puts "6.0.6"
 else
-  puts JSON.generate(
+  data = JSON.generate(
     "schema_version" => "1.0",
     "runner" => "minitest 6.0.6",
     "seed" => 42,
@@ -18,4 +18,10 @@ else
       { "class_name" => "LibraryTest", "method_name" => "test_returns_book", "status" => "passed", "time_seconds" => 0.007, "file" => "test/library_test.rb", "line" => 10 }
     ]
   )
+  out_path = ENV["RAILVERDICT_MINITEST_OUTPUT"]
+  if out_path && !out_path.empty?
+    File.write(out_path, data)
+  else
+    puts data
+  end
 end

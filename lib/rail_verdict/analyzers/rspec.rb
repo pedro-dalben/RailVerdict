@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "json"
+require "tmpdir"
+require "securerandom"
 
 require_relative "_shared"
 
@@ -19,13 +21,16 @@ module RailVerdict
       end
 
       def probe(repository_root, runner: ProcessRunner, timeout_seconds: 15.0)
+        effective_timeout = [timeout_seconds.to_f, 5.0].min
         command = @command_resolver.call(repository_root)
-        invocation = Shared.invocation_for(command, ["--version"])
+        clean_prefix = clean_args_prefix(command.fetch(:args_prefix))
+        clean_command = command.merge(args_prefix: clean_prefix)
+        invocation = Shared.invocation_for(clean_command, ["--version"])
         result = runner.run(
-          command.fetch(:executable),
+          clean_command.fetch(:executable),
           invocation.fetch("argv"),
           chdir: repository_root,
-          timeout_seconds: timeout_seconds
+          timeout_seconds: effective_timeout
         )
 
         return Probe.new(status: "unavailable", message: Shared.detail_for(result)) if result.status == :spawn_failed
@@ -47,61 +52,136 @@ module RailVerdict
 
       def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
         command = @command_resolver.call(repository_root)
+        clean_prefix = clean_args_prefix(command.fetch(:args_prefix))
+        clean_command = command.merge(args_prefix: clean_prefix)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
-        version_invocation = Shared.invocation_for(command, ["--version"])
+        version_invocation = Shared.invocation_for(clean_command, ["--version"])
 
         unless probe_result.status == "succeeded"
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: version_invocation, status: probe_result.status, message: probe_result.message, tool_version: probe_result.version), []]
         end
 
-        invocation = Shared.invocation_for(command, ["--format", "json"])
-        # Real-world large RSpec suites can exceed 4 MiB; use bounded but larger capture.
+        output_path = File.join(Dir.tmpdir, "railverdict-rspec-#{SecureRandom.hex(8)}.json")
+        public_invocation = Shared.invocation_for(clean_command, ["--format", "json"])
+        run_argv = clean_prefix.dup.concat(["--format", "json", "--out", output_path])
+
         max_stdout = resolve_stdout_limit(configuration, repository_root, 16 * 1024 * 1024)
-        result = runner.run(
-          command.fetch(:executable),
-          invocation.fetch("argv"),
-          chdir: repository_root,
-          timeout_seconds: timeout_seconds,
-          max_stdout_bytes: max_stdout
-        )
         tool_version = probe_result.version
 
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "unavailable", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :spawn_failed
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "truncated", message: Shared.detail_for(result), tool_version: tool_version), []] if Shared.truncated?(result)
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "timed_out", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :timed_out
-        return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "signaled", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :signaled
-
         begin
-          document = JSON.parse(result.stdout)
-        rescue JSON::ParserError => error
-          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-        end
+          result = runner.run(
+            clean_command.fetch(:executable),
+            run_argv,
+            chdir: repository_root,
+            timeout_seconds: timeout_seconds,
+            max_stdout_bytes: max_stdout
+          )
 
-        begin
-          summary, findings = normalize_document(document)
-        rescue MalformedOutput => error
-          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
-        end
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "unavailable", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :spawn_failed
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "truncated", message: Shared.detail_for(result), tool_version: tool_version), []] if Shared.truncated?(result)
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "timed_out", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :timed_out
+          return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "signaled", message: Shared.detail_for(result), tool_version: tool_version), []] if result.status == :signaled
 
-        analyzer_result = AnalyzerResult.new(
-          analyzer: ANALYZER_ID,
-          tool_version: tool_version,
-          invocation: invocation,
-          execution_status: "succeeded",
-          finding_ids: findings.map(&:id),
-          evidence_summary: summary
-        )
-        [analyzer_result, findings]
+          unless File.file?(output_path)
+            detail = Shared.detail_for(result)
+            msg = detail.strip.empty? ? "RSpec did not produce structured output" : detail
+            status = result.exit_code && result.exit_code != 0 ? "failed" : "malformed"
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: status, message: msg, tool_version: tool_version), []]
+          end
+
+          begin
+            bytes = File.binread(output_path)
+          rescue SystemCallError => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+
+          if bytes.bytesize > max_stdout
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "truncated", message: "RSpec output exceeds #{max_stdout} bytes", tool_version: tool_version), []]
+          end
+
+          text = bytes.dup.force_encoding(Encoding::UTF_8)
+          unless text.valid_encoding?
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "parse_failed", message: "RSpec output is not valid UTF-8", tool_version: tool_version), []]
+          end
+
+          begin
+            document = JSON.parse(text)
+          rescue JSON::ParserError => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "parse_failed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+
+          begin
+            summary, findings = normalize_document(document)
+          rescue MalformedOutput => error
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
+          end
+
+          # Process exit reconciliation (RH-02):
+          # 0: all examples passed, 0 failures/errors
+          # 1: failed examples present (failures > 0 or findings non-empty)
+          # Any other exit code or contradiction: fail closed
+          failures_count = summary["failures"] || 0
+          if result.exit_code == 0
+            if failures_count > 0 || !findings.empty?
+              return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "malformed", message: "RSpec exited with status 0 but reported #{failures_count} failures", tool_version: tool_version), []]
+            end
+          elsif result.exit_code == 1
+            if failures_count == 0 && findings.empty?
+              detail = Shared.detail_for(result)
+              msg = detail.strip.empty? ? "RSpec exited with status 1 but reported 0 failed examples" : detail
+              return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "failed", message: msg, tool_version: tool_version), []]
+            end
+          else
+            detail = Shared.detail_for(result)
+            msg = detail.strip.empty? ? "RSpec exited with unexpected status #{result.exit_code}" : detail
+            return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "failed", message: msg, tool_version: tool_version), []]
+          end
+
+          analyzer_result = AnalyzerResult.new(
+            analyzer: ANALYZER_ID,
+            tool_version: tool_version,
+            invocation: public_invocation,
+            execution_status: "succeeded",
+            finding_ids: findings.map(&:id),
+            evidence_summary: summary
+          )
+          [analyzer_result, findings]
+        ensure
+          begin
+            File.unlink(output_path) if output_path && File.exist?(output_path)
+          rescue StandardError
+            nil
+          end
+        end
       end
 
       private
 
       def default_command(repository_root)
         if File.file?(File.join(repository_root, "Gemfile"))
-          { executable: "bundle", args_prefix: ["exec", "rspec", "--format", "json"] }
+          { executable: "bundle", args_prefix: ["exec", "rspec"] }
         else
-          { executable: "rspec", args_prefix: ["--format", "json"] }
+          { executable: "rspec", args_prefix: [] }
         end
+      end
+
+      def clean_args_prefix(prefix)
+        cleaned = []
+        skip_next = false
+        Array(prefix).each_with_index do |arg, i|
+          if skip_next
+            skip_next = false
+            next
+          end
+          if arg == "--format" && Array(prefix)[i + 1] == "json"
+            skip_next = true
+            next
+          elsif arg == "--format=json"
+            next
+          end
+          cleaned << arg
+        end
+        cleaned
       end
 
       def normalize_document(document)
@@ -142,7 +222,7 @@ module RailVerdict
         raw_msg = (example["exception"] && example["exception"]["message"]) || example["full_description"] || example["description"] || nil
         message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg.nil? || raw_msg.to_s.strip.empty? ? "rspec example failed" : raw_msg)
 
-        rule_id = "rspec/example:#{example['id'] || id_for(example, index)}"
+        rule_id = "rspec/example:#{example[id] || id_for(example, index)}"
         path = normalize_path(example["file_path"] || example["file"] || "spec/unknown_spec.rb")
         failure_line, failure_path = failure_location(example, path)
         start_line = failure_line || example["line_number"] || extract_line(example["id"])
@@ -273,14 +353,12 @@ module RailVerdict
       end
 
       def resolve_stdout_limit(configuration, repository_root, default_bytes)
-        # Prefer explicit per-analyzer config if present (future-compatible), else default.
         raw_limit = nil
         if configuration
           sel = configuration.analyzers[ANALYZER_ID] rescue nil
           raw_limit = sel && sel["output_limit_bytes"]
         end
         raw_limit ||= default_bytes
-        # Clamp to safe ceiling
         limit = Integer(raw_limit) rescue default_bytes
         limit = default_bytes if limit <= 0
         max = RailVerdict::ProcessRunner::MAX_SAFE_STDOUT_BYTES

@@ -135,4 +135,94 @@ class TestRspecAdapter < Minitest::Test
       assert_includes gate.operational_failures.map { |f| f.fetch("code") }, "incomplete_evidence"
     end
   end
+
+  def test_rspec_with_noisy_stdout_succeeds
+    with_tmpdir do |dir|
+      stub = File.join(dir, "noisy_rspec.rb")
+      json_payload = JSON.generate(
+        "version" => "3.13.6",
+        "examples" => [
+          { "id" => "./spec/book_spec.rb[1:1]", "description" => "creates a book", "full_description" => "Book creates a book", "status" => "passed", "file_path" => "./spec/book_spec.rb", "line_number" => 5 }
+        ],
+        "summary" => { "duration" => 0.02, "example_count" => 1, "failure_count" => 0, "pending_count" => 0 }
+      )
+      File.write(stub, <<~RUBY)
+        if ARGV.include?("--version")
+          puts "3.13.6"
+        else
+          puts "[AUDIT][2026-08-26] Starting audit trace"
+          puts "Warning: application logs"
+          out = ARGV[ARGV.index("--out") + 1] rescue nil
+          File.write(out, #{json_payload.inspect}) if out
+          puts "JSON Coverage report generated for RSpec to coverage/coverage.json"
+        end
+      RUBY
+      adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_root) { { executable: RUBY, args_prefix: [stub] } })
+      result, findings = adapter.run(dir)
+      assert_equal "succeeded", result.execution_status
+      assert_equal "complete", result.evidence_status
+      assert_empty findings
+      assert_equal 1, result.evidence_summary.fetch("tests_total")
+    end
+  end
+
+  def test_rspec_nonzero_exit_with_zero_failures_fails_closed
+    with_tmpdir do |dir|
+      stub = File.join(dir, "exit1_zero_failures.rb")
+      json_payload = JSON.generate(
+        "version" => "3.13.6",
+        "examples" => [
+          { "id" => "./spec/book_spec.rb[1:1]", "description" => "passes", "full_description" => "Book passes", "status" => "passed", "file_path" => "./spec/book_spec.rb", "line_number" => 5 }
+        ],
+        "summary" => { "duration" => 0.02, "example_count" => 1, "failure_count" => 0, "pending_count" => 0 }
+      )
+      File.write(stub, <<~RUBY)
+        if ARGV.include?("--version")
+          puts "3.13.6"
+        else
+          out = ARGV[ARGV.index("--out") + 1] rescue nil
+          File.write(out, #{json_payload.inspect}) if out
+          STDERR.puts "after(:suite) crashed"
+          exit 1
+        end
+      RUBY
+      adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_root) { { executable: RUBY, args_prefix: [stub] } })
+      result, findings = adapter.run(dir)
+      assert_equal "failed", result.execution_status
+      assert_equal "incomplete", result.evidence_status
+      assert_empty findings
+    end
+  end
+
+  def test_rspec_exit_2_fails_closed
+    assert_status("fake_rspec_exit2.rb", "failed")
+  end
+
+  def test_rspec_exit_0_with_reported_failures_returns_malformed
+    with_tmpdir do |dir|
+      stub = File.join(dir, "exit0_with_failures.rb")
+      json_payload = JSON.generate(
+        "version" => "3.13.6",
+        "examples" => [
+          { "id" => "./spec/book_spec.rb[1:1]", "description" => "fails", "full_description" => "Book fails", "status" => "failed", "file_path" => "./spec/book_spec.rb", "line_number" => 5, "exception" => { "class" => "Error", "message" => "fail" } }
+        ],
+        "summary" => { "duration" => 0.02, "example_count" => 1, "failure_count" => 1, "pending_count" => 0 }
+      )
+      File.write(stub, <<~RUBY)
+        if ARGV.include?("--version")
+          puts "3.13.6"
+        else
+          out = ARGV[ARGV.index("--out") + 1] rescue nil
+          File.write(out, #{json_payload.inspect}) if out
+          exit 0 # Contradiction: failures exist but exit 0!
+        end
+      RUBY
+      adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_root) { { executable: RUBY, args_prefix: [stub] } })
+      result, findings = adapter.run(dir)
+      assert_equal "malformed", result.execution_status
+      assert_equal "incomplete", result.evidence_status
+      assert_empty findings
+    end
+  end
 end
+

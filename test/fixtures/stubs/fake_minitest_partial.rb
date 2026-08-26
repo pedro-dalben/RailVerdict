@@ -6,16 +6,13 @@ else
   full = JSON.generate(
     "schema_version" => "1.0",
     "runner" => "minitest 6.0.6",
-    "seed" => 0,
-    "tests_total" => 1,
-    "assertions" => 1,
-    "failures" => 1,
-    "errors" => 0,
-    "skips" => 0,
-    "duration_seconds" => 0.01,
-    "tests" => [
-      { "class_name" => "BlogPostTest", "method_name" => "test_fails", "status" => "failed", "time_seconds" => 0.01, "file" => "test/blog_post_test.rb", "line" => 5, "failure_message" => "Expected true to be false", "failure_class" => "Minitest::Assertion" }
-    ]
+    "tests" => [{ "class_name" => "Foo", "method_name" => "test_bar", "status" => "passed" }]
   )
-  STDOUT.write(full[0, full.length / 2])
+  partial = full[0, full.length / 2]
+  out_path = ENV["RAILVERDICT_MINITEST_OUTPUT"]
+  if out_path && !out_path.empty?
+    File.write(out_path, partial)
+  else
+    STDOUT.write(partial)
+  end
 end

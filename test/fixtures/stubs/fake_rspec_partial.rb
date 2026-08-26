@@ -8,5 +8,12 @@ else
     "examples" => [{ "id" => "./spec/book_spec.rb[1:1]", "full_description" => "Book creates a book", "status" => "failed", "file_path" => "./spec/book_spec.rb", "line_number" => 5, "exception" => { "class" => "RSpec::Expectations::ExpectationNotMetError", "message" => "expected true to be false" } }],
     "summary" => { "duration" => 0.02, "example_count" => 1, "failure_count" => 1, "pending_count" => 0 }
   )
-  STDOUT.write(full[0, full.length / 2])
+  partial = full[0, full.length / 2]
+  out_idx = ARGV.index("--out")
+  out_path = ARGV[out_idx + 1] if out_idx
+  if out_path
+    File.write(out_path, partial)
+  else
+    STDOUT.write(partial)
+  end
 end

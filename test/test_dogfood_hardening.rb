@@ -228,7 +228,10 @@ class TestDogfoodHardening < Minitest::Test
       File.write(stub, <<~RB)
         puts "3.13.6" if ARGV.include?("--version")
         require "json"
-        puts JSON.generate({"summary"=>{"duration"=>1,"failure_count"=>1,"pending_count"=>0},"examples"=>[{"id"=>"a","status"=>"failed","file_path"=>"spec/a_spec.rb","description"=>"","full_description"=>"","exception"=>{"message"=>""}}],"version"=>"3.13.6"}) unless ARGV.include?("--version")
+        out = ARGV[ARGV.index("--out") + 1] rescue nil
+        data = JSON.generate({"summary"=>{"duration"=>1,"failure_count"=>1,"pending_count"=>0},"examples"=>[{"id"=>"a","status"=>"failed","file_path"=>"spec/a_spec.rb","description"=>"","full_description"=>"","exception"=>{"message"=>""}}],"version"=>"3.13.6"})
+        if out; File.write(out, data); else; puts data; end unless ARGV.include?("--version")
+        exit 1 unless ARGV.include?("--version")
       RB
       adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_){ {executable: RbConfig.ruby, args_prefix: [stub]} })
       probe = adapter.probe(dir, runner: RailVerdict::ProcessRunner)
@@ -288,7 +291,7 @@ class TestDogfoodHardening < Minitest::Test
       end
       json = {"summary"=>{"duration"=>10,"failure_count"=>0,"pending_count"=>0},"examples"=>large_examples,"version"=>"3.13.6"}
       stub = File.join(dir, "fake_large.rb")
-      File.write(stub, "if ARGV.include?(\"--version\")\n puts \"3.13.6\"\nelse\n require \"json\"; puts JSON.generate(#{json.inspect})\nend\n")
+      File.write(stub, "if ARGV.include?(\"--version\")\n puts \"3.13.6\"\nelse\n require \"json\"; out = ARGV[ARGV.index(\"--out\") + 1] rescue nil; data = JSON.generate(#{json.inspect}); if out; File.write(out, data); else; puts data; end\nend\n")
       adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_){ {executable: RbConfig.ruby, args_prefix: [stub]} })
       result, findings = adapter.run(dir)
       assert_equal "succeeded", result.execution_status

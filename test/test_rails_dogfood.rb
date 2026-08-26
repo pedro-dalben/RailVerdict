@@ -134,7 +134,7 @@ class TestRailsDogfood < Minitest::Test
         "summary" => { "duration" => 0.02, "example_count" => 2, "failure_count" => 1, "pending_count" => 0 },
         "summary_line" => "2 examples, 1 failure"
       }
-      File.write(stub, "require \"json\"; if ARGV.include?(\"--version\"); puts \"3.13.6\"; else; puts JSON.generate(#{payload.inspect}); end\n")
+      File.write(stub, "require \"json\"; if ARGV.include?(\"--version\"); puts \"3.13.6\"; else; out = ARGV[ARGV.index(\"--out\") + 1] rescue nil; data = JSON.generate(#{payload.inspect}); if out; File.write(out, data); else; puts data; end; exit 1; end\n")
       adapter = RailVerdict::Analyzers::RSpec.new(command_resolver: ->(_r) { { executable: RbConfig.ruby, args_prefix: [stub] } })
       result, findings = adapter.run(dir)
       assert_equal "succeeded", result.execution_status
