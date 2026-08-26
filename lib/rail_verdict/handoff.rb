@@ -72,7 +72,10 @@ module RailVerdict
       return nil unless prov.is_a?(Hash)
       out = {}
       av = prov["analyzer_versions"] || prov[:analyzer_versions]
-      out["analyzer_versions"] = av.sort.to_h if av.is_a?(Hash) && av.any?
+      if av.is_a?(Hash) && av.any?
+        coerced = av.reject { |_, value| value.nil? }.transform_values { |value| value.to_s }
+        out["analyzer_versions"] = coerced.sort.to_h unless coerced.empty?
+      end
       db = prov["advisory_db_revision"] || prov[:advisory_db_revision]
       out["advisory_db_revision"] = db.to_s if db
       out
