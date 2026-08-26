@@ -61,7 +61,7 @@ class TestMinitestRealIntegration < Minitest::Test
       output = #{output_path.inspect}
       dir = #{dir.inspect}
       stub = File.join(dir, "stub_\#{File.basename(output, '.json')}.rb")
-      File.write(stub, "require 'json'; if ARGV.include?('--version'); puts '6.0.6'; else; puts File.read(\#{output.inspect}); end\\n")
+      File.write(stub, "require 'json'; if ARGV.include?('--version'); puts '6.0.6'; else; out = ENV['RAILVERDICT_MINITEST_OUTPUT']; content = File.read(\#{output.inspect}); File.write(out, content) if out; doc = JSON.parse(content) rescue {}; exit((doc['failures'].to_i + doc['errors'].to_i) > 0 ? 1 : 0); end\n")
       adapter = RailVerdict::Analyzers::Minitest.new(command_resolver: ->(_r) { { executable: RbConfig.ruby, args_prefix: [stub] } })
       result, findings = adapter.run(dir)
       payload = {
