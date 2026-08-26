@@ -220,7 +220,7 @@ class Test101Compatibility < Minitest::Test
       )
       analyzer_calls = recorder.calls.select { |c| c[:executable] == "rubocop" }
       assert_equal 2, analyzer_calls.length
-      assert_equal 600, analyzer_calls[0][:timeout_seconds]
+      assert_equal 5.0, analyzer_calls[0][:timeout_seconds]
       assert_equal 600, analyzer_calls[1][:timeout_seconds]
     end
   end
@@ -253,9 +253,11 @@ class Test101Compatibility < Minitest::Test
       rubocop_calls = recorder.calls.select { |c| c[:executable] == "rubocop" }
       bundle_calls = recorder.calls.select { |c| %w[bundler-audit bundle].include?(c[:executable]) }
       assert_equal 2, rubocop_calls.length
-      assert rubocop_calls.all? { |c| c[:timeout_seconds] == 10 }, "rubocop calls should be 10: #{rubocop_calls.inspect}"
+      assert_equal 5.0, rubocop_calls[0][:timeout_seconds]
+      assert_equal 10, rubocop_calls[1][:timeout_seconds]
       assert_equal 2, bundle_calls.length
-      assert bundle_calls.all? { |c| c[:timeout_seconds] == 120 }, "bundler calls should be 120: #{bundle_calls.inspect}"
+      assert_equal 5.0, bundle_calls[0][:timeout_seconds]
+      assert_equal 120, bundle_calls[1][:timeout_seconds]
     end
   end
 
@@ -279,7 +281,7 @@ class Test101Compatibility < Minitest::Test
         rubocop_command_resolver: ->(_r) { { executable: "rubocop", args_prefix: [] } }
       )
       analyzer_calls = recorder.calls.select { |c| c[:executable] == "rubocop" }
-      assert_equal 30, analyzer_calls[0][:timeout_seconds]
+      assert_equal 5.0, analyzer_calls[0][:timeout_seconds]
       assert_equal 30, analyzer_calls[1][:timeout_seconds]
     end
   end
@@ -332,12 +334,13 @@ class Test101Compatibility < Minitest::Test
         repository_root: dir,
         config_path: ".railverdict.yml",
         runner: recorder,
-        rubocop_command_resolver: ->(_r) { { executable: "bundle", args_prefix: ["exec", "rspec", "--format", "json"] } }
+        rubocop_command_resolver: ->(_r) { { executable: "bundle", args_prefix: ["exec", "rspec"] } }
       )
       assert_equal "complete", outcome.result.completion_status
       rspec_calls = recorder.calls.select { |c| %w[bundle rspec].include?(c[:executable]) }
       assert_equal 2, rspec_calls.length
-      assert rspec_calls.all? { |c| c[:timeout_seconds] == 600 }, "expected 600: #{rspec_calls.inspect}"
+      assert_equal 5.0, rspec_calls[0][:timeout_seconds]
+      assert_equal 600, rspec_calls[1][:timeout_seconds]
     end
   end
 
@@ -525,7 +528,13 @@ class Test101Compatibility < Minitest::Test
       stdout = if argv.include?("--version")
                  "RSpec 3.13.6"
                else
-                 JSON.generate({ "version" => "3.13.6", "examples" => @examples, "summary" => { "example_count" => @examples.length, "failure_count" => 0, "pending_count" => 0, "duration" => 0.1 } })
+                 data = JSON.generate({ "version" => "3.13.6", "examples" => @examples, "summary" => { "example_count" => @examples.length, "failure_count" => 0, "pending_count" => 0, "duration" => 0.1 } })
+                 out_idx = argv.index("--out")
+                 if out_idx
+                   out_path = argv[out_idx + 1]
+                   File.write(out_path, data) if out_path
+                 end
+                 data
                end
       Struct.new(:status, :exit_code, :stdout, :stderr, :stdout_truncated, :stderr_truncated, :detail).new(
         :exited, 0, stdout, "", false, false, nil

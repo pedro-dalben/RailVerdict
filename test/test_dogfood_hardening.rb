@@ -34,11 +34,20 @@ class TestDogfoodHardening < Minitest::Test
 
   def test_native_simplecov_valid
     with_tmp_yml("version: 1.1\nmode: strict\nanalyzers:\n  rubocop:\n    enabled: false\n    required: false\n  simplecov:\n    enabled: true\n    required: true\n") do |dir|
-      j = {"meta"=>{"simplecov_version"=>"0.22.0"},"coverage"=>{"app/a.rb"=>{"lines"=>[1,0,nil,1]}},"groups"=>{}}
+      j = {"meta"=>{"simplecov_version"=>"1.1.1"},"coverage"=>{"app/a.rb"=>{"lines"=>[1,0,nil,1]}},"groups"=>{}}
       simplecov_fresh(dir, j)
       r,_ = RailVerdict::Analyzers::SimpleCov.new.run(dir)
       assert_equal "succeeded", r.execution_status
-      assert_equal "0.22.0", r.tool_version
+      assert_equal "1.1.1", r.tool_version
+    end
+  end
+
+  def test_native_simplecov_unsupported_version
+    with_tmp_yml("version: 1.1\nmode: strict\nanalyzers:\n  rubocop:\n    enabled: false\n    required: false\n  simplecov:\n    enabled: true\n    required: true\n") do |dir|
+      j = {"meta"=>{"simplecov_version"=>"0.22.0"},"coverage"=>{"app/a.rb"=>{"lines"=>[1,0,nil,1]}},"groups"=>{}}
+      simplecov_fresh(dir, j)
+      r,_ = RailVerdict::Analyzers::SimpleCov.new.run(dir)
+      assert_equal "unsupported", r.execution_status
     end
   end
 

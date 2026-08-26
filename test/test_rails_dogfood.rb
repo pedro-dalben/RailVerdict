@@ -51,7 +51,7 @@ class TestRailsDogfood < Minitest::Test
                   "tests" => [{ "class_name" => "OrderTest", "method_name" => "test_dummy", "status" => "passed", "time_seconds" => 0.01, "file" => "test/models/order_test.rb", "line" => 3 }]
                 }
               end
-    File.write(stub, "require \"json\"; if ARGV.include?(\"--version\"); puts \"6.0.6\"; else; puts JSON.generate(#{payload.inspect}); end\n")
+    File.write(stub, "require \"json\"; if ARGV.include?(\"--version\"); puts \"6.0.6\"; else; out = ENV[\"RAILVERDICT_MINITEST_OUTPUT\"]; data = JSON.generate(#{payload.inspect}); if out && !out.empty?; File.write(out, data); else; puts data; end; #{failures ? 'exit 1' : ''}; end\n")
     stub
   end
 
