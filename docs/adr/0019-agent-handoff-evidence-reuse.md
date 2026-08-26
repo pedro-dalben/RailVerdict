@@ -2,7 +2,7 @@
 
 Status: Accepted
 Decision date: 2026-08-25
-Implementation status: Planned for RailVerdict 1.4.0 — Stage 0 investigation complete, Stage 1 invariants frozen
+Implementation status: Implemented in RailVerdict 1.4.0
 
 ## Context
 
@@ -89,10 +89,20 @@ No signing/Sigstore/PKI/remote attestation/trusted timestamping/remote Receipt s
 
 ## Deferred Work
 
-Per-analyzer partial reuse, cryptographic signing, distributed cache — require new ADR and schema version. No 1.5 design.
+Per-analyzer partial reuse, cryptographic signing, distributed cache — require new ADR and schema version. No 1.5 design. Implemented in RailVerdict 1.4.
 
-## Related
+## Related Requirements
 
-- Stage 0 `docs/release/1.4-stage-0-investigation.md` §§1-15
-- `docs/release/1.4-trust-invariants.md` (1–25)
-- ADR 0016/0017/0018, `docs/agent-verification.md`, `docs/agent-handoff.md` (planned)
+- FND-08
+- DEBT-03
+- Agent Verification Protocol (Handoff, Evidence Reuse)
+- Handoff trust invariants 1–25
+
+## Related Documents
+
+- [ADR 0016](0016-canonical-repository-state-identity.md)
+- [ADR 0017](0017-verification-receipts.md)
+- [ADR 0018](0018-verification-environment-identity.md)
+- [Stage 0 Investigation](../release/1.4-stage-0-investigation.md)
+- [Trust Invariants](../release/1.4-trust-invariants.md)
+- [Agent Handoff](../agent-handoff.md)
