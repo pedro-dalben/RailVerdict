@@ -154,6 +154,68 @@ class TestSimplecovAdapter < Minitest::Test
     end
   end
 
+  def test_simplecov_native_unsupported_version_rejected
+    native_json = {
+      "meta" => { "simplecov_version" => "0.20.0" },
+      "coverage" => { "app/models/user.rb" => { "lines" => [1, 1, 0] } },
+      "timestamp" => 1700000000
+    }
+    with_coverage_dir(native_json) do |dir|
+      probe_res = adapter.probe(dir)
+      assert_equal "unsupported", probe_res.status
+      result, findings = adapter.run(dir)
+      assert_equal "unsupported", result.execution_status
+      assert_empty findings
+    end
+  end
+
+  def test_simplecov_missing_timestamp_uses_deterministic_sentinel_0
+    native_json = {
+      "meta" => { "simplecov_version" => "1.0.0" },
+      "coverage" => { "app/models/user.rb" => { "lines" => [1, 1] } }
+    }
+    with_coverage_dir(native_json) do |dir|
+      result, _ = adapter.run(dir)
+      assert_equal "succeeded", result.execution_status
+      cov_doc = result.evidence_summary["_coverage_document"]
+      assert_equal 0, cov_doc["timestamp"]
+    end
+  end
+
+  def test_simplecov_external_path_in_coverage_rejected_as_malformed
+    native_json = {
+      "meta" => { "simplecov_version" => "1.0.0" },
+      "coverage" => { "/etc/passwd" => { "lines" => [1, 1] } },
+      "timestamp" => 1700000000
+    }
+    with_coverage_dir(native_json) do |dir|
+      result, findings = adapter.run(dir)
+      assert_equal "malformed", result.execution_status
+      assert_empty findings
+    end
+  end
+
+  def test_simplecov_configured_coverage_path_escaping_repo_rejected
+    with_tmpdir do |dir|
+      outside_dir = Dir.mktmpdir("rv-outside-")
+      outside_cov = File.join(outside_dir, "coverage.json")
+      File.write(outside_cov, JSON.generate({ "version" => "1.0.0", "timestamp" => 1700000000, "files" => [] }))
+      File.write(File.join(dir, ".railverdict.yml"), <<~YAML)
+        version: 1.1
+        mode: strict
+        analyzers:
+          rubocop: { enabled: false, required: false }
+          simplecov: { enabled: true, required: true, coverage_path: #{outside_cov} }
+      YAML
+      probe_res = adapter.probe(dir)
+      assert_equal "malformed", probe_res.status
+      result, _ = adapter.run(dir)
+      assert_equal "malformed", result.execution_status
+    ensure
+      FileUtils.remove_entry(outside_dir) if outside_dir && File.exist?(outside_dir)
+    end
+  end
+
   private
 
   def touch_coverage(dir, coverage_path)
@@ -161,3 +223,4 @@ class TestSimplecovAdapter < Minitest::Test
     FileUtils.touch(full, mtime: Time.now)
   end
 end
+
