@@ -10,6 +10,7 @@ require_relative "verification_identity"
 module RailVerdict
   module Reuse
     Result = Struct.new(:decision, :reasons, :handoff_valid, :receipt_fresh, keyword_init: true)
+    AnalyzerReuseResult = Struct.new(:decision, :reasons, :analyzer_result, :findings, keyword_init: true)
 
     REUSABLE = "REUSABLE"
     VERIFICATION_REQUIRED = "VERIFICATION_REQUIRED"
@@ -164,5 +165,110 @@ module RailVerdict
       { fresh: reasons.empty?, reasons: reasons.empty? ? [] : reasons }
     end
     private_class_method :evaluate_freshness
+
+    def self.evaluate_analyzer(analyzer_id:, handoff_document:, current_repository_state:, current_environment:, configuration: nil, current_contract: {})
+      # 1. Structural handoff check
+      unless handoff_document.is_a?(Hash) && handoff_document["handoff_id"]
+        return AnalyzerReuseResult.new(decision: INVALID, reasons: ["handoff_invalid"])
+      end
+      stored = handoff_document["handoff_id"]
+      payload = handoff_document.reject { |k, _| k == "handoff_id" }
+      expected = Handoff.id_for(payload)
+      unless stored == expected
+        return AnalyzerReuseResult.new(decision: INVALID, reasons: ["handoff_tampered"])
+      end
+      errors = SchemaValidator.validate_handoff(handoff_document)
+      unless errors.empty?
+        return AnalyzerReuseResult.new(decision: INVALID, reasons: ["handoff_invalid"])
+      end
+
+      receipt = handoff_document["receipt"]
+      unless receipt && receipt["receipt_id"]
+        return AnalyzerReuseResult.new(decision: INVALID, reasons: ["handoff_invalid"])
+      end
+
+      # 2. Freshness check
+      freshness = evaluate_freshness(receipt, current_repository_state, current_environment)
+      unless freshness[:fresh]
+        return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: freshness[:reasons])
+      end
+
+      # 3. Find analyzer result in evidence set
+      ar_hash = Array(handoff_document.dig("evidence_set", "analyzer_results")).find { |ar| ar["analyzer"] == analyzer_id.to_s }
+      unless ar_hash
+        return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["evidence_missing:#{analyzer_id}"])
+      end
+
+      unless %w[succeeded success].include?(ar_hash["execution_status"])
+        return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["evidence_incomplete:#{analyzer_id}"])
+      end
+
+      # 4. Analyzer-specific rules
+      case analyzer_id.to_s
+      when "rspec", "minitest", "simplecov"
+        return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["policy_requires_execution:#{analyzer_id}"])
+      when "bundler_audit", "bundler-audit"
+        prov = handoff_document["evidence_provenance"]
+        current_db = current_contract["advisory_db_revision"] || current_contract[:advisory_db_revision]
+        handoff_db = prov && (prov["advisory_db_revision"] || prov[:advisory_db_revision])
+        if handoff_db.nil? || current_db.nil? || handoff_db.to_s != current_db.to_s
+          return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["advisory_database_changed"])
+        end
+        receipt_versions = receipt.dig("environment", "analyzer_versions") || {}
+        current_versions = current_environment.is_a?(Hash) ? (current_environment["analyzer_versions"] || current_environment[:analyzer_versions] || {}) : {}
+        if receipt_versions["bundler_audit"].to_s != current_versions["bundler_audit"].to_s && !current_versions["bundler_audit"].nil?
+          return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["analyzer_version_changed:bundler_audit"])
+        end
+      when "rubocop"
+        receipt_versions = receipt.dig("environment", "analyzer_versions") || {}
+        current_versions = current_environment.is_a?(Hash) ? (current_environment["analyzer_versions"] || current_environment[:analyzer_versions] || {}) : {}
+        if receipt_versions["rubocop"].to_s != current_versions["rubocop"].to_s && !current_versions["rubocop"].nil?
+          return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["analyzer_version_changed:rubocop"])
+        end
+      when "brakeman"
+        receipt_versions = receipt.dig("environment", "analyzer_versions") || {}
+        current_versions = current_environment.is_a?(Hash) ? (current_environment["analyzer_versions"] || current_environment[:analyzer_versions] || {}) : {}
+        if receipt_versions["brakeman"].to_s != current_versions["brakeman"].to_s && !current_versions["brakeman"].nil?
+          return AnalyzerReuseResult.new(decision: VERIFICATION_REQUIRED, reasons: ["analyzer_version_changed:brakeman"])
+        end
+      end
+
+      # 5. Extract AnalyzerResult and Findings
+      raw_findings = Array(ar_hash["findings"]) + Array(handoff_document.dig("evidence_set", "findings")).select { |f| f["analyzer"] == analyzer_id.to_s }
+      raw_findings = raw_findings.uniq { |f| f["fingerprint"] }
+
+      reused_findings = raw_findings.map do |fh|
+        Finding.new(
+          fingerprint: fh["fingerprint"],
+          origin: fh["origin"] || "deterministic",
+          analyzer: fh["analyzer"],
+          rule_id: fh["rule_id"],
+          category: fh["category"] || "lint",
+          severity: fh["severity"] || "medium",
+          confidence: fh["confidence"] || "high",
+          state: "observed",
+          evidence_ref: fh["evidence_ref"] || "reused:#{fh['fingerprint'][0, 12]}",
+          location: fh["location"] || { "path" => fh["path"] || "unknown.rb" },
+          message: fh["message"] || "reused"
+        )
+      end
+
+      reused_ar = AnalyzerResult.new(
+        analyzer: ar_hash["analyzer"],
+        tool_version: ar_hash["tool_version"],
+        invocation: ar_hash["invocation"] || { "executable" => ar_hash["analyzer"].to_s, "argv" => ["reused"] },
+        execution_status: ar_hash["execution_status"],
+        finding_ids: reused_findings.map(&:id),
+        evidence_summary: ar_hash["evidence_summary"] || {},
+        failure: ar_hash["failure"]
+      )
+
+      AnalyzerReuseResult.new(
+        decision: REUSABLE,
+        reasons: [],
+        analyzer_result: reused_ar,
+        findings: reused_findings
+      )
+    end
   end
 end

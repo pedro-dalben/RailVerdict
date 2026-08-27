@@ -33,6 +33,12 @@ module RailVerdict
       Fingerprint.hexdigest(analyzer: analyzer, rule_id: rule_id, path: path, message: message)
     end
 
+    def self.legacy_prefixed_fingerprint_for(analyzer:, rule_id:, path:, message:)
+      return nil if rule_id.to_s.start_with?("#{analyzer}/")
+
+      Fingerprint.hexdigest(analyzer: analyzer, rule_id: "#{analyzer}/#{rule_id}", path: path, message: message)
+    end
+
     def self.id_for(fingerprint)
       hex = fingerprint.delete_prefix("sha256:")
       "rv:#{hex.slice(0, 20)}"

@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] — Unreleased
+## [1.5.0] — 2026-08-27
+
+### Rails-Native Adoption & CI Efficiency
+
+- **Native Brakeman Analyzer:** Built-in `brakeman` adapter (`RailVerdict::Analyzers::Brakeman`) supporting Brakeman 8.x JSON output, exit code reconciliation (0 clean, 3 warnings, fail-closed on crashes/timeouts), severity/confidence mappings, doctor hints, init scaffolding, and `.railverdict.yml` configuration schema 1.5.
+- **Targeted Test Verification (`RailVerdict::TestSelection`):** Intelligent Rails-aware test candidate resolution for RSpec and Minitest; isolates and executes only the tests covering modified models, controllers, services, policies, components, jobs, mailers, and helpers; explicit `test_scope: "targeted"` vs `test_scope: "full"` reporting.
+- **Conservative Safe Fallback Rules:** Automatically falls back to full test suite verification when changes touch shared infrastructure (`spec_helper`, `rails_helper`, `test_helper`, `support/**`, `Gemfile`, `config/**`, `db/schema.rb`, migrations, base classes, or unmapped source code).
+- **Per-Analyzer Tiered Evidence Reuse (`RailVerdict::VerificationPlan`):** Reuses valid static analysis evidence (RuboCop, Brakeman, BundlerAudit) from verified handoffs while allowing dynamic test suites (RSpec, Minitest) to execute freshly, newly synthesizing the combined `GateResult` with zero trust degradation.
+- **Finding ID & Rule ID Normalization:** Normalized finding rule IDs across RSpec (`example:...`), Minitest (`test:...`), and BundlerAudit (`advisory:...`), preventing redundant double-prefixed IDs in console, SARIF, and GitHub annotations reporters while maintaining 100% backward compatibility with legacy baseline fingerprints.
+- **Database Consistency Deferral:** Rigorous discovery and deferral of `database_consistency` due to lack of a stable machine JSON contract and runtime DB mutations, strictly upholding the invariant: `NO STRUCTURED CONTRACT = NO FAKE STRUCTURED ANALYZER`.
+- **Validation Lab 5.0 Catalog:** Expanded external test catalog with 18 new scenarios covering Brakeman, targeted test scopes, safe fallbacks, and tiered reuse (136 total scenarios, 100% PASS).
+- **Real-World Dogfooding:** Verified against IntegrarPlus (3,900+ specs), demonstrating a 99.4% RSpec runtime reduction (from ~146.8s down to 0.80s) on isolated model changes.
+
+## [1.4.0] — 2026-08-26
 
 ### Agent Handoff & Evidence Reuse
 

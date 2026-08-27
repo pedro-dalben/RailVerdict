@@ -123,9 +123,10 @@ class TestCheckE2EMultisource < Minitest::Test
     end
   end
 
-  def test_brakeman_is_not_a_registered_analyzer_and_unknown_key_is_rejected
-    refute RailVerdict::Check.registry.key?("brakeman")
+  def test_brakeman_is_registered_and_supported_in_v1_5
+    assert RailVerdict::Check.registry.key?("brakeman")
     with_tmpdir do |dir|
+      # In v1.1, brakeman was rejected by schema
       File.write(File.join(dir, ".railverdict.yml"), <<~YAML)
         version: 1.1
         mode: strict
@@ -140,6 +141,21 @@ class TestCheckE2EMultisource < Minitest::Test
       assert_raises(RailVerdict::ConfigurationError) do
         RailVerdict::Configuration.load(File.join(dir, ".railverdict.yml"))
       end
+
+      # In v1.5, brakeman is valid in configuration
+      File.write(File.join(dir, ".railverdict.yml"), <<~YAML)
+        version: 1.5
+        mode: strict
+        analyzers:
+          rubocop:
+            enabled: true
+            required: true
+          brakeman:
+            enabled: true
+            required: false
+      YAML
+      config = RailVerdict::Configuration.load(File.join(dir, ".railverdict.yml"))
+      assert config.analyzer_enabled?("brakeman")
     end
   end
 

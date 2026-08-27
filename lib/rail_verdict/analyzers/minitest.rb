@@ -48,7 +48,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: Shared.bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil, target_files: nil, test_scope: "full", fallback_reason: nil)
         probe_result ||= probe(repository_root, runner: runner, timeout_seconds: timeout_seconds)
 
         unless probe_result.status == "succeeded"
@@ -57,13 +57,40 @@ module RailVerdict
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: version_invocation, status: probe_result.status, message: probe_result.message, tool_version: probe_result.version), []]
         end
 
+        target_list = Array(target_files).compact.reject(&:empty?)
+        if target_files.is_a?(Array) && target_files.empty? && test_scope == "targeted"
+          summary = {
+            "schema_version" => "1.0",
+            "runner" => "minitest #{probe_result.version}",
+            "seed" => 0,
+            "tests_total" => 0,
+            "assertions" => 0,
+            "failures" => 0,
+            "errors" => 0,
+            "skips" => 0,
+            "duration_seconds" => 0.0,
+            "test_scope" => "targeted",
+            "target_files" => [],
+            "fallback_reason" => fallback_reason
+          }.compact
+          analyzer_result = AnalyzerResult.new(
+            analyzer: ANALYZER_ID,
+            tool_version: probe_result.version,
+            invocation: Shared.invocation_for(@command_resolver.call(repository_root), ["run"]),
+            execution_status: "succeeded",
+            finding_ids: [],
+            evidence_summary: summary
+          )
+          return [analyzer_result, []]
+        end
+
         command = @command_resolver.call(repository_root)
         reporter_path = resolve_reporter_path
         unless reporter_path
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: Shared.invocation_for(command, ["run"]), status: "malformed", message: "installed Minitest reporter is missing", tool_version: probe_result.version), []]
         end
 
-        invocation = Shared.invocation_for(command, ["run"])
+        invocation = Shared.invocation_for(command, target_list.empty? ? ["run"] : ["run"] + target_list)
         output_path = File.join(Dir.tmpdir, "railverdict-minitest-#{SecureRandom.hex(8)}.json")
         env_reset_required = false
         previous_env = ENV["RAILVERDICT_MINITEST_OUTPUT"]
@@ -71,7 +98,7 @@ module RailVerdict
           ENV["RAILVERDICT_MINITEST_OUTPUT"] = output_path
           env_reset_required = true
           augmented_argv = invocation.fetch("argv").dup
-          augmented_argv = inject_reporter_require(augmented_argv, reporter_path)
+          augmented_argv = inject_reporter_require(augmented_argv, reporter_path, target_files: target_list)
           result = runner.run(
             command.fetch(:executable),
             augmented_argv,
@@ -89,7 +116,7 @@ module RailVerdict
           return document if document.is_a?(Array) && document.first.is_a?(AnalyzerResult)
 
           begin
-            summary, findings = normalize_document(document)
+            summary, findings = normalize_document(document, test_scope: test_scope, target_files: target_list, fallback_reason: fallback_reason)
           rescue MalformedOutput => error
             return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
           end
@@ -175,17 +202,23 @@ analyzer_result = AnalyzerResult.new(
         base
       end
 
-      def inject_reporter_require(argv, reporter_path)
+      def inject_reporter_require(argv, reporter_path, target_files: nil)
         argv = argv.dup
+        test_expr = if target_files && !target_files.empty?
+                      files_list = target_files.map { |f| File.expand_path(f) }.inspect
+                      "#{files_list}.each{|f| require f }"
+                    else
+                      "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }"
+                    end
         if argv.include?("run")
           idx = argv.index("run")
           argv[idx] = "-r"
           argv.insert(idx + 1, reporter_path)
           argv.insert(idx + 2, "-e")
-          argv.insert(idx + 3, "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }")
+          argv.insert(idx + 3, test_expr)
         else
           argv.concat(["-r", reporter_path])
-          argv.concat(["-e", "Dir['test/**/*_test.rb'].sort.each{|f| require File.expand_path(f) }"])
+          argv.concat(["-e", test_expr])
         end
         argv
       end
@@ -220,7 +253,7 @@ analyzer_result = AnalyzerResult.new(
         end
       end
 
-      def normalize_document(document)
+      def normalize_document(document, test_scope: "full", target_files: nil, fallback_reason: nil)
         raise MalformedOutput, "Minitest JSON root must be an object" unless document.is_a?(Hash)
 
         required = %w[schema_version runner seed tests_total assertions failures errors skips duration_seconds tests]
@@ -242,6 +275,9 @@ analyzer_result = AnalyzerResult.new(
 
         findings = findings.uniq { |f| f.fingerprint }.sort_by(&:sort_key)
         summary = build_summary(document)
+        summary["test_scope"] = test_scope if test_scope
+        summary["target_files"] = target_files if target_files && !target_files.empty?
+        summary["fallback_reason"] = fallback_reason if fallback_reason
         [summary, findings]
       end
 
@@ -260,7 +296,7 @@ analyzer_result = AnalyzerResult.new(
 
         severity = status == "errored" ? "critical" : "high"
         category = "test"
-        rule_id = "minitest/test:#{class_name}##{method_name}"
+        rule_id = "test:#{class_name}##{method_name}"
         raw_msg = test["failure_message"] || test["method_name"] || "test failed: #{method_name}"
         message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg)
 

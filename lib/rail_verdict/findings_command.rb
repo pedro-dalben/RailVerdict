@@ -17,7 +17,13 @@ module RailVerdict
       outcome.findings.sort_by(&:sort_key).map do |finding|
         location = finding.location
         line = location["start_line"] ? ":#{location['start_line']}" : ""
-        "#{location.fetch('path')}#{line} [#{finding.severity}] #{finding.analyzer}/#{finding.rule_id}: #{finding.message}"
+        rule = finding.rule_id
+        rule_display = if rule.start_with?("#{finding.analyzer}/") || rule.start_with?("#{finding.analyzer}:")
+                         rule
+                       else
+                         "#{finding.analyzer}/#{rule}"
+                       end
+        "#{location.fetch('path')}#{line} [#{finding.severity}] #{rule_display}: #{finding.message}"
       end.join("\n") + "\n"
     end
   end

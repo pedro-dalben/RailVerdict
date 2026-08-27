@@ -13,7 +13,8 @@ module RailVerdict
       "minitest" => RailVerdict::Analyzers::Minitest,
       "rspec" => RailVerdict::Analyzers::RSpec,
       "simplecov" => RailVerdict::Analyzers::SimpleCov,
-      "bundler_audit" => RailVerdict::Analyzers::BundlerAudit
+      "bundler_audit" => RailVerdict::Analyzers::BundlerAudit,
+      "brakeman" => RailVerdict::Analyzers::Brakeman
     }.freeze
 
     def self.registry
@@ -86,7 +87,7 @@ module RailVerdict
 
     module_function
 
-    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil, baseline_path_override: nil, waiver_path_override: nil, clock: Time.now.utc, changed: false, base: nil)
+    def execute(repository_root:, config_path:, runner: ProcessRunner, rubocop_command_resolver: nil, analyzer_timeout_seconds: 30.0, interrupted: nil, baseline_path_override: nil, waiver_path_override: nil, clock: Time.now.utc, changed: false, base: nil, handoff_document: nil)
       root = File.realpath(repository_root)
       resolved_config = resolve_config_path(root, config_path)
       configuration = Configuration.load(resolved_config)
@@ -141,10 +142,44 @@ module RailVerdict
       )
       return interrupted_outcome(context: context, configuration: configuration) if interrupted&.call
 
+      input_paths = effective_input_paths(
+        root: root,
+        config_path: config_path,
+        baseline_path_override: baseline_path_override,
+        waiver_path_override: waiver_path_override
+      )
+      current_repo_state = capture_guard_state(root, input_paths)
+      current_env = {
+        "ruby_engine" => defined?(RUBY_ENGINE) ? RUBY_ENGINE : "ruby",
+        "ruby_version" => RUBY_VERSION,
+        "railverdict_version" => RailVerdict::VERSION,
+        "analyzer_versions" => analyzer_versions
+      }
+
+      plan = VerificationPlan.build(
+        repository_root: root,
+        configuration: configuration,
+        probes: probes,
+        git_context: git_context,
+        handoff_document: handoff_document,
+        current_repository_state: current_repo_state,
+        current_environment: current_env,
+        changed: changed
+      )
+
       analyzer_results = []
       findings = []
       configuration.analyzers.each do |name, selection|
         next unless selection.fetch("enabled")
+
+        name = name.to_s
+        if plan.analyzers_to_reuse.include?(name)
+          reused_ar = plan.reused_results[name]
+          reused_f = plan.reused_findings[name] || []
+          analyzer_results << reused_ar
+          findings.concat(reused_f)
+          next
+        end
 
         adapter_class = REGISTRY[name]
         unless adapter_class
@@ -162,13 +197,37 @@ module RailVerdict
         probe = probes[name]
         timeout_seconds = resolve_timeout_seconds(configuration, name, analyzer_timeout_seconds)
         begin
-          analyzer_result, analyzer_findings = adapter.run(
-            root,
-            runner: runner,
-            probe_result: probe,
-            timeout_seconds: timeout_seconds,
-            configuration: configuration
-          )
+          analyzer_result, analyzer_findings = if name == "rspec"
+                                                 adapter.run(
+                                                   root,
+                                                   runner: runner,
+                                                   probe_result: probe,
+                                                   timeout_seconds: timeout_seconds,
+                                                   configuration: configuration,
+                                                   target_files: plan.target_files["rspec"],
+                                                   test_scope: plan.test_scope,
+                                                   fallback_reason: plan.fallback_reasons["rspec"]
+                                                 )
+                                               elsif name == "minitest"
+                                                 adapter.run(
+                                                   root,
+                                                   runner: runner,
+                                                   probe_result: probe,
+                                                   timeout_seconds: timeout_seconds,
+                                                   configuration: configuration,
+                                                   target_files: plan.target_files["minitest"],
+                                                   test_scope: plan.test_scope,
+                                                   fallback_reason: plan.fallback_reasons["minitest"]
+                                                 )
+                                               else
+                                                 adapter.run(
+                                                   root,
+                                                   runner: runner,
+                                                   probe_result: probe,
+                                                   timeout_seconds: timeout_seconds,
+                                                   configuration: configuration
+                                                 )
+                                               end
         rescue StandardError => error
           # Guarded boundary: analyzer normalization must never bypass GateResult
           message = RailVerdict::Analyzers::Shared.bounded_message("#{error.class}: #{error.message}")
@@ -393,18 +452,28 @@ module RailVerdict
     end
     private_class_method :interrupted_outcome
 
-    def build_adapter(name, rubocop_command_resolver)
+    def build_adapter(name, command_resolver)
+      resolver = if command_resolver.is_a?(Hash)
+                   command_resolver[name] || command_resolver[name.to_sym]
+                 elsif name == "rubocop"
+                   command_resolver
+                 else
+                   nil
+                 end
+
       case name
       when "rubocop"
-        RailVerdict::Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
+        RailVerdict::Analyzers::RuboCop.new(command_resolver: resolver)
       when "minitest"
-        RailVerdict::Analyzers::Minitest.new
+        RailVerdict::Analyzers::Minitest.new(command_resolver: resolver)
       when "rspec"
-        RailVerdict::Analyzers::RSpec.new
+        RailVerdict::Analyzers::RSpec.new(command_resolver: resolver)
       when "simplecov"
         RailVerdict::Analyzers::SimpleCov.new
       when "bundler_audit"
-        RailVerdict::Analyzers::BundlerAudit.new
+        RailVerdict::Analyzers::BundlerAudit.new(command_resolver: resolver)
+      when "brakeman"
+        RailVerdict::Analyzers::Brakeman.new(command_resolver: resolver)
       end
     end
     private_class_method :build_adapter

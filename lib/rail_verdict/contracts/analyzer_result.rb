@@ -117,7 +117,7 @@ module RailVerdict
       value.each do |key, entry|
         raise ArgumentError, "evidence_summary keys must be non-empty strings" unless key.is_a?(String) && !key.empty? && key.bytesize <= 128
         if entry.is_a?(Hash) || entry.is_a?(Array)
-          raise ArgumentError, "evidence_summary values must be primitives" unless key.start_with?("changed_") || key == "files" || key == "_coverage_document" || key == "_files"
+          raise ArgumentError, "evidence_summary values must be primitives" unless key.start_with?("changed_") || key == "files" || key == "_coverage_document" || key == "_files" || key == "target_files"
         else
           unless entry.is_a?(Integer) || entry.is_a?(Float) || entry.is_a?(String) || entry.nil? || entry == true || entry == false
             raise ArgumentError, "evidence_summary values must be primitives"

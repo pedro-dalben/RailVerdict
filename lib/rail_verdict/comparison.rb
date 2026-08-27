@@ -33,13 +33,28 @@ module RailVerdict
       current_by_fp = findings.to_h { |finding| [finding.fingerprint, finding] }
       current_fps = Set.new(current_by_fp.keys)
 
+      legacy_matched_fps = {}
+      findings.each do |finding|
+        legacy_fp = Finding.legacy_prefixed_fingerprint_for(
+          analyzer: finding.analyzer,
+          rule_id: finding.rule_id,
+          path: finding.location["path"],
+          message: finding.message
+        )
+        if legacy_fp && baseline_fps.include?(legacy_fp) && !current_fps.include?(legacy_fp)
+          current_by_fp[legacy_fp] = finding
+          current_fps.add(legacy_fp)
+          legacy_matched_fps[finding.fingerprint] = legacy_fp
+        end
+      end
+
       existing_fps = baseline_fps & current_fps
       resolved_fps = baseline_fps - current_fps
       introduced_fps = current_fps - baseline_fps
 
       existing = existing_fps.map { |fingerprint| restate(current_by_fp.fetch(fingerprint), "existing") }.sort_by(&:sort_key)
       resolved_entries = resolved_fps.map { |fingerprint| baseline_by_fp.fetch(fingerprint) }.sort_by { |entry| entry.fetch("fingerprint") }
-      introduced_candidates = introduced_fps.map { |fingerprint| current_by_fp.fetch(fingerprint) }.sort_by(&:sort_key)
+      introduced_candidates = introduced_fps.map { |fingerprint| current_by_fp.fetch(fingerprint) }.reject { |f| legacy_matched_fps.key?(f.fingerprint) }.sort_by(&:sort_key)
 
       resolved_by_key = build_resolved_index(resolved_entries)
       changed, moved, introduced = partition_introduced(introduced_candidates, resolved_by_key, resolved_entries, rename_map: rename_map)
@@ -125,7 +140,8 @@ module RailVerdict
       consumed_resolved = Set.new
       candidates.each do |finding|
         key_exact = [finding.analyzer, finding.rule_id, finding.message]
-        exact_matches = resolved_by_key[key_exact].reject { |entry| consumed_resolved.include?(entry.fetch("fingerprint")) }
+        key_legacy = [finding.analyzer, "#{finding.analyzer}/#{finding.rule_id}", finding.message]
+        exact_matches = (resolved_by_key[key_exact] + resolved_by_key[key_legacy]).uniq { |e| e.fetch("fingerprint") }.reject { |entry| consumed_resolved.include?(entry.fetch("fingerprint")) }
         if exact_matches.length == 1
           resolved_entry = exact_matches.first
           if resolved_entry.fetch("path") != finding.location.fetch("path")

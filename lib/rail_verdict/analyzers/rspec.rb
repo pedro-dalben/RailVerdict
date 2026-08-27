@@ -50,7 +50,7 @@ module RailVerdict
         Probe.new(status: "malformed", message: Shared.bounded_message(error.message))
       end
 
-      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil)
+      def run(repository_root, runner: ProcessRunner, timeout_seconds: 30.0, probe_result: nil, configuration: nil, target_files: nil, test_scope: "full", fallback_reason: nil)
         command = @command_resolver.call(repository_root)
         clean_prefix = clean_args_prefix(command.fetch(:args_prefix))
         clean_command = command.merge(args_prefix: clean_prefix)
@@ -61,9 +61,35 @@ module RailVerdict
           return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: version_invocation, status: probe_result.status, message: probe_result.message, tool_version: probe_result.version), []]
         end
 
+        if target_files.is_a?(Array) && target_files.empty? && test_scope == "targeted"
+          summary = {
+            "tests_total" => 0,
+            "duration_seconds" => 0.0,
+            "failures" => 0,
+            "errors" => 0,
+            "assertions" => 0,
+            "skips" => 0,
+            "runner" => "rspec #{probe_result.version}",
+            "test_scope" => "targeted",
+            "target_files" => [],
+            "fallback_reason" => fallback_reason
+          }.compact
+          analyzer_result = AnalyzerResult.new(
+            analyzer: ANALYZER_ID,
+            tool_version: probe_result.version,
+            invocation: Shared.invocation_for(clean_command, ["--format", "json"]),
+            execution_status: "succeeded",
+            finding_ids: [],
+            evidence_summary: summary
+          )
+          return [analyzer_result, []]
+        end
+
         output_path = File.join(Dir.tmpdir, "railverdict-rspec-#{SecureRandom.hex(8)}.json")
-        public_invocation = Shared.invocation_for(clean_command, ["--format", "json"])
-        run_argv = clean_prefix.dup.concat(["--format", "json", "--out", output_path])
+        target_list = Array(target_files).compact.reject(&:empty?)
+        public_argv = target_list.empty? ? ["--format", "json"] : target_list + ["--format", "json"]
+        public_invocation = Shared.invocation_for(clean_command, public_argv)
+        run_argv = clean_prefix.dup.concat(target_list).concat(["--format", "json", "--out", output_path])
 
         max_stdout = resolve_stdout_limit(configuration, repository_root, 16 * 1024 * 1024)
         tool_version = probe_result.version
@@ -111,7 +137,7 @@ module RailVerdict
           end
 
           begin
-            summary, findings = normalize_document(document)
+            summary, findings = normalize_document(document, test_scope: test_scope, target_files: target_list, fallback_reason: fallback_reason)
           rescue MalformedOutput => error
             return [Shared.failure_result(analyzer_id: ANALYZER_ID, invocation: public_invocation, status: "malformed", message: Shared.bounded_message(error.message), tool_version: tool_version), []]
           end
@@ -184,7 +210,7 @@ module RailVerdict
         cleaned
       end
 
-      def normalize_document(document)
+      def normalize_document(document, test_scope: "full", target_files: nil, fallback_reason: nil)
         raise MalformedOutput, "RSpec JSON root must be an object" unless document.is_a?(Hash)
 
         summary = document["summary"]
@@ -203,6 +229,9 @@ module RailVerdict
         findings = findings.uniq { |f| f.fingerprint }.sort_by(&:sort_key)
         summary_h = build_summary(summary, version)
         summary_h["tests_total"] = examples.length
+        summary_h["test_scope"] = test_scope if test_scope
+        summary_h["target_files"] = target_files if target_files && !target_files.empty?
+        summary_h["fallback_reason"] = fallback_reason if fallback_reason
 
         [summary_h, findings]
       end
@@ -222,7 +251,7 @@ module RailVerdict
         raw_msg = (example["exception"] && example["exception"]["message"]) || example["full_description"] || example["description"] || nil
         message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg.nil? || raw_msg.to_s.strip.empty? ? "rspec example failed" : raw_msg)
 
-        rule_id = "rspec/example:#{example[id] || id_for(example, index)}"
+        rule_id = "example:#{example[id] || id_for(example, index)}"
         path = normalize_path(example["file_path"] || example["file"] || "spec/unknown_spec.rb")
         failure_line, failure_path = failure_location(example, path)
         start_line = failure_line || example["line_number"] || extract_line(example["id"])

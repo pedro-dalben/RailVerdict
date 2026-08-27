@@ -218,7 +218,7 @@ class TestMinitestRealIntegration < Minitest::Test
       finding = payload.fetch("findings").first
       assert_equal "minitest", finding.fetch("analyzer")
       assert_equal "deterministic", finding.fetch("origin")
-      assert_match %r{\Aminitest/test:FailSuiteTest#test_fails_here\z}, finding.fetch("rule_id")
+      assert_match %r{\Atest:FailSuiteTest#test_fails_here\z}, finding.fetch("rule_id")
       assert finding.fetch("location").key?("path")
       assert finding.fetch("location").key?("start_line")
       assert_equal run_file.delete_prefix("./"), finding.fetch("location").fetch("path") if finding.fetch("location").fetch("path").start_with?("/")

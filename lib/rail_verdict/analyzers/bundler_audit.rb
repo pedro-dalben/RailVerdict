@@ -147,7 +147,7 @@ module RailVerdict
         raw_msg = advisory["title"] || advisory["description"] || entry["title"] || entry["description"] || "vulnerability in #{gem_name}"
         message = Shared.normalize_finding_message(ANALYZER_ID, raw_msg)
 
-        rule_id = "bundler_audit/advisory:#{id}"
+        rule_id = "advisory:#{id}"
         category = "dependency"
 
         path = "Gemfile.lock"

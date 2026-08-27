@@ -26,7 +26,7 @@ module RailVerdict
       @available
     end
 
-    def self.capture(repository_root:, configuration: nil, runner: ProcessRunner, timeout_seconds: MAX_PROBE_TIMEOUT)
+    def self.capture(repository_root:, configuration: nil, runner: ProcessRunner, timeout_seconds: MAX_PROBE_TIMEOUT, command_resolver: nil)
       railverdict_version = RailVerdict::VERSION.to_s
       ruby_engine = RUBY_ENGINE.to_s
       ruby_version = RUBY_VERSION.to_s
@@ -51,7 +51,7 @@ module RailVerdict
           adapter_class = Check::REGISTRY[name]
           next unless adapter_class
 
-          adapter = build_adapter(name)
+          adapter = build_adapter(name, command_resolver)
           next unless adapter
 
           probe_timeout = resolve_probe_timeout(config, name, timeout_seconds)
@@ -152,13 +152,22 @@ module RailVerdict
       )
     end
 
-    private_class_method def self.build_adapter(name)
+    private_class_method def self.build_adapter(name, command_resolver = nil)
+      resolver = if command_resolver.is_a?(Hash)
+                   command_resolver[name] || command_resolver[name.to_sym]
+                 elsif name == "rubocop"
+                   command_resolver
+                 else
+                   nil
+                 end
+
       case name
-      when "rubocop" then RailVerdict::Analyzers::RuboCop.new
-      when "minitest" then RailVerdict::Analyzers::Minitest.new
-      when "rspec" then RailVerdict::Analyzers::RSpec.new
+      when "rubocop" then RailVerdict::Analyzers::RuboCop.new(command_resolver: resolver)
+      when "minitest" then RailVerdict::Analyzers::Minitest.new(command_resolver: resolver)
+      when "rspec" then RailVerdict::Analyzers::RSpec.new(command_resolver: resolver)
       when "simplecov" then RailVerdict::Analyzers::SimpleCov.new
-      when "bundler_audit" then RailVerdict::Analyzers::BundlerAudit.new
+      when "bundler_audit" then RailVerdict::Analyzers::BundlerAudit.new(command_resolver: resolver)
+      when "brakeman" then RailVerdict::Analyzers::Brakeman.new(command_resolver: resolver)
       end
     rescue StandardError
       nil

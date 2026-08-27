@@ -90,18 +90,28 @@ module RailVerdict
     end
     private_class_method :resolve_config_path
 
-    def build_adapter(name, rubocop_command_resolver)
+    def build_adapter(name, command_resolver)
+      resolver = if command_resolver.is_a?(Hash)
+                   command_resolver[name] || command_resolver[name.to_sym]
+                 elsif name == "rubocop"
+                   command_resolver
+                 else
+                   nil
+                 end
+
       case name
       when "rubocop"
-        RailVerdict::Analyzers::RuboCop.new(command_resolver: rubocop_command_resolver)
+        RailVerdict::Analyzers::RuboCop.new(command_resolver: resolver)
       when "minitest"
-        RailVerdict::Analyzers::Minitest.new
+        RailVerdict::Analyzers::Minitest.new(command_resolver: resolver)
       when "rspec"
-        RailVerdict::Analyzers::RSpec.new
+        RailVerdict::Analyzers::RSpec.new(command_resolver: resolver)
       when "simplecov"
         RailVerdict::Analyzers::SimpleCov.new
       when "bundler_audit"
-        RailVerdict::Analyzers::BundlerAudit.new
+        RailVerdict::Analyzers::BundlerAudit.new(command_resolver: resolver)
+      when "brakeman"
+        RailVerdict::Analyzers::Brakeman.new(command_resolver: resolver)
       end
     end
     private_class_method :build_adapter
@@ -119,6 +129,8 @@ module RailVerdict
         "Generate coverage at coverage/coverage.json (SimpleCov JSON formatter) before check. (#{msg})"
       when "bundler_audit"
         "Add `bundler-audit` to the bundle; run `bundle exec bundler-audit update` separately. (#{msg})"
+      when "brakeman"
+        "Add `brakeman` to the target bundle and run bundle install. (#{msg})"
       else
         msg
       end

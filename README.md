@@ -35,7 +35,8 @@ Running test suites alone is not enough to answer a fundamental question:
 Existing tools produce fragmented formats and disparate semantics:
 
 - **RuboCop** reports style and lint offenses;
-- **RSpec** and **Minitest** report test outcomes and failures;
+- **Brakeman** reports Rails security vulnerabilities;
+- **RSpec** and **Minitest** report test outcomes and failures (with intelligent Rails-aware targeted test selection);
 - **SimpleCov** reports line coverage metrics;
 - **bundler-audit** reports gem dependency advisories;
 - **Git** tracks what actually changed.

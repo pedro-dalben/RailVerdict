@@ -115,10 +115,15 @@ module RailVerdict
           key = "#{analyzer}:#{rule_id}"
           next if seen.key?(key)
 
+          desc = if rule_id.to_s.start_with?("#{analyzer}/") || rule_id.to_s.start_with?("#{analyzer}:")
+                   rule_id.to_s
+                 else
+                   "#{analyzer}/#{rule_id}"
+                 end
           seen[key] = {
             "id" => rule_id.to_s,
             "name" => rule_id.to_s,
-            "shortDescription" => { "text" => "#{analyzer}/#{rule_id}" },
+            "shortDescription" => { "text" => desc },
             "fullDescription" => { "text" => "Analyzer #{analyzer} rule #{rule_id}" },
             "properties" => { "analyzer" => analyzer.to_s }
           }

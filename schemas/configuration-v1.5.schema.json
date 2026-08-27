@@ -25,7 +25,8 @@
         "minitest": { "$ref": "#/$defs/analyzerSelection" },
         "rspec": { "$ref": "#/$defs/analyzerSelection" },
         "simplecov": { "$ref": "#/$defs/simplecovSelection" },
-        "bundler_audit": { "$ref": "#/$defs/bundlerAuditSelection" }
+        "bundler_audit": { "$ref": "#/$defs/bundlerAuditSelection" },
+        "brakeman": { "$ref": "#/$defs/analyzerSelection" }
       },
       "additionalProperties": false,
       "unevaluatedProperties": false

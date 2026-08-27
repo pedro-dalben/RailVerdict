@@ -21,7 +21,12 @@ module RailVerdict
           file_part = "file=#{escape_property(path)}"
           line_part = line ? ",line=#{line}" : ""
           col_part = col ? ",col=#{col}" : ""
-          title = escape_data("#{analyzer}:#{rule_id}")
+          title_rule = if rule_id.to_s.start_with?("#{analyzer}:") || rule_id.to_s.start_with?("#{analyzer}/")
+                         rule_id.to_s
+                       else
+                         "#{analyzer}:#{rule_id}"
+                       end
+          title = escape_data(title_rule)
           msg = escape_data("#{message} [#{finding['state'] || finding[:state] || 'observed'}]")
           lines << "::#{level} #{file_part}#{line_part}#{col_part},title=#{title}::#{msg}"
         end

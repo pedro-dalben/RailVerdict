@@ -276,12 +276,11 @@ module RailVerdict
           return exit_code_for(outcome.result, interrupted: interrupted)
         end
       else
-        @stderr.puts "Handoff #{reuse_result.decision}: #{reuse_result.reasons.join(', ')}; running full verification" if options[:format] != "json"
-        # Fallback to full verification
-        outcome, interrupted = execute_check(options.reject { |k, _| k == :handoff })
+        @stderr.puts "Handoff #{reuse_result.decision}: #{reuse_result.reasons.join(', ')}; executing selective verification" if options[:format] != "json"
+        # Partial reuse / selective verification through VerificationPlan
+        outcome, interrupted = execute_check(options.reject { |k, _| k == :handoff }.merge(handoff_document: handoff_doc))
         # Annotate result with reuse info when json
         if options[:format] == "json" && outcome.result.respond_to?(:to_schema_h)
-          # We cannot mutate GateResult; we just render normally but also log reuse decision to stderr
           @stderr.puts JSON.generate({ "handoff_reuse" => { "decision" => reuse_result.decision, "reasons" => reuse_result.reasons } })
         end
         return EXIT_NO_GATE unless render_result(outcome.result, options[:format])
@@ -427,6 +426,7 @@ module RailVerdict
       execute_options[:baseline_path_override] = options[:output] if options.key?(:output) && options[:output]
       execute_options[:changed] = options[:changed] if options.key?(:changed)
       execute_options[:base] = options[:base] if options.key?(:base)
+      execute_options[:handoff_document] = options[:handoff_document] if options.key?(:handoff_document) && options[:handoff_document]
       outcome = Check.execute(**execute_options)
       [outcome, interrupted]
     ensure
