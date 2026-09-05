@@ -10,6 +10,7 @@ module RailVerdict
     EXIT_OK = 0
     EXIT_POLICY_FAIL = 1
     EXIT_NO_GATE = 2
+    EXIT_REVIEW_REQUIRED = 3
     EXIT_INTERRUPTED = 130
 
     FORMATS = %w[console json sarif].freeze
@@ -22,6 +23,7 @@ module RailVerdict
         init             Write the default .railverdict.yml configuration
         doctor           Report configuration and analyzer observations
         check            Run verification and print the gate result
+        policy           Evaluate engineering policy requirements over the gate
         pr               Summarize one changed-scope verification for review
         baseline create  Deferred boundary; Phase 3 owns baseline writes
         findings         Print normalized findings from the evidence run
@@ -56,10 +58,10 @@ module RailVerdict
         command_init(argv.drop(1))
       when "doctor"
         command_doctor(argv.drop(1))
-      when "check"
-        command_check(argv.drop(1))
       when "pr"
         command_pr(argv.drop(1))
+      when "policy"
+        command_policy(argv.drop(1))
       when "baseline"
         command_baseline(argv.drop(1))
       when "findings"
@@ -318,6 +320,68 @@ module RailVerdict
     rescue RailVerdict::Error => error
       @stderr.puts "railverdict pr: #{error.message}"
       EXIT_NO_GATE
+    end
+
+    def command_policy(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", base: nil, baseline: nil, waiver: nil, receipt: nil, handoff: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict policy [--config PATH] [--format console|json] [--base REV] [--baseline PATH] [--waiver PATH] [--receipt PATH] [--handoff PATH]"
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+        opts.on("--receipt PATH", String) { |value| options[:receipt] = value }
+        opts.on("--handoff PATH", String) { |value| options[:handoff] = value }
+      end
+      parse!(parser, argv)
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+      if !options[:receipt].nil? && !options[:handoff].nil?
+        raise RailVerdict::UsageError, "only one of --receipt and --handoff may be given"
+      end
+
+      outcome, interrupted = execute_check(options.merge(changed: true))
+      return EXIT_INTERRUPTED if interrupted
+      receipt = load_policy_binding(path: options[:receipt], kind: "receipt")
+      handoff = load_policy_binding(path: options[:handoff], kind: "handoff")
+      envelope = EngineeringPolicy.evaluate(outcome: outcome, receipt: receipt, handoff: handoff)
+      if options[:format] == "json"
+        @stdout.write("#{CanonicalJSON.generate(envelope)}\n")
+      else
+        @stdout.write(Reporters::EngineeringPolicy.render(envelope))
+      end
+      exit_code_for_policy(envelope, outcome)
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict policy: #{error.message}"
+      @stderr.puts USAGE
+      EXIT_NO_GATE
+    rescue RailVerdict::Error => error
+      @stderr.puts "railverdict policy: #{error.message}"
+      EXIT_NO_GATE
+    end
+
+    def load_policy_binding(path:, kind:)
+      return nil if path.nil?
+      text = begin
+        File.binread(path)
+      rescue StandardError
+        raise RailVerdict::Error, "cannot read #{kind}: #{path}"
+      end
+      document, error = kind == "receipt" ? Receipt.parse(text) : Handoff.parse(text)
+      raise RailVerdict::Error, "invalid #{kind}: #{error}" if document.nil?
+      document
+    end
+
+    def exit_code_for_policy(envelope, outcome)
+      return EXIT_INTERRUPTED if outcome.result.completion_status == "interrupted"
+      case envelope["decision"]
+      when "PASS" then EXIT_OK
+      when "FAIL" then EXIT_POLICY_FAIL
+      when "REVIEW_REQUIRED" then EXIT_REVIEW_REQUIRED
+      else EXIT_NO_GATE
+      end
     end
 
     def command_baseline(argv)
