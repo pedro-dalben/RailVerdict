@@ -9,9 +9,12 @@ nodes:
       - docs/program/1.6-current-state.md
   G17:
     depends_on: [G0]
-    status: pending
+    status: passed
     success: ENGINEERING_POLICY_READY
     returns_to: G17
+    evidence:
+      - docs/adr/0020-engineering-policy-contract.md
+      - docs/release/1.7-implementation-report.md
   G18:
     depends_on: [G17]
     status: pending
