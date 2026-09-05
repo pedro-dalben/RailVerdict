@@ -20,6 +20,7 @@ module RailVerdict
     def evaluate(outcome:, pr_document: nil, receipt: nil, handoff: nil)
       result = outcome.result
       configuration = outcome.configuration
+      raise RailVerdict::Error, "policy evaluation requires a readable configuration file" if configuration.nil?
       document = pr_document || PRIntelligence.document(outcome)
       policy = effective_policy(configuration)
 
@@ -154,19 +155,21 @@ module RailVerdict
       scope = document["verification_scope"].is_a?(Hash) ? document["verification_scope"] : {}
       evidence_index = analyzer_evidence_index(result)
 
+      changes.keys.sort.each do |key|
+        next if ChangeSurfaces::SURFACES.key?(key) || area_named?(configuration, key)
+        raise ConfigurationError.new(
+          "engineering_policy.changes key #{key.inspect} is not a known change surface or project area",
+          source_path: configuration.source_path, property_path: "engineering_policy.changes"
+        )
+      end
+
       changes.keys.sort.flat_map do |key|
         rule = changes[key]
         surface_changed = surfaces.dig(key, "changed") == true
         area_changed = areas.any? { |area| area["name"] == key && area["changed"] == true }
         unless surface_changed || area_changed
-          if ChangeSurfaces::SURFACES.key?(key) || area_named?(configuration, key)
-            next [not_applicable("req-changes-#{slug(key)}", "required_analyzer",
-              "surface #{key.inspect} unchanged; analyzer rule not triggered")]
-          end
-          raise ConfigurationError.new(
-            "engineering_policy.changes key #{key.inspect} is not a known change surface, project area, or risk level",
-            source_path: configuration.source_path, property_path: "engineering_policy.changes"
-          )
+          next [not_applicable("req-changes-#{slug(key)}", "required_analyzer",
+            "surface #{key.inspect} unchanged; analyzer rule not triggered")]
         end
         plan_surface_rule(key: key, rule: rule, scope: scope, evidence_index: evidence_index, configuration: configuration)
       end
@@ -367,11 +370,16 @@ module RailVerdict
     end
 
     def dig_digest(document)
-      provenance = document["provenance"]
-      return nil unless provenance.is_a?(Hash)
-
-      digest = provenance["configuration_digest"]
-      digest.is_a?(String) && digest.match?(/\A[0-9a-f]{64}\z/) ? digest : nil
+      candidates = [
+        document.dig("repository_state", "configuration_digest"),
+        document.dig("provenance", "configuration_digest")
+      ]
+      candidates.each do |digest|
+        next unless digest.is_a?(String)
+        bare = digest.sub(/\Asha256:/, "")
+        return bare if bare.match?(/\A[0-9a-f]{64}\z/)
+      end
+      nil
     end
   end
 end
