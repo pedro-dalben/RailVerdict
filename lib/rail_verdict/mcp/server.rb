@@ -70,6 +70,7 @@ module RailVerdict
         require_relative "tools/investigate"
         require_relative "tools/get_verification_receipt"
         require_relative "tools/get_pr_intelligence"
+        require_relative "tools/get_engineering_policy"
         require_relative "tools/create_handoff"
         require_relative "tools/inspect_handoff"
         require_relative "tools/verify_handoff"
@@ -84,6 +85,7 @@ module RailVerdict
           Tools::Investigate,
           Tools::GetVerificationReceipt,
           Tools::GetPRIntelligence,
+          Tools::GetEngineeringPolicy,
           Tools::CreateHandoff,
           Tools::InspectHandoff,
           Tools::VerifyHandoff
