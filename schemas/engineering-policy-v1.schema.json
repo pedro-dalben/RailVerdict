@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/engineering-policy/v1.schema.json",
+  "title": "RailVerdict Engineering Policy Result v1",
+  "description": "Deterministic governance evaluation over a decided GateResult plus canonical 1.6 change intelligence. GateResult stays the verification authority; this envelope reports readiness (PASS/FAIL/INCOMPLETE/REVIEW_REQUIRED). Human messages are presentation only and never digest-covered identity.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "decision",
+    "gate",
+    "completion_status",
+    "configuration_digest",
+    "policy_digest",
+    "requirements",
+    "reason_codes"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "decision": { "enum": ["PASS", "FAIL", "INCOMPLETE", "REVIEW_REQUIRED"] },
+    "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+    "completion_status": { "enum": ["complete", "incomplete", "interrupted"] },
+    "configuration_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "policy_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "requirements": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/requirement" }
+    },
+    "reason_codes": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "drift": {
+      "type": ["object", "null"],
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["fresh", "policy_drift", "unavailable"] },
+        "code": { "type": "string", "minLength": 1, "maxLength": 128 }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false,
+  "$defs": {
+    "requirement": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "trigger",
+        "status",
+        "required_evidence",
+        "observed_evidence",
+        "reason_codes",
+        "provenance",
+        "classification"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "kind": {
+          "enum": [
+            "new_findings",
+            "changed_lines_coverage",
+            "required_analyzer",
+            "full_verification_scope",
+            "baseline_compatible",
+            "human_review",
+            "gate_mirror"
+          ]
+        },
+        "trigger": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "status": {
+          "enum": [
+            "satisfied",
+            "violated",
+            "unavailable",
+            "not_applicable",
+            "review_required"
+          ]
+        },
+        "required_evidence": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        },
+        "observed_evidence": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        },
+        "recovery_action": { "type": ["string", "null"], "minLength": 1, "maxLength": 512 },
+        "reason_codes": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+        },
+        "provenance": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "classification": { "enum": ["deterministic", "review"] }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  }
+}

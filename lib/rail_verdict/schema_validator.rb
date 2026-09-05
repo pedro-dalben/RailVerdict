@@ -6,6 +6,7 @@ require "json_schemer"
 module RailVerdict
   module SchemaValidator
     CONFIGURATION_SCHEMA = "configuration-v1.schema.json"
+    CONFIGURATION_V17_SCHEMA = "configuration-v1.7.schema.json"
     CONFIGURATION_V16_SCHEMA = "configuration-v1.6.schema.json"
     CONFIGURATION_V11_SCHEMA = "configuration-v1.1.schema.json"
     CONFIGURATION_V12_SCHEMA = "configuration-v1.2.schema.json"
@@ -22,15 +23,17 @@ module RailVerdict
     PR_INTELLIGENCE_SCHEMA = "pr-intelligence-v1.schema.json"
     PR_INTELLIGENCE_V11_SCHEMA = "pr-intelligence-v1.1.schema.json"
     VERIFICATION_RECEIPT_SCHEMA = "verification-receipt-v1.schema.json"
-    RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
     VERIFICATION_HANDOFF_SCHEMA = "verification-handoff-v1.schema.json"
+    ENGINEERING_POLICY_SCHEMA = "engineering-policy-v1.schema.json"
 
     def self.schema_dir
       File.expand_path("../../schemas", __dir__)
     end
 
     def self.validate_configuration(data)
-      schema_name = if data.is_a?(Hash) && data["version"] == 1.6
+      schema_name = if data.is_a?(Hash) && data["version"] == 1.7
+                      CONFIGURATION_V17_SCHEMA
+                    elsif data.is_a?(Hash) && data["version"] == 1.6
                       CONFIGURATION_V16_SCHEMA
                     elsif data.is_a?(Hash) && data["version"] == 1.5
                       CONFIGURATION_V15_SCHEMA
@@ -95,6 +98,10 @@ module RailVerdict
 
     def self.validate_handoff(data)
       validate(data, VERIFICATION_HANDOFF_SCHEMA)
+    end
+
+    def self.validate_engineering_policy(data)
+      validate(data, ENGINEERING_POLICY_SCHEMA)
     end
 
     def self.validate(data, schema_name)
