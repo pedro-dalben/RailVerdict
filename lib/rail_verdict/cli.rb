@@ -58,6 +58,8 @@ module RailVerdict
         command_init(argv.drop(1))
       when "doctor"
         command_doctor(argv.drop(1))
+      when "check"
+        command_check(argv.drop(1))
       when "pr"
         command_pr(argv.drop(1))
       when "policy"

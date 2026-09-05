@@ -23,6 +23,7 @@ module RailVerdict
     PR_INTELLIGENCE_SCHEMA = "pr-intelligence-v1.schema.json"
     PR_INTELLIGENCE_V11_SCHEMA = "pr-intelligence-v1.1.schema.json"
     VERIFICATION_RECEIPT_SCHEMA = "verification-receipt-v1.schema.json"
+    RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
     VERIFICATION_HANDOFF_SCHEMA = "verification-handoff-v1.schema.json"
     ENGINEERING_POLICY_SCHEMA = "engineering-policy-v1.schema.json"
 
