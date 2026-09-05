@@ -59,7 +59,9 @@ module RailVerdict
     end
 
     def drift_status(receipt:, handoff:, configuration:)
-      document = handoff.is_a?(Hash) ? handoff["receipt"] : receipt
+      inner = handoff.nil? ? receipt : handoff
+      document = unwrap_binding(inner)
+      document = unwrap_binding(document["receipt"]) if document.is_a?(Hash) && document.key?("receipt")
       return nil if document.nil?
       return { "status" => "unavailable", "code" => "receipt_digest_unavailable" } unless document.is_a?(Hash)
 
@@ -71,6 +73,13 @@ module RailVerdict
       else
         { "status" => "policy_drift", "code" => "policy_or_config_changed_since_receipt" }
       end
+    end
+
+    def unwrap_binding(value)
+      return value if value.is_a?(Hash)
+      return value.document if value.respond_to?(:document) && value.document.is_a?(Hash)
+
+      nil
     end
 
     # --- planner ----------------------------------------------------------
