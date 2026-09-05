@@ -42,20 +42,25 @@ All tools are `readOnlyHint: true, destructiveHint: false, idempotentHint: true,
 | `investigate` | `{limit? 1..3, preview?}` | preview: `{preview:true, manifests:[...]}` else `{results:[{failure?,analysis?}]}` | Same advisory guarantees. `limit` default 3. |
 | `get_verification_receipt` | `{}` | fresh: `{status:"fresh", receipt: Verification Receipt v1}`; otherwise `{status:"verification_required"|"state_unavailable", code, message}` | Reads the last canonical verification from cache WITHOUT rerunning analyzers. Stale cached evidence is refused with `stale_receipt` — never returned as current. |
 | `get_pr_intelligence` | `{}` | fresh changed-scope: `{status:"fresh", pr_intelligence: PR Intelligence v1}`; otherwise explicit status/code/message | Same single-execution guarantee; full-scope verifications return `pr_intelligence_unavailable`. |
+| `create_handoff` | `{changed?, base?}` | `{status, handoff: Verification Handoff v1, handoff_id}` | Bounded `256 KiB` transport envelope over the last verification; receiver re-evaluates. |
+| `inspect_handoff` | `{handoff}` | `{handoff_valid, receipt_fresh, decision, reasons}` | Structural inspect without trust; never executes analyzers. |
+| `verify_handoff` | `{handoff}` | `{handoff_valid, receipt_fresh, decision, reasons}` | Canonical `Reuse.evaluate` against current identity; stale evidence yields `VERIFICATION_REQUIRED`. |
+| `get_engineering_policy` | `{}` | fresh: `{status:"fresh", engineering_policy: Engineering Policy v1}`; otherwise explicit status/code/message | Same canonical `EngineeringPolicy` service as CLI `policy`: readiness (`PASS`/`FAIL`/`INCOMPLETE`/`REVIEW_REQUIRED`), never a second gate. |
 
 No `exec`, `read_file`, `edit`, `baseline_create`, `waiver` tools. Resources/Prompts not exposed.
 
 ## Capability discovery
 
-`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 9 tools.
+`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 13 tools.
 
 ### Agent workflow
 
 ```
 verify ──► GateResult + embedded verification_receipt
    ├─ get_verification_receipt   (no analyzer rerun)
-   └─ get_pr_intelligence        (changed scope only; no analyzer rerun)
-edit → previous receipt/intelligence become stale → verify again
+   ├─ get_pr_intelligence        (changed scope only; no analyzer rerun)
+   └─ get_engineering_policy     (readiness over the decided gate; no rerun)
+edit → previous receipt/intelligence/policy become stale → verify again
 ```
 
 One agent verification executes analyzers exactly once (`verify`); derived contracts never re-execute them. See [Agent Verification Protocol](agent-verification.md).

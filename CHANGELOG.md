@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.7.0] — 2026-09-05
+
+### Engineering Policy & Review Governance
+
+- **Engineering policy (config 1.7, ADR 0020):** optional `engineering_policy` section turns 1.6 change facts into deterministic requirements — forbid new findings by severity, changed-lines coverage minimum, per-surface required analyzers, FULL verification scope, and human-review requirements. Each requirement carries id, trigger, status (`satisfied`/`violated`/`unavailable`/`not_applicable`/`review_required`), evidence, reason codes, and provenance. Decision precedence: `violated` → `FAIL`, `unavailable` → `INCOMPLETE`, pending review → `REVIEW_REQUIRED`, else mirror the gate.
+- **Gate authority untouched:** `GateResult` v1, `check`/`pr` exits, and JSON shapes are unchanged; configs 1–1.6 behave identically (every configured rule `not_applicable`). A pending review is exposed as `REVIEW_REQUIRED`, never as silent `PASS`, analyzer `FAIL`, or fabricated approval.
+- **CLI:** new `railverdict policy [--receipt PATH] [--handoff PATH]` (console/JSON) with exits 0/1/2/3 (`REVIEW_REQUIRED` is 3; unknown exits fail closed for old consumers). Receipts/handoffs report `policy_drift` by digest without relabeling v1 documents.
+- **MCP parity:** new `get_engineering_policy` tool (13 tools) over the same canonical service; SARIF stays findings-only by design.
+- **Compatibility:** schemas `configuration-v1.7` and `engineering-policy-v1` (version-dispatched, closed, bounded); v1 contracts frozen; old receipts never satisfy rules that did not exist when produced.
+- **Validation:** ADR 0020, 46 new unit/adversarial/contract/exit-ladder tests, 15 external black-box Lab scenarios (`RVLAB-POL-01..15`), foundation validator migrated to twenty ADRs.
 ## [1.6.0] — 2026-09-05
 
 ### Rails Change Intelligence & Reviewer Focus
