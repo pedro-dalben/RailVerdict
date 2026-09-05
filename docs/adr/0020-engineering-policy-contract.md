@@ -76,8 +76,10 @@ any requirement status.
 
 ### 5. Old consumers fail safe
 
-Configs 1–1.6 contain no `engineering_policy` section: the planner runs, every
-rule is `not_applicable`, the decision mirrors the gate byte-for-byte in behavior.
+Configs 1–1.6 contain no `engineering_policy` section: every configured rule is
+`not_applicable` and the decision mirrors the gate byte-for-byte in behavior
+(the mode-implied `baseline_compatible` requirement is still reported in delta
+modes, but it never changes a decision the gate did not already make).
 `check`/`pr` exits and JSON shapes are untouched. The new `policy` command uses a
 new exit code `3` for `REVIEW_REQUIRED` (0 `PASS`, 1 `FAIL`, 2 `INCOMPLETE`,
 130 interrupted — same ladder as `check`); an old consumer that does not know exit
@@ -132,3 +134,25 @@ rules only *require* review for what those signals flag.
   missing or stale; a valid ratio below threshold is `violated` (`FAIL`).
 - `TARGETED`-executed evidence against a `FULL`-required rule is `unavailable`
   with a re-run-FULL recovery action, never `PASS`.
+
+## Deferred Work
+
+Machine-verifiable review-approval presence proofs, per-requirement evidence
+import from CI artifacts, and organization-level policy inheritance — each
+requires a new ADR and schema version. No 1.8 design. Implemented in RailVerdict 1.7.
+
+## Related Requirements
+
+- FND-08
+- DEBT-03
+- PR Intelligence v1.1 (Change Intelligence, Review Focus)
+- Verification Freshness (ADR 0018)
+- Agent Handoff trust invariants 1–25 (ADR 0019)
+
+## Related Documents
+
+- [ADR 0001](0001-deterministic-pass-fail.md)
+- [ADR 0006](0006-no-new-debt.md)
+- [ADR 0017](0017-verification-receipts.md)
+- [ADR 0018](0018-verification-environment-identity.md)
+- [ADR 0019](0019-agent-handoff-evidence-reuse.md)
