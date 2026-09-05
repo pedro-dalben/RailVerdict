@@ -93,7 +93,7 @@ class TestPRIntelligence < Minitest::Test
 
     document = JSON.parse(stdout)
     assert_empty RailVerdict::SchemaValidator.validate_pr_intelligence(document)
-    assert_equal "1.0", document.fetch("schema_version")
+    assert_equal "1.1", document.fetch("schema_version")
     assert_equal base, document.dig("provenance", "base")
     assert_equal 6, document.dig("change", "files_changed")
     assert_equal 4, document.dig("change", "lines_added")
@@ -108,6 +108,16 @@ class TestPRIntelligence < Minitest::Test
     assert_equal true, document.dig("signals", "configuration_change", "present")
     assert_equal false, document.dig("quality_delta", "available")
     assert_equal "baseline_not_available", document.dig("quality_delta", "reason")
+    assert_equal true, document.dig("surfaces", "authorization", "changed")
+    assert_equal ["app/policies/order_policy.rb", "app/policies/user_policy.rb"],
+      document.dig("surfaces", "authorization", "evidence")
+    assert_equal "detected", document.dig("surfaces", "authorization", "detection")
+    assert_equal false, document.dig("surfaces", "migration", "changed")
+    assert_includes document.dig("review_risk", "reasons"), "authorization_surface_changed"
+    assert_equal 1, document.dig("review_focus", 0, "rank")
+    assert_equal true, document.dig("verification_scope", "available")
+    assert_includes document.dig("missing_evidence").map { |gap| gap["code"] },
+      "authorization_changed_verification_not_established"
   ensure
     FileUtils.remove_entry(dir) if dir && File.directory?(dir)
   end
@@ -119,9 +129,10 @@ class TestPRIntelligence < Minitest::Test
     assert_includes stdout, "RailVerdict PR Intelligence"
     assert_includes stdout, "Gate: PASS"
     assert_includes stdout, "Quality Delta"
+    assert_includes stdout, "Review risk: HIGH"
+    assert_includes stdout, "Reviewer focus"
+    assert_includes stdout, "Verification scope"
     refute_includes stdout, "app/policies/order_policy.rb"
-  ensure
-    FileUtils.remove_entry(dir) if dir && File.directory?(dir)
   end
 
   def test_invalid_base_is_incomplete_and_json_exposes_it

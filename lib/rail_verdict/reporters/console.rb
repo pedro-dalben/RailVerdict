@@ -88,6 +88,8 @@ module RailVerdict
             sanitize(rc["scope"] || "unknown"))
         end
 
+        append_change_intelligence(lines, result)
+
         lines << ""
         lines << "Gate: #{result.gate}"
         lines << "Policy: #{result.policy_status}"
@@ -102,6 +104,44 @@ module RailVerdict
         value.to_s.gsub(/[[:cntrl:]]/) { |character| character == "\n" ? " " : "?" }
       end
       private_class_method :sanitize
+
+      # Compact reviewer summary for changed-scope runs. Path-derived only;
+      # verification scope reflects executed analyzer evidence.
+      def append_change_intelligence(lines, result)
+        git = result.git
+        return unless git.is_a?(Hash) && git["error"].nil?
+
+        paths = Array(git["changed_files"]).map { |file| file["path"] }.compact
+        surfaces = RailVerdict::ChangeSurfaces.detect(paths, available: true)
+        signals = RailVerdict::ChangeIntelligence.review_signals(surfaces, [])
+        risk = RailVerdict::ChangeIntelligence.review_risk(signals, {})
+        lines << ""
+        lines << "Review risk: #{risk.fetch('level')}"
+        lines << "  reasons: #{risk.fetch('reasons').join(', ')}" unless risk.fetch("reasons").empty?
+        sensitive = surfaces.select { |_, entry| entry["changed"] && entry["sensitive"] }
+        lines << "Sensitive surfaces: #{sensitive.empty? ? 'none' : sensitive.map { |id, _| sanitize(RailVerdict::ChangeSurfaces::SURFACES[id]['label']) }.join(', ')}"
+        scopes = executed_test_scopes(result)
+        lines << "Tests: #{scopes.empty? ? 'no test evidence' : scopes.join('; ')}"
+        focus = RailVerdict::ChangeIntelligence.review_focus(surfaces, [])
+        unless focus.empty?
+          lines << "Reviewer focus:"
+          focus.first(3).each { |item| lines << "  #{item.fetch('rank')}. #{sanitize(item.fetch('title'))}" }
+        end
+        nil
+      end
+      private_class_method :append_change_intelligence
+
+
+      def executed_test_scopes(result)
+        result.analyzer_results.filter_map do |analyzer|
+          next unless %w[rspec minitest].include?(analyzer.analyzer)
+
+          summary = analyzer.evidence_summary
+          scope = summary.is_a?(Hash) ? summary["test_scope"] : nil
+          "#{analyzer.analyzer} #{scope || analyzer.execution_status}"
+        end
+      end
+      private_class_method :executed_test_scopes
     end
   end
 end

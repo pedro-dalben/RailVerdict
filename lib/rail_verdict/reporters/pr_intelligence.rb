@@ -42,12 +42,55 @@ module RailVerdict
           lines << "  unavailable (#{delta.fetch('reason')})"
         end
 
+        risk = document.fetch("review_risk")
         lines << ""
-        lines << "Signals"
-        document.fetch("signals").each do |name, signal|
-          label = SIGNAL_LABELS.fetch(name, name)
-          value = signal["available"] ? (signal["present"] ? "YES" : "NO") : "N/A"
-          lines << format("  %-14s %s", label, value)
+        lines << "Review risk: #{risk.fetch('level')}"
+        lines << "  reasons: #{risk.fetch('reasons').join(', ')}" unless risk.fetch("reasons").empty?
+
+        lines << ""
+        lines << "Sensitive surfaces"
+        sensitive = document.fetch("surfaces").select { |_, entry| entry["changed"] && entry["sensitive"] }
+        project_hit = Array(document.fetch("project_sensitive_areas")).select { |area| area["changed"] }
+        if sensitive.empty? && project_hit.empty?
+          lines << "  none"
+        else
+          sensitive.each do |id, entry|
+            lines << "  #{label_for(id)} (#{entry.fetch('evidence').length} files, #{entry.fetch('detection')})"
+          end
+          project_hit.each { |area| lines << "  #{area.fetch('name')} (project-defined, #{area.fetch('evidence').length} files)" }
+        end
+
+        scope = document.fetch("verification_scope")
+        lines << ""
+        lines << "Verification scope"
+        if scope["available"]
+          scope.fetch("frameworks").each do |name, entry|
+            detail = entry["scope"].upcase
+            detail += " (#{entry.fetch('selected_files').length} files)" if entry["selected_files"]
+            detail += " fallback: #{entry.fetch('fallback_reason')}" if entry["fallback_reason"]
+            detail += " [not executed]" if entry["executed"] == false
+            lines << "  #{name}: #{detail}"
+          end
+        else
+          lines << "  unavailable (#{scope.fetch('reason')})"
+        end
+
+        missing = document.fetch("missing_evidence")
+        unless missing.empty?
+          lines << ""
+          lines << "Missing evidence"
+          missing.each { |gap| lines << "  #{gap.fetch('code')}: #{gap.fetch('reason')}" }
+        end
+
+        focus = document.fetch("review_focus")
+        lines << ""
+        lines << "Reviewer focus"
+        if focus.empty?
+          lines << "  none"
+        else
+          focus.first(10).each do |item|
+            lines << "  #{item.fetch('rank')}. #{item.fetch('title')} (#{item.fetch('paths').length + item.fetch('additional_evidence_count')} files)"
+          end
         end
 
         lines << ""
@@ -74,6 +117,12 @@ module RailVerdict
         lines << "Coverage: #{coverage_text}"
         lines.join("\n") + "\n"
       end
+
+      def label_for(surface_id)
+        spec = RailVerdict::ChangeSurfaces::SURFACES[surface_id.to_s]
+        spec ? spec["label"] : surface_id.to_s
+      end
+      private_class_method :label_for
 
       def short(value)
         value ? value.to_s[0, 12] : "unknown"

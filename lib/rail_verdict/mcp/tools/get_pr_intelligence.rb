@@ -19,7 +19,7 @@ module RailVerdict
         end
 
         def tool_description
-          "Return the PR Intelligence document from the most recent changed-scope verify, WITHOUT rerunning analyzers. Same canonical verification as the receipt. Stale or unavailable evidence is reported explicitly."
+          "Return the PR Intelligence + Change Intelligence document from the most recent changed-scope verify, WITHOUT rerunning analyzers. Same canonical verification as the receipt and CLI: gate, change surfaces, review signals/risk, verification scope (full vs targeted), missing evidence, and review focus. Stale or unavailable evidence is reported explicitly."
         end
 
         def tool_input_schema

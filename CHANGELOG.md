@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] — 2026-09-05
+
+### Rails Change Intelligence & Reviewer Focus
+
+- **Change Intelligence (PR Intelligence v1.1):** `railverdict pr` and `get_pr_intelligence` now project the same canonical model extended with Rails change surfaces (19 path-convention surfaces, each with evidence and `detected`/`inferred`/`mixed` tier), explainable review risk (`LOW`/`MEDIUM`/`HIGH`/`CRITICAL` with reason codes), executed verification scope (`FULL` vs `TARGETED` with selected files and fallback reasons), missing-evidence facts (`unknown` stays unknown), and an ordered Review Focus list. Gate authority untouched: intelligence is read-only over the decided `GateResult`.
+- **Project review policy (config 1.6):** optional `review.sensitive_paths` (named glob areas, e.g. financial) and `review.risk` per-surface level overrides; 1.5 configs keep working.
+- **CLI UX:** `pr` console output adds Review risk, Sensitive surfaces, Verification scope, Missing evidence, and Reviewer focus sections (evidence-bounded: titles only, full paths stay in JSON); `check --changed` console appends a compact risk/surfaces/focus summary.
+- **MCP parity:** no new tools; `get_pr_intelligence` returns the same canonical 1.1 document as the CLI.
+- **Validation:** 17 new unit tests, in-repo black-box lab (`lab/change_intelligence.rb`, 6 scenarios incl. 2 adversarial), 10 external lab scenarios (`RVLAB-CI-01..10`, all PASS), 6 IntegrarPlus dogfood cases, and a coding-agent A/B experiment.
+
 ## [1.5.0] — 2026-08-27
 
 ### Rails-Native Adoption & CI Efficiency

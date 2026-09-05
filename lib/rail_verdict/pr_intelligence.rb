@@ -1,10 +1,13 @@
 # frozen_string_literal: true
 
 require "json"
+require_relative "change_surfaces"
+require_relative "change_intelligence"
 
 module RailVerdict
   module PRIntelligence
-    SCHEMA_VERSION = "1.0"
+    SCHEMA_VERSION = "1.1"
+    PREVIOUS_SCHEMA_VERSION = "1.0"
     MAX_SIGNAL_EVIDENCE = 20
     SIGNALS = {
       "database_change" => lambda { |path| path == "db/schema.rb" || path == "db/structure.sql" || path.start_with?("db/migrate/") },
@@ -23,10 +26,25 @@ module RailVerdict
 
     module_function
 
+    # Canonical change intelligence model. v1.0 keys are unchanged; v1.1
+    # appends surfaces, review signals/risk, verification scope,
+    # missing evidence, and review focus. Read-only over the outcome:
+    # GateResult authority is never touched here.
     def document(outcome)
       result = outcome.result
       git_context = outcome.context&.git_context
       git = result.git || {}
+      paths = ChangeIntelligence.changed_paths(git_context)
+      available = !git_context.nil?
+      review_config = outcome.respond_to?(:configuration) ? outcome.configuration&.review_config : nil
+      review_config = {} unless review_config.is_a?(Hash)
+      surfaces = ChangeSurfaces.detect(paths, available: available)
+      project_areas = ChangeSurfaces.project_sensitive(
+        paths, review_config["sensitive_paths"], available: available
+      )
+      change_signals = review_signals(surfaces, project_areas)
+      scope = verification_scope(outcome, git_context)
+      missing = ChangeIntelligence.missing_evidence(outcome, surfaces, scope)
 
       document = {
         "schema_version" => SCHEMA_VERSION,
@@ -34,6 +52,13 @@ module RailVerdict
         "gate_result" => gate_result(result),
         "change" => change(git_context),
         "signals" => signals(git_context),
+        "surfaces" => surfaces,
+        "project_sensitive_areas" => project_areas,
+        "review_signals" => change_signals,
+        "review_risk" => ChangeIntelligence.review_risk(change_signals, review_config["risk"]),
+        "verification_scope" => scope,
+        "missing_evidence" => missing,
+        "review_focus" => ChangeIntelligence.review_focus(surfaces, project_areas),
         "quality_delta" => quality_delta(result),
         "analyzer_evidence" => analyzer_evidence(result),
         "test_intelligence" => test_intelligence(result),
@@ -73,6 +98,19 @@ module RailVerdict
       else value
       end
     end
+
+    def review_signals(surfaces, project_areas)
+      ChangeIntelligence.review_signals(surfaces, project_areas)
+    end
+    private_class_method :review_signals
+
+    def verification_scope(outcome, git_context)
+      context = outcome.context
+      root = context.respond_to?(:repository_root) ? context.repository_root : nil
+      ChangeIntelligence.verification_scope(outcome.result, repository_root: root, git_context: git_context)
+    end
+    private_class_method :verification_scope
+
 
     def provenance(outcome, git_context, git)
       context = outcome.context

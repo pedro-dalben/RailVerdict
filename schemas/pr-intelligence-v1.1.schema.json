@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/pr-intelligence/v1.1.schema.json",
+  "title": "RailVerdict PR Intelligence v1.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provenance",
+    "gate_result",
+    "change",
+    "signals",
+    "surfaces",
+    "project_sensitive_areas",
+    "review_signals",
+    "review_risk",
+    "verification_scope",
+    "missing_evidence",
+    "review_focus",
+    "quality_delta",
+    "analyzer_evidence",
+    "test_intelligence",
+    "coverage"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.1" },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "gate_result": { "$ref": "#/$defs/gate_result" },
+    "change": { "$ref": "#/$defs/change" },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "database_change",
+        "routes_change",
+        "dependency_change",
+        "configuration_change",
+        "authorization_change",
+        "tests_change"
+      ],
+      "properties": {
+        "database_change": { "$ref": "#/$defs/signal" },
+        "routes_change": { "$ref": "#/$defs/signal" },
+        "dependency_change": { "$ref": "#/$defs/signal" },
+        "configuration_change": { "$ref": "#/$defs/signal" },
+        "authorization_change": { "$ref": "#/$defs/signal" },
+        "tests_change": { "$ref": "#/$defs/signal" }
+      }
+    },
+    "quality_delta": { "$ref": "#/$defs/quality_delta" },
+    "surfaces": { "type": "object", "additionalProperties": { "$ref": "#/$defs/surface" } },
+    "project_sensitive_areas": { "type": "array", "items": { "$ref": "#/$defs/project_sensitive_area" } },
+    "review_signals": { "type": "array", "items": { "$ref": "#/$defs/review_signal" } },
+    "review_risk": { "$ref": "#/$defs/review_risk" },
+    "verification_scope": { "$ref": "#/$defs/verification_scope" },
+    "missing_evidence": { "type": "array", "items": { "$ref": "#/$defs/missing_evidence_item" } },
+    "review_focus": { "type": "array", "items": { "$ref": "#/$defs/review_focus_item" } },
+    "analyzer_evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/analyzer_evidence" }
+    },
+    "test_intelligence": { "$ref": "#/$defs/test_intelligence" },
+    "coverage": { "$ref": "#/$defs/coverage" }
+  },
+  "$defs": {
+    "nullable_string": { "type": ["string", "null"] },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head", "base", "merge_base", "configuration_digest"],
+      "properties": {
+        "head": { "$ref": "#/$defs/nullable_string" },
+        "base": { "$ref": "#/$defs/nullable_string" },
+        "merge_base": { "$ref": "#/$defs/nullable_string" },
+        "configuration_digest": { "$ref": "#/$defs/nullable_string" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "files_changed": { "type": "integer", "minimum": 0 },
+        "lines_added": { "type": ["integer", "null"], "minimum": 0 },
+        "lines_removed": { "type": ["integer", "null"], "minimum": 0 },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["added", "modified", "deleted", "renamed"],
+          "properties": {
+            "added": { "type": "integer", "minimum": 0 },
+            "modified": { "type": "integer", "minimum": 0 },
+            "deleted": { "type": "integer", "minimum": 0 },
+            "renamed": { "type": "integer", "minimum": 0 }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["files_changed", "lines_added", "lines_removed", "status_counts"] }
+        },
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "present", "evidence", "additional_evidence_count"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "present": { "type": "boolean" },
+        "evidence": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" }
+      }
+    },
+    "quality_delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "introduced": { "type": "integer", "minimum": 0 },
+        "existing": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "changed": { "type": "integer", "minimum": 0 },
+        "moved": { "type": "integer", "minimum": 0 },
+        "waived": { "type": "integer", "minimum": 0 },
+        "orphaned_waivers": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["introduced", "existing", "resolved", "changed", "moved", "waived", "orphaned_waivers"] }
+        },
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "analyzer_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analyzer", "execution_status", "evidence_status"],
+      "properties": {
+        "analyzer": { "type": "string", "minLength": 1 },
+        "tool_version": { "type": "string", "minLength": 1 },
+        "execution_status": { "type": "string", "minLength": 1 },
+        "evidence_status": { "enum": ["complete", "incomplete"] }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "completion_status",
+        "gate",
+        "policy_status",
+        "findings",
+        "operational_failures",
+        "decision_reasons"
+      ],
+      "properties": {
+        "schema_version": { "const": "1.0" },
+        "completion_status": { "enum": ["complete", "incomplete", "interrupted"] },
+        "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+        "policy_status": { "enum": ["pass", "warn", "fail", "not_evaluated"] },
+        "findings": { "type": "array", "items": { "$ref": "#/$defs/finding_summary" } },
+        "operational_failures": { "type": "array", "items": { "$ref": "#/$defs/operational_failure" } },
+        "decision_reasons": { "type": "array", "items": { "$ref": "#/$defs/decision_reason" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "completion_status": { "const": "complete" } } },
+          "then": {
+            "properties": {
+              "gate": { "enum": ["PASS", "WARN", "FAIL"] },
+              "policy_status": { "enum": ["pass", "warn", "fail"] }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "completion_status": { "enum": ["incomplete", "interrupted"] } } },
+          "then": {
+            "properties": {
+              "gate": { "const": "INCOMPLETE" },
+              "policy_status": { "const": "not_evaluated" },
+              "operational_failures": { "minItems": 1 }
+            }
+          }
+        }
+      ]
+    },
+    "finding_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "fingerprint", "severity", "state", "blocking"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "severity": { "enum": ["info", "low", "medium", "high", "critical"] },
+        "state": { "enum": ["observed", "introduced", "existing", "resolved", "changed", "moved", "suppressed", "waived"] },
+        "blocking": { "type": "boolean" }
+      }
+    },
+    "operational_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "enum": ["unavailable", "unsupported", "timed_out", "signaled", "failed", "parse_failed", "truncated", "malformed", "configuration", "interrupted", "incomplete_evidence"] },
+        "analyzer": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "decision_reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "test_intelligence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "analyzers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "minitest": { "$ref": "#/$defs/test_summary" },
+            "rspec": { "$ref": "#/$defs/test_summary" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": true } } },
+          "then": { "required": ["analyzers"] }
+        },
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "test_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tests_total": { "type": "integer", "minimum": 0 },
+        "assertions": { "type": "integer", "minimum": 0 },
+        "failures": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "skips": { "type": "integer", "minimum": 0 },
+        "duration_seconds": { "type": "number", "minimum": 0 },
+        "seed": { "type": ["integer", "null"] },
+        "runner": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "global_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "changed_lines_percent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "changed_lines_covered": { "type": "integer", "minimum": 0 },
+        "changed_lines_executable": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "available": { "const": false } } },
+          "then": { "required": ["reason"] }
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "changed", "evidence", "additional_evidence_count", "detection", "sensitive"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "changed": { "type": "boolean" },
+        "evidence": { "type": "array", "maxItems": 20, "items": { "type": "string", "minLength": 1 } },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "detection": { "enum": ["detected", "inferred", "mixed"] },
+        "sensitive": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "project_sensitive_area": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "available", "changed", "evidence", "additional_evidence_count"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "available": { "type": "boolean" },
+        "changed": { "type": "boolean" },
+        "evidence": { "type": "array", "maxItems": 20, "items": { "type": "string", "minLength": 1 } },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "review_signal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "detail", "paths", "additional_evidence_count", "sensitive", "detection"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "surface": { "type": "string", "minLength": 1 },
+        "project_area": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "paths": { "type": "array", "maxItems": 20, "items": { "type": "string", "minLength": 1 } },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "sensitive": { "type": "boolean" },
+        "detection": { "enum": ["detected", "inferred", "mixed"] }
+      }
+    },
+    "review_risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "reasons", "configured"],
+      "properties": {
+        "level": { "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "reasons": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "configured": { "type": "boolean" }
+      }
+    },
+    "verification_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "frameworks"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 },
+        "frameworks": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rspec": { "$ref": "#/$defs/framework_scope" },
+            "minitest": { "$ref": "#/$defs/framework_scope" }
+          }
+        }
+      }
+    },
+    "framework_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "executed", "scope"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "executed": { "type": "boolean" },
+        "execution_status": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["full", "targeted", "unknown"] },
+        "selected_files": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "fallback_reason": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "missing_evidence_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "detail", "reason", "confidence"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "confidence": { "enum": ["detected", "inferred", "unknown"] }
+      }
+    },
+    "review_focus_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "surface", "title", "reason", "paths", "additional_evidence_count", "detection"],
+      "properties": {
+        "rank": { "type": "integer", "minimum": 1 },
+        "surface": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "paths": { "type": "array", "maxItems": 10, "items": { "type": "string", "minLength": 1 } },
+        "additional_evidence_count": { "type": "integer", "minimum": 0 },
+        "detection": { "enum": ["detected", "inferred", "mixed"] }
+      }
+    }
+  }
+}

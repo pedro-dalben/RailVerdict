@@ -6,6 +6,7 @@ require "json_schemer"
 module RailVerdict
   module SchemaValidator
     CONFIGURATION_SCHEMA = "configuration-v1.schema.json"
+    CONFIGURATION_V16_SCHEMA = "configuration-v1.6.schema.json"
     CONFIGURATION_V11_SCHEMA = "configuration-v1.1.schema.json"
     CONFIGURATION_V12_SCHEMA = "configuration-v1.2.schema.json"
     CONFIGURATION_V13_SCHEMA = "configuration-v1.3.schema.json"
@@ -19,6 +20,7 @@ module RailVerdict
     WAIVERS_SCHEMA = "waivers-v1.schema.json"
     REPAIR_PACKET_SCHEMA = "repair-packet-v1.schema.json"
     PR_INTELLIGENCE_SCHEMA = "pr-intelligence-v1.schema.json"
+    PR_INTELLIGENCE_V11_SCHEMA = "pr-intelligence-v1.1.schema.json"
     VERIFICATION_RECEIPT_SCHEMA = "verification-receipt-v1.schema.json"
     RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
     VERIFICATION_HANDOFF_SCHEMA = "verification-handoff-v1.schema.json"
@@ -28,7 +30,9 @@ module RailVerdict
     end
 
     def self.validate_configuration(data)
-      schema_name = if data.is_a?(Hash) && data["version"] == 1.5
+      schema_name = if data.is_a?(Hash) && data["version"] == 1.6
+                      CONFIGURATION_V16_SCHEMA
+                    elsif data.is_a?(Hash) && data["version"] == 1.5
                       CONFIGURATION_V15_SCHEMA
                     elsif data.is_a?(Hash) && data["version"] == 1.4
                       CONFIGURATION_V14_SCHEMA
@@ -73,7 +77,12 @@ module RailVerdict
     end
 
     def self.validate_pr_intelligence(data)
-      validate(data, PR_INTELLIGENCE_SCHEMA)
+      schema_name = data.is_a?(Hash) && data["schema_version"] == "1.1" ? PR_INTELLIGENCE_V11_SCHEMA : PR_INTELLIGENCE_SCHEMA
+      validate(data, schema_name)
+    end
+
+    def self.validate_change_intelligence(data)
+      validate_pr_intelligence(data)
     end
 
     def self.validate_receipt(data)

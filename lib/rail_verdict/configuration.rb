@@ -5,8 +5,8 @@ require "digest"
 module RailVerdict
   class Configuration
     DEFAULT_FILENAME = ".railverdict.yml"
-    CONFIGURATION_VERSION = 1.5
-    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3, 1.4, 1.5].freeze
+    CONFIGURATION_VERSION = 1.6
+    SUPPORTED_VERSIONS = [1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6].freeze
     DEFAULT_ANALYZER_TIMEOUT_SECONDS = 30
     UTF8_BOM = "\xEF\xBB\xBF".b
 
@@ -125,6 +125,11 @@ module RailVerdict
 
     def git_base
       @raw_data&.dig("git", "base")
+    end
+
+    def review_config
+      config = @raw_data&.dig("review")
+      config.is_a?(Hash) ? config : {}
     end
 
     def ai_config
