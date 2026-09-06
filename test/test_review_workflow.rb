@@ -28,9 +28,9 @@ class TestReviewWorkflow < Minitest::Test
     }
   end
 
-  def policy_envelope
+  def policy_envelope(decision: "REVIEW_REQUIRED")
     {
-      "decision" => "REVIEW_REQUIRED",
+      "decision" => decision,
       "policy_digest" => "c" * 64,
       "requirements" => [{
         "id" => "req-human-review-high", "kind" => "human_review", "trigger" => "t",
@@ -47,8 +47,9 @@ class TestReviewWorkflow < Minitest::Test
     FakeOutcome.new(result, configuration)
   end
 
-  def packet
-    RailVerdict::ReviewPacket.build(outcome: outcome, pr_document: pr_document, policy_envelope: policy_envelope)
+  def packet(gate: "PASS", decision: "REVIEW_REQUIRED")
+    RailVerdict::ReviewPacket.build(outcome: outcome(gate: gate), pr_document: pr_document,
+      policy_envelope: policy_envelope(decision: decision))
   end
 
   def test_packet_validates_and_separates_lanes
@@ -159,19 +160,20 @@ class TestReviewWorkflow < Minitest::Test
   end
 
   def test_workflow_readiness_matrix
-    doc = packet
-    assert_equal "review_pending", workflow(doc, "REVIEW_REQUIRED", "PASS")["readiness"]
-    assert_equal "blocked_by_gate", workflow(doc, "FAIL", "FAIL")["readiness"]
-    assert_equal "blocked_by_evidence", workflow(doc, "INCOMPLETE", "INCOMPLETE")["readiness"]
-    assert_equal "blocked_by_evidence", workflow(doc, "FAIL", "PASS")["readiness"]
-    ready = workflow(doc, "PASS", "PASS")
+    assert_equal "review_pending", workflow(packet, "REVIEW_REQUIRED", "PASS")["readiness"]
+    assert_equal "blocked_by_gate", workflow(packet(gate: "FAIL", decision: "FAIL"), "FAIL", "FAIL")["readiness"]
+    assert_equal "blocked_by_evidence",
+      workflow(packet(gate: "INCOMPLETE", decision: "INCOMPLETE"), "INCOMPLETE", "INCOMPLETE")["readiness"]
+    assert_equal "blocked_by_evidence",
+      workflow(packet(gate: "PASS", decision: "FAIL"), "FAIL", "PASS")["readiness"]
+    ready = workflow(packet(gate: "PASS", decision: "PASS"), "PASS", "PASS")
     assert_equal "ready", ready["readiness"]
     assert_match(/\Asha256:[0-9a-f]{64}\z/, ready["workflow_receipt_id"])
     assert_empty RailVerdict::SchemaValidator.validate_workflow_receipt(ready)
   end
 
   def test_workflow_records_observation_bindings_without_bodies
-    doc = packet
+    doc = packet(gate: "PASS", decision: "PASS")
     obs = observation(author: "agent", provider: "acme")
     verdict = RailVerdict::ReviewObservation.validate(observation: obs, current: state_binding)
     receipt = workflow(doc, "PASS", "PASS",

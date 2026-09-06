@@ -51,10 +51,19 @@ module RailVerdict
     end
 
     # current: {head, configuration_digest, policy_digest} freshly observed by
-    # the caller. Returns {status, code, observation_id}.
+    # the caller. Returns {status, code, observation_id}. Order is deliberate:
+    # shape, then author/provider trust, then schema detail, then binding.
     def validate(observation:, current:)
       unless observation.is_a?(Hash)
         return { "status" => "invalid", "code" => "observation_malformed", "observation_id" => nil }
+      end
+
+      author = observation["author"]
+      unless AUTHORS.include?(author)
+        return { "status" => "untrusted", "code" => "observation_author_unknown", "observation_id" => nil }
+      end
+      if (author == "agent" || author == "ai") && observation["provider"].to_s.strip.empty?
+        return { "status" => "untrusted", "code" => "observation_provider_missing", "observation_id" => nil }
       end
 
       errors = SchemaValidator.validate_review_observation(observation)
@@ -65,14 +74,6 @@ module RailVerdict
       expected = observation_id(observation)
       unless observation["observation_id"] == expected
         return { "status" => "invalid", "code" => "observation_integrity_failed", "observation_id" => nil }
-      end
-
-      author = observation["author"]
-      unless AUTHORS.include?(author)
-        return { "status" => "untrusted", "code" => "observation_author_unknown", "observation_id" => expected }
-      end
-      if (author == "agent" || author == "ai") && observation["provider"].to_s.strip.empty?
-        return { "status" => "untrusted", "code" => "observation_provider_missing", "observation_id" => expected }
       end
 
       unless current.is_a?(Hash) && current["head"].is_a?(String)

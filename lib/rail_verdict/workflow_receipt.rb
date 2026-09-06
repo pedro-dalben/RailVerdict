@@ -15,6 +15,17 @@ module RailVerdict
     module_function
 
     def build(packet:, policy_decision:, gate:, observations: [])
+      unless packet.is_a?(Hash)
+        raise RailVerdict::Error, "workflow receipt requires a review packet document"
+      end
+      packet_gate = packet.dig("deterministic", "verification", "gate")
+      packet_decision = packet.dig("deterministic", "policy", "decision")
+      unless gate.to_s == packet_gate.to_s
+        raise RailVerdict::Error, "gate #{gate.inspect} does not match packet gate #{packet_gate.inspect}: refusing mix-and-match"
+      end
+      unless policy_decision.to_s == packet_decision.to_s
+        raise RailVerdict::Error, "policy decision #{policy_decision.inspect} does not match packet decision #{packet_decision.inspect}: refusing mix-and-match"
+      end
       validated = Array(observations).first(MAX_OBSERVATIONS).map do |entry|
         {
           "observation_id" => entry["observation_id"].to_s,
