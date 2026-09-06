@@ -11,8 +11,8 @@ line is complete through 1.8.2, full distribution is not.
 
 ## 2. Canonical State
 
-- RailVerdict: master @ `9851e78`, clean; program docs on `program/g3-validation`
-  (rebased, unmerged).
+- RailVerdict: master @ `4db5cb6` (merge of `program/g3-validation`), clean;
+  prior draft written at `9851e78` pre-merge.
 - Lab: `lab/1.8-agent-workflow` (PR #18 open, CI red until publish);
   `lab/1.7-policy` (PR #17 open); `main` @ `9de2ac2`; PR #16 closed superseded.
 - Tags: v1.7.0, v1.8.0, v1.8.1, v1.8.2 (+ history to v1.4.0). No 1.5/1.6 tags
@@ -21,7 +21,7 @@ line is complete through 1.8.2, full distribution is not.
 - RubyGems: latest 1.4.0 (1.7–1.8.2 publication by maintainer decision).
 - Artifacts SHA-256: 1.7.0 `db3b50b6…`, 1.8.0 `de538bc1…`, 1.8.1 `9eef9728…`,
   1.8.2 `23f68175…` (full SHAs in release reports).
-- Working trees: both clean (program branch holds only docs).
+- Working trees: both clean (program docs merged; this touch-up holds only docs).
 
 ## 3. Node Results
 
