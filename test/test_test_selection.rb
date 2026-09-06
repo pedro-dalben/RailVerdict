@@ -95,6 +95,20 @@ class TestTestSelection < Minitest::Test
     assert_equal ["spec/models/user_spec.rb"], res.selected_files
   end
 
+  def test_lib_change_resolves_lib_specs_without_arity_error
+    FileUtils.mkdir_p(File.join(@tmpdir, "lib"))
+    FileUtils.mkdir_p(File.join(@tmpdir, "spec", "lib"))
+    File.write(File.join(@tmpdir, "lib", "pricing.rb"), "module Pricing; end")
+    File.write(File.join(@tmpdir, "spec", "lib", "pricing_spec.rb"), "RSpec.describe Pricing do; end")
+    res = RailVerdict::TestSelection.resolve(
+      repository_root: @tmpdir,
+      changed_files: ["lib/pricing.rb"],
+      framework: :rspec
+    )
+    assert_equal "targeted", res.scope
+    assert_equal ["spec/lib/pricing_spec.rb"], res.selected_files
+  end
+
   def test_doc_only_change_yields_targeted_empty
     res = RailVerdict::TestSelection.resolve(
       repository_root: @tmpdir,

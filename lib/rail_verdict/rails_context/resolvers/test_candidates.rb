@@ -58,9 +58,9 @@ module RailVerdict
           when "lib"
             relative = dir.delete_prefix("lib").delete_prefix("/")
             candidates << candidate_path(repository_root, "spec", "lib", relative, basename)
-            candidates << candidate_path(repository_root, "spec", relative, basename)
+            candidates << candidate_path(repository_root, "spec", "", relative, basename)
             candidates << candidate_path(repository_root, "test", "lib", relative, basename)
-            candidates << candidate_path(repository_root, "test", relative, basename)
+            candidates << candidate_path(repository_root, "test", "", relative, basename)
           when "spec"
             if path.end_with?("_spec.rb") && safe_exists?(repository_root, File.join(repository_root, path))
               candidates << { path: path, exists: true }
