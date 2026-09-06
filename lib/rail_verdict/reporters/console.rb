@@ -122,7 +122,7 @@ module RailVerdict
         lines << "Sensitive surfaces: #{sensitive.empty? ? 'none' : sensitive.map { |id, _| sanitize(RailVerdict::ChangeSurfaces::SURFACES[id]['label']) }.join(', ')}"
         scopes = executed_test_scopes(result)
         lines << "Tests: #{scopes.empty? ? 'no test evidence' : scopes.join('; ')}"
-        focus = RailVerdict::ChangeIntelligence.review_focus(surfaces, [])
+        focus = RailVerdict::ChangeIntelligence.review_focus(surfaces, [], paths)
         unless focus.empty?
           lines << "Reviewer focus:"
           focus.first(3).each { |item| lines << "  #{item.fetch('rank')}. #{sanitize(item.fetch('title'))}" }

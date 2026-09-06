@@ -108,6 +108,23 @@ class TestChangeIntelligence < Minitest::Test
     assert_equal (1..focus.length).to_a, focus.map { |item| item["rank"] }
   end
 
+  def test_focus_appends_unmapped_pointer_for_unknown_paths
+    detected = surfaces(["lib/pricing.rb"])
+    focus = RailVerdict::ChangeIntelligence.review_focus(detected, [], ["lib/pricing.rb"])
+    unmapped = focus.find { |item| item["surface"] == "unmapped" }
+    refute_nil unmapped
+    assert_equal ["lib/pricing.rb"], unmapped["paths"]
+    assert_equal 0, unmapped["additional_evidence_count"]
+    assert_equal focus.length, unmapped["rank"]
+    assert_equal (1..focus.length).to_a, focus.map { |item| item["rank"] }
+  end
+
+  def test_focus_omits_unmapped_pointer_when_everything_mapped
+    detected = surfaces(["app/policies/account_policy.rb"])
+    focus = RailVerdict::ChangeIntelligence.review_focus(detected, [], ["app/policies/account_policy.rb"])
+    assert_nil focus.find { |item| item["surface"] == "unmapped" }
+  end
+
   def test_review_focus_is_ordered_with_reasons
     focus = RailVerdict::ChangeIntelligence.review_focus(surfaces, [])
     assert_equal (1..focus.length).to_a, focus.map { |item| item["rank"] }

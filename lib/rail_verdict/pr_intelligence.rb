@@ -58,7 +58,7 @@ module RailVerdict
         "review_risk" => ChangeIntelligence.review_risk(change_signals, review_config["risk"]),
         "verification_scope" => scope,
         "missing_evidence" => missing,
-        "review_focus" => ChangeIntelligence.review_focus(surfaces, project_areas),
+        "review_focus" => ChangeIntelligence.review_focus(surfaces, project_areas, available ? paths : []),
         "quality_delta" => quality_delta(result),
         "analyzer_evidence" => analyzer_evidence(result),
         "test_intelligence" => test_intelligence(result),
