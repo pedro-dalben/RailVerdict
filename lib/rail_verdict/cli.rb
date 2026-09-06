@@ -389,7 +389,7 @@ module RailVerdict
       end
     end
     def command_review(argv)
-      if argv.first.nil?
+      if argv.first.nil? || argv.first.start_with?("-")
         return command_review_show(argv)
       elsif %w[-h --help help].include?(argv.first)
         @stdout.puts "Usage: railverdict review [show|observe|complete] [options]"
