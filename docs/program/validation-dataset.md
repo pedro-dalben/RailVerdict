@@ -46,6 +46,30 @@ Candidate: released rail_verdict-1.8.0.gem (SHA de538bc1, GitHub Release).
 - Status: partial. Counts toward onboarding friction, not toward verdict
   metrics.
 
+## P-D sprockets-rails (rails/sprockets-rails @ 87ee2d2) — engine, minitest
+
+- Onboarding: clone fast, `bundle install` exit 0 (~7s), first verdict PASS
+  (minitest, 4.8s). No gem patch. Total < 2 min. Default branch is `master`
+  (trial-protocol lesson: never assume `main`).
+- Fail-closed proof: rubocop absent from the project bundle + required:true
+  → INCOMPLETE (invariant: missing required evidence never passes).
+- Strict + baseline flow: baseline create refused on incomplete, succeeded on
+  complete; offense trial inconclusive for rubocop findings (tool absent —
+  environmental, counted as limitation not product signal).
+- DoD expressibility: tests green ✓, baseline delta ✓ → partial (lint N/A:
+  project carries no rubocop).
+- Spontaneous demands: none.
+
+## P-E tailwindcss-rails (rails/tailwindcss-rails @ 9e32b4e) — engine, minitest
+
+- Onboarding: clone fast, `bundle install` exit 0 (~2s), first verdict PASS
+  (minitest, 2.0s). No gem patch. Total < 1 min.
+- Synthetic failing test (seeded `assert_equal_broken_xyz`): gate WARN
+  (advisory), findings present — advisory honesty holds on external code.
+- Fixture hygiene note: scratch trial commits landed on a detached flow;
+  restored; trial configs live in /tmp only, never upstream.
+- Spontaneous demands: none.
+
 ## Blocked / excluded (declared, not hidden)
 
 - lobsters/lobsters: requires ruby 4.0.0, env has 3.4.5 only. Blocked.
@@ -53,4 +77,4 @@ Candidate: released rail_verdict-1.8.0.gem (SHA de538bc1, GitHub Release).
 - gitlabhq/gitlabhq: monorepo weight exceeds budget. Excluded by design.
 - chatwoot/chatwoot, diaspora/diaspora, mastodon/mastodon: service
   dependencies (postgres/redis/node) exceed trial budget. Excluded by design.
-- discourse/discourse: candidate, not yet attempted.
+- discourse/discourse: clone 342MB OK (@ 5e9779d); full bundle in progress at time of writing (heavy dependency tree + services). Outcome pending.
