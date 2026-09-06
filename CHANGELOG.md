@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.1] — 2026-09-06
+
+### Patch: lib test-candidate mapping
+
+- **Fix:** `lib/` changes crashed targeted test selection (`candidate_path`
+  called without `kind_dir`), breaking changed-scope verification planning on
+  any `lib/` change. Found by the G3 validation campaign on a minitest
+  project; covered by a regression test. No contract changes.
+
 ## [1.8.0] — 2026-09-06
 
 ### Agent Workflow & Review Orchestration
