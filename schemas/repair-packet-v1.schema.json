@@ -295,6 +295,48 @@
         "suggested": {
           "type": "array",
           "items": { "$ref": "#/$defs/command" }
+        },
+        "execution": {
+          "type": "object",
+          "required": [],
+          "properties": {
+            "analyzers_executed": { "type": "array", "maxItems": 16, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+            "test_scope": {
+              "type": "object",
+              "maxProperties": 8,
+              "additionalProperties": {
+                "type": "object",
+                "required": ["executed", "scope"],
+                "properties": {
+                  "executed": { "type": "boolean" },
+                  "scope": { "type": "string", "minLength": 1, "maxLength": 16 }
+                },
+                "additionalProperties": false,
+                "unevaluatedProperties": false
+              }
+            }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "requirements": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "required": ["id", "status"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "status": { "enum": ["satisfied", "violated", "unavailable", "not_applicable", "review_required"] }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        },
+        "reasons": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "type": "string", "minLength": 1, "maxLength": 128 }
         }
       },
       "additionalProperties": false,

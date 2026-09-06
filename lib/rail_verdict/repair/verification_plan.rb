@@ -6,7 +6,39 @@ module RailVerdict
       def self.build(outcome:, repository_root: nil, base_revision: nil)
         required = [required_check(base_revision: base_revision)]
         suggested = suggested_commands(outcome)
-        { "required" => required, "suggested" => suggested }
+        plan = { "required" => required, "suggested" => suggested }
+        observed = observed_execution(outcome)
+        plan["execution"] = observed[:execution] unless observed[:execution].nil?
+        plan["requirements"] = observed[:requirements] unless observed[:requirements].nil?
+        plan["reasons"] = observed[:reasons] unless observed[:reasons].nil?
+        plan
+      end
+
+      # Observed facts about the verification that produced this packet: which
+      # analyzers executed, per-framework test scope, and policy requirement
+      # statuses. Never a prediction; re-running `required` re-plans via the
+      # canonical engine. Best-effort: absent on outcomes that cannot project.
+      def self.observed_execution(outcome)
+        document = PRIntelligence.document(outcome)
+        policy = EngineeringPolicy.evaluate(outcome: outcome, pr_document: document)
+        scope = document["verification_scope"].is_a?(Hash) ? document["verification_scope"] : {}
+        frameworks = scope["frameworks"].is_a?(Hash) ? scope["frameworks"] : {}
+        evidence = Array(document["analyzer_evidence"])
+        {
+          execution: {
+            "analyzers_executed" => evidence.select { |entry| entry["evidence_status"] == "complete" }
+              .map { |entry| entry["analyzer"].to_s }.sort,
+            "test_scope" => frameworks.to_h do |name, entry|
+              [name.to_s, { "executed" => entry["executed"] == true, "scope" => entry["scope"].to_s }]
+            end
+          },
+          requirements: Array(policy["requirements"]).map do |entry|
+            { "id" => entry["id"], "status" => entry["status"] }
+          end.sort_by { |entry| entry["id"] },
+          reasons: Array(policy["reason_codes"]).sort
+        }
+      rescue RailVerdict::Error, ArgumentError, NoMethodError
+        {}
       end
 
       def self.required_check(base_revision: nil)

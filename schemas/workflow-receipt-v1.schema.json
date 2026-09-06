@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/workflow-receipt/v1.schema.json",
+  "title": "RailVerdict Workflow Receipt v1",
+  "description": "Workflow closure record: binds one review packet, the policy decision, and validated observations to final readiness. Reports only; reclassifies nothing and rewrites no gate.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "workflow_receipt_id",
+    "packet_id",
+    "gate",
+    "policy_decision",
+    "readiness",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "workflow_receipt_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "packet_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "policy_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+    "policy_decision": { "enum": ["PASS", "FAIL", "INCOMPLETE", "REVIEW_REQUIRED"] },
+    "readiness": { "enum": ["ready", "blocked_by_gate", "blocked_by_evidence", "review_pending"] },
+    "reason_codes": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "observations": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "required": ["observation_id", "author", "binding"],
+        "properties": {
+          "observation_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "author": { "enum": ["human", "agent", "ai"] },
+          "binding": { "enum": ["valid_bound", "stale", "untrusted", "invalid", "unavailable"] }
+        },
+        "additionalProperties": false,
+        "unevaluatedProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}

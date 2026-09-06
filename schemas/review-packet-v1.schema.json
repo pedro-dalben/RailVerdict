@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://railverdict.dev/schemas/review-packet/v1.schema.json",
+  "title": "RailVerdict Review Packet v1",
+  "description": "Bounded review context for one verification: deterministic lane (gate, evidence, plan, policy, gaps, recovery) structurally separated from the review lane (focus, risk, surfaces). Reports context; never a second gate. Human messages are presentation only.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "packet_id",
+    "provenance",
+    "deterministic",
+    "review"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "packet_id": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "provenance": {
+      "type": "object",
+      "required": ["head", "configuration_digest"],
+      "properties": {
+        "head": { "type": ["string", "null"], "minLength": 7, "maxLength": 64 },
+        "base": { "type": ["string", "null"], "minLength": 1, "maxLength": 64 },
+        "merge_base": { "type": ["string", "null"], "minLength": 7, "maxLength": 64 },
+        "configuration_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "deterministic": {
+      "type": "object",
+      "required": ["verification", "plan", "policy", "evidence_gaps", "recovery"],
+      "properties": {
+        "verification": {
+          "type": "object",
+          "required": ["gate", "completion_status", "policy_status", "decision_reason_codes", "findings_total", "findings_blocking"],
+          "properties": {
+            "gate": { "enum": ["PASS", "WARN", "FAIL", "INCOMPLETE"] },
+            "completion_status": { "enum": ["complete", "incomplete", "interrupted"] },
+            "policy_status": { "enum": ["pass", "warn", "fail", "not_evaluated"] },
+            "decision_reason_codes": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
+            "findings_total": { "type": "integer", "minimum": 0 },
+            "findings_blocking": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "analyzer_evidence": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["analyzer", "execution_status", "evidence_status"],
+            "properties": {
+              "analyzer": { "type": "string", "minLength": 1, "maxLength": 64 },
+              "execution_status": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "evidence_status": { "type": "string", "minLength": 1, "maxLength": 32 }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        },
+        "plan": {
+          "type": "object",
+          "required": ["analyzers_executed", "test_scope", "requirements", "reasons"],
+          "properties": {
+            "analyzers_executed": { "type": "array", "maxItems": 16, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+            "analyzers_required_missing": { "type": "array", "maxItems": 16, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+            "test_scope": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "required": ["executed", "scope"],
+                "properties": {
+                  "executed": { "type": "boolean" },
+                  "scope": { "type": "string", "minLength": 1, "maxLength": 16 }
+                },
+                "additionalProperties": false,
+                "unevaluatedProperties": false
+              },
+              "maxProperties": 8
+            },
+            "requirements": {
+              "type": "array",
+              "maxItems": 128,
+              "items": {
+                "type": "object",
+                "required": ["id", "status"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+                  "status": { "enum": ["satisfied", "violated", "unavailable", "not_applicable", "review_required"] }
+                },
+                "additionalProperties": false,
+                "unevaluatedProperties": false
+              }
+            },
+            "reasons": { "type": "array", "maxItems": 64, "items": { "type": "string", "minLength": 1, "maxLength": 128 } }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "policy": {
+          "type": "object",
+          "required": ["decision", "policy_digest"],
+          "properties": {
+            "decision": { "enum": ["PASS", "FAIL", "INCOMPLETE", "REVIEW_REQUIRED"] },
+            "policy_digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          },
+          "additionalProperties": false,
+          "unevaluatedProperties": false
+        },
+        "evidence_gaps": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "required": ["code", "reason"],
+            "properties": {
+              "code": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "detail": { "type": "string", "minLength": 1, "maxLength": 512 },
+              "reason": { "type": "string", "minLength": 1, "maxLength": 256 }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        },
+        "recovery": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "required": ["source", "action"],
+            "properties": {
+              "source": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "action": { "type": "string", "minLength": 1, "maxLength": 512 }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": ["risk_level", "risk_reasons", "surfaces_changed", "focus"],
+      "properties": {
+        "risk_level": { "type": "string", "minLength": 1, "maxLength": 16 },
+        "risk_reasons": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 128 } },
+        "surfaces_changed": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+        "sensitive_areas": { "type": "array", "maxItems": 32, "items": { "type": "string", "minLength": 1, "maxLength": 64 } },
+        "focus": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["rank", "surface", "title", "reason"],
+            "properties": {
+              "rank": { "type": "integer", "minimum": 1 },
+              "surface": { "type": "string", "minLength": 1, "maxLength": 64 },
+              "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+              "reason": { "type": "string", "minLength": 1, "maxLength": 256 }
+            },
+            "additionalProperties": false,
+            "unevaluatedProperties": false
+          }
+        }
+      },
+      "additionalProperties": false,
+      "unevaluatedProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "unevaluatedProperties": false
+}
