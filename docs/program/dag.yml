@@ -26,15 +26,21 @@ nodes:
       - docs/release/1.8-agent-experiment.md
   G3:
     depends_on: [G18]
-    status: pending
+    status: passed
     success: ADOPTION_DECISION_RECORDED
     returns_to: G18
+    evidence:
+      - docs/program/validation-design.md
+      - docs/program/validation-dataset.md
+    decision: INSUFFICIENT_EVIDENCE
+    selected_1_9: none
   G19:
     depends_on: [G3]
     condition: selected_capability != none
-    status: pending
+    status: skipped_by_evidence
     success: EVIDENCE_SELECTED_EVOLUTION_READY
     returns_to: G19
+    reason: NO_1_9_FEATURE
   G20:
     depends_on: [G3, G19]
     condition: distributed_trust_justified == true
