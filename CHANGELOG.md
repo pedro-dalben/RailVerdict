@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.2] — 2026-09-06
+
+### Patch: unsurfaced-path focus pointer
+
+- **Fix:** changed files matching no Rails surface or project area produced an
+  empty Review Focus. They now yield one bounded `unmapped` entry (ranked
+  last, paths capped at 10) in both JSON and console projections. Risk
+  levels unchanged (no signal inflation). G3 MUST item; covered by unit
+  tests and a black-box Lab scenario. No contract changes.
+
 ## [1.8.1] — 2026-09-06
 
 ### Patch: lib test-candidate mapping

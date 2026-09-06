@@ -221,7 +221,7 @@ module RailVerdict
     # Non-sensitive items whose evidence is fully covered by higher-ranked
     # items are skipped to reduce the review search space; sensitive items
     # and project areas are always shown. Deterministic: FOCUS_ORDER decides.
-    def review_focus(surfaces, project_areas)
+    def review_focus(surfaces, project_areas, changed_paths = [])
       items = []
       covered = {}
       FOCUS_ORDER.each do |surface_id|
@@ -252,6 +252,19 @@ module RailVerdict
           "reason" => "Project-defined sensitive area '#{area['name']}' changed",
           "paths" => Array(area["evidence"]).first(10),
           "additional_evidence_count" => area["additional_evidence_count"],
+          "detection" => "detected"
+        }
+        Array(area["evidence"]).each { |path| covered[path] = true }
+      end
+      unmapped = Array(changed_paths).map(&:to_s).uniq.sort.reject { |path| covered.key?(path) }
+      unless unmapped.empty?
+        head = unmapped.first(10)
+        items << {
+          "surface" => "unmapped",
+          "title" => "Unmapped changed files (#{unmapped.length})",
+          "reason" => "Changed files matching no Rails surface or project area; review directly",
+          "paths" => head,
+          "additional_evidence_count" => unmapped.length - head.length,
           "detection" => "detected"
         }
       end
