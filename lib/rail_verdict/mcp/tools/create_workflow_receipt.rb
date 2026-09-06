@@ -98,8 +98,10 @@ module RailVerdict
                 "policy_digest" => policy["policy_digest"]
               }
               validated = inline.map do |observation|
-                verdict = RailVerdict::ReviewObservation.validate(observation: observation, current: current)
-                author = observation.is_a?(Hash) ? observation["author"].to_s : "unknown"
+                normalized = observation.is_a?(Hash) ? (JSON.parse(JSON.generate(observation)) rescue nil) : nil
+                normalized = nil unless normalized.is_a?(Hash)
+                verdict = RailVerdict::ReviewObservation.validate(observation: normalized, current: current)
+                author = normalized.is_a?(Hash) ? normalized["author"].to_s : "unknown"
                 { "observation_id" => verdict["observation_id"].to_s,
                   "author" => author, "binding" => verdict["status"] }
               end

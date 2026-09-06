@@ -61,11 +61,19 @@ module RailVerdict
               { "status" => "invalid", "code" => "observation_malformed",
                 "message" => "observation must be an object" }, error: false)
           end
-          if JSON.generate(observation).bytesize > MAX_OBSERVATION_BYTES
+          begin
+            normalized = JSON.parse(JSON.generate(observation))
+          rescue StandardError
+            return Serializers.tool_response(
+              { "status" => "invalid", "code" => "observation_malformed",
+                "message" => "observation is not JSON-serializable" }, error: false)
+          end
+          if JSON.generate(normalized).bytesize > MAX_OBSERVATION_BYTES
             return Serializers.tool_response(
               { "status" => "invalid", "code" => "observation_too_large",
                 "message" => "observation exceeds 256 KiB" }, error: false)
           end
+          observation = normalized
 
           root = @server.repository_root
           outcome = begin
