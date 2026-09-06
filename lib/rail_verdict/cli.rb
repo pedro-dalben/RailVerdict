@@ -73,6 +73,8 @@ module RailVerdict
         command_findings(argv.drop(1))
       when "explain"
         command_explain(argv.drop(1))
+      when "investigate"
+        command_investigate(argv.drop(1))
       when "repair"
         command_repair(argv.drop(1))
       when "review"
@@ -125,7 +127,7 @@ module RailVerdict
         opts.on("--format FORMAT", String) { |value| options[:format] = value }
       end
       parse!(parser, argv)
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
       outcome = Doctor.execute(
         repository_root: @working_directory,
         config_path: options[:config]
@@ -562,7 +564,7 @@ module RailVerdict
         opts.on("--force") { options[:force] = true }
       end
       parse!(parser, argv.drop(1))
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
 
       outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
       return EXIT_INTERRUPTED if interrupted || outcome.result.completion_status == "interrupted"
@@ -609,7 +611,7 @@ module RailVerdict
         opts.on("--format FORMAT", String) { |value| options[:format] = value }
       end
       parse!(parser, argv)
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
       outcome, interrupted = execute_check(options)
       if options[:format] == "json"
         @stdout.write(JSON.generate(FindingsCommand.document(outcome)))
@@ -633,10 +635,10 @@ module RailVerdict
       raise RailVerdict::UsageError, error.message
     end
 
-    def validate_format!(format)
-      return if FORMATS.include?(format)
+    def validate_format!(format, allowed: FORMATS)
+      return if allowed.include?(format)
 
-      raise RailVerdict::UsageError, "invalid --format #{format.inspect}; expected console, json or sarif"
+      raise RailVerdict::UsageError, "invalid --format #{format.inspect}; expected #{allowed.join(', ')}"
     end
 
     def execute_check(options)
@@ -709,7 +711,7 @@ module RailVerdict
         opts.on("--preview-context") { options[:preview] = true }
       end
       parse!(parser, argv.drop(1))
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
 
       outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
       return EXIT_INTERRUPTED if interrupted
@@ -743,7 +745,7 @@ module RailVerdict
         opts.on("--limit N", Integer) { |v| options[:limit] = v }
       end
       parse!(parser, argv)
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
 
       outcome, interrupted = execute_check({ config: options[:config], format: options[:format] })
       return EXIT_INTERRUPTED if interrupted
@@ -826,7 +828,7 @@ module RailVerdict
         opts.on("--waiver PATH", String) { |v| options[:waiver] = v }
       end
       parse!(parser, argv.drop(1))
-      validate_format!(options[:format])
+      validate_format!(options[:format], allowed: %w[console json])
       raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
       options[:baseline] = resolved_override_path(options[:baseline], nil) if options[:baseline]
       options[:waiver] = resolved_override_path(options[:waiver], nil) if options[:waiver]

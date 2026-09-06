@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.3] — 2026-09-06
+
+### Patch: CLI surface corrections
+
+- **Fix:** `railverdict investigate` was advertised in usage and implemented
+  but never dispatched, exiting 2 as `unknown command`. The dispatcher now
+  routes it to the existing implementation. Found by the deep-certification
+  campaign; covered by a regression test. No contract changes (the command
+  was already specified).
+- **Fix:** `--format sarif` was accepted on `doctor`, `baseline create`,
+  `findings`, `explain`, `investigate`, and `repair` (build) but silently
+  rendered console output. These commands now reject non-banner formats
+  with a usage error (`console|json` only; `check` keeps `sarif`). Found by
+  the deep-certification campaign; covered by regression tests.
+
 ## [1.8.2] — 2026-09-06
 
 ### Patch: unsurfaced-path focus pointer
