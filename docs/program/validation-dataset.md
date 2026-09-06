@@ -77,4 +77,65 @@ Candidate: released rail_verdict-1.8.0.gem (SHA de538bc1, GitHub Release).
 - gitlabhq/gitlabhq: monorepo weight exceeds budget. Excluded by design.
 - chatwoot/chatwoot, diaspora/diaspora, mastodon/mastodon: service
   dependencies (postgres/redis/node) exceed trial budget. Excluded by design.
-- discourse/discourse: clone 342MB OK (@ 5e9779d); full bundle in progress at time of writing (heavy dependency tree + services). Outcome pending.
+- discourse/discourse: completed (see P-F above).
+
+## P-F discourse/discourse (@ 5e9779d) — app, rspec/rubocop
+
+- Onboarding: clone 342MB (~9s), full `bundle install` OK (~4 min),
+  first verdict PASS (rubocop, 41s). No gem patch. Total < 10 min.
+- Synthetic offense (lib/ trailing ws, advisory): WARN with 1 finding.
+- Agent micro-tasks: control fixed in 2 iterations, scorekeeper PASS (3
+  turns, correct); treatment read packet, fixed, re-verified PASS/PASS
+  (2 turns, correct).
+- Migration copy (db/migrate duplicate): risk HIGH (`migration_added`),
+  focus #1 migration — **focus HIT** on a surfaced path.
+- Spontaneous demands: none.
+
+## Aggregate metrics vs pre-registered thresholds
+
+| Threshold | Result | Verdict |
+|---|---|---|
+| 100% incomplete-evidence → non-PASS | 3/3 (sprockets required-missing, turbo timeout, minitest-missing paths) | HOLD |
+| ≥80% first verdict without patch | 5/5 (100%) | HOLD |
+| Median onboarding < 30 min | ~7 min (1,2,2,10,15) | HOLD |
+| Focus top-3 ≥70% | 1/3 (discourse HIT; propshaft + sprockets lib/ MISS) | **MISS** |
+| False-sensitive <10% | 0 observed | HOLD (thin) |
+| DoD expressible ≥70% | 80% (single project) | HOLD (thin) |
+| Packet reduces false success | 2 micro-tasks, both correct, no discrimination | HOLD (G2.5 carries this: 0/10 vs 6/10) |
+
+Change evaluations: ~22 (propshaft 5, importmap 2, turbo 2, sprockets 4,
+tailwind 2, discourse 5, agent tasks 2). Sample minimums met (5 projects,
+20 changes); inferential power thin on focus (n=3), DoD (n=1), agent (n=2).
+
+## Top pains (frequency/severity)
+
+1. Unsurfaced-path blindness (lib/): 2 focus misses, same root cause —
+   changed files matching no surface yield empty focus and LOW risk even when
+   they carry the change's only finding. Bounded, deterministic, patch-sized.
+2. Default 30s analyzer timeout too short for real suites (turbo,
+   importmap) — config knob exists; default questioned (no change proposed;
+   raising defaults has hang-risk tradeoffs).
+3. Onboarding bundle/service weight (lobsters ruby, thredded mysql,
+   chatwoot-class excluded) — environmental, not product.
+4. No spontaneous demand observed for history, plugins, control center,
+   remote verification, or signatures (nobody asked, in any trial).
+
+## Decisions
+
+- `MUST`: fix unsurfaced-path focus gap as a bounded patch (generic fallback
+  pointer, no signal inflation) — 1.8.2 candidate, not a version theme.
+- `SHOULD`: document the 30s-timeout tuning guidance for real suites.
+- `COULD`: revisit service-heavy onboarding if a 10-project campaign is funded.
+- `REJECT`: history/plugin/marketplace/dashboard/remote-trust — zero demand
+  observed; speculation prohibited.
+- 1.9: `NO_1_9_FEATURE` (no theme crossed evidence thresholds).
+- Distributed trust (preliminary): `DISTRIBUTED_TRUST_NOT_JUSTIFIED` — no
+  cross-machine evidence need observed in any trial; receipts/handoffs
+  suffice locally everywhere tested.
+
+## Exit
+
+`ADOPTION_DECISION_RECORDED`: `INSUFFICIENT_EVIDENCE` for broad validation
+(minimums met, inference thin, one threshold missed), with a directional
+maintenance item (1.8.2) and explicit non-demand record. Honest, reproducible,
+revisable with a funded 10-project campaign.
