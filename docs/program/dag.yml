@@ -44,11 +44,16 @@ nodes:
   G20:
     depends_on: [G3, G19]
     condition: distributed_trust_justified == true
-    status: pending
+    status: skipped_by_evidence
     success: DISTRIBUTED_TRUST_READY
     returns_to: G20
+    reason: DISTRIBUTED_TRUST_NOT_JUSTIFIED
+    evidence:
+      - docs/program/2.0-decision.md
   G6:
     depends_on: [G3]
-    status: pending
+    status: passed
     success: PROGRAM_VERDICT_ISSUED
     returns_to: null
+    evidence:
+      - docs/program/final-report.md
