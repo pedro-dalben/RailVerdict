@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.8.0] — 2026-09-06
+
+### Agent Workflow & Review Orchestration
+
+- **Review workflow (ADR 0021):** RailVerdict stays verifier, never actor. New `railverdict review show|observe|complete` over canonical services: `ReviewPacket` (bounded review context with deterministic/review lanes split), `ReviewObservation` validation (fresh binding proof, never approval), and `WorkflowReceipt` closure (`ready`/`blocked_by_gate`/`blocked_by_evidence`/`review_pending`). Readiness exits mirror the policy ladder (0/1/2/3).
+- **Repair loop on both interfaces:** repair-packet plan extended with observed analyzers, test scope, requirements, and reasons (existing argv keys unchanged); new thin `repair verify --packet PATH` over the same Verifier (previously MCP-only).
+- **MCP parity:** new `get_review_packet`, `verify_review_observation`, `create_workflow_receipt` (16 tools); inline documents normalized through JSON key space. SARIF stays findings-only.
+- **Compatibility:** no config changes (1.7 sections drive everything); v1 contracts frozen; repair-packet-v1 extended additively (old packets validate); no new exits.
+- **Validation:** ADR 0021, 37 new unit/adversarial/contract/BYOA/exit-ladder tests, 11 external black-box Lab scenarios (`RVLAB-WF-01..11`), exploratory 20-task agent experiment (packet arm 0/10 false successes vs 6/10 control, honestly labeled non-generalizable), foundation validator migrated to twenty-one ADRs.
+
 ## [1.7.0] — 2026-09-05
 
 ### Engineering Policy & Review Governance

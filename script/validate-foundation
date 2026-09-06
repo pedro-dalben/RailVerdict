@@ -37,6 +37,7 @@ ADR_FILES = %w[
   0018-verification-environment-identity.md
   0019-agent-handoff-evidence-reuse.md
   0020-engineering-policy-contract.md
+  0021-agent-workflow-contracts.md
 ].freeze
 
 ARTIFACT_MANIFEST = (
@@ -484,7 +485,7 @@ end
 
 def check_adrs
   actual = Dir.children(ROOT.join("docs/adr")).select { |name| name.end_with?(".md") }.sort
-  fail_check("ADR file set must be exactly the approved twenty") unless actual == ADR_FILES
+  fail_check("ADR file set must be exactly the approved twenty-one") unless actual == ADR_FILES
 
   decisions = {
     "0001-deterministic-pass-fail.md" => /sole authority for PASS and FAIL.*incomplete cannot produce PASS/im,
@@ -506,7 +507,8 @@ def check_adrs
     "0017-verification-receipts.md" => /introduces Verification Receipt v1/im,
     "0018-verification-environment-identity.md" => /Verification Environment Identity|Canonical Freshness Evaluation/im,
     "0019-agent-handoff-evidence-reuse.md" => /Agent Handoff and Evidence Reuse/im,
-    "0020-engineering-policy-contract.md" => /Engineering Policy and Review Governance/im
+    "0020-engineering-policy-contract.md" => /Engineering Policy and Review Governance/im,
+    "0021-agent-workflow-contracts.md" => /Agent Workflow and Review Orchestration/im
   }
   owners = {
     "0001-deterministic-pass-fail.md" => /Phase 1 owns/,
@@ -528,7 +530,8 @@ def check_adrs
     "0017-verification-receipts.md" => /attestation milestone owns/,
     "0018-verification-environment-identity.md" => /Implemented in RailVerdict 1\.3/,
     "0019-agent-handoff-evidence-reuse.md" => /Implemented in RailVerdict 1\.4/,
-    "0020-engineering-policy-contract.md" => /Implemented in RailVerdict 1\.7/
+    "0020-engineering-policy-contract.md" => /Implemented in RailVerdict 1\.7/,
+    "0021-agent-workflow-contracts.md" => /Implemented in RailVerdict 1\.8/
   }
 
   ADR_FILES.each do |name|
@@ -539,7 +542,7 @@ def check_adrs
     if name == "0014-apache-2-license.md"
       fail_check("#{name} is not Superseded") unless text.match?(/^Status: Superseded$/)
       fail_check("#{name} does not retain Superseded status") unless text.match?(/^Implementation status: Superseded$/)
-    elsif name.match?(/\A00(1[6789]|20)-/)
+    elsif name.match?(/\A00(1[6789]|20|21)-/)
       fail_check("#{name} is not Accepted") unless text.match?(/^Status: Accepted$/)
       fail_check("#{name} implementation status is not canonical") unless text.match?(/^Implementation status: Implemented in RailVerdict \d/m)
     elsif name.match?(/\A000[1-7]-/)
@@ -770,9 +773,8 @@ def check_provenance
   puts "  provenance note: automated pattern evidence does not clear separate publication gates"
   fail_check("external private-pattern scan found unresolved matches") unless tree_counts.empty? && history_counts.empty?
 end
-
 def check_whitespace
-  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 38
+  fail_check("whitespace manifest changed unexpectedly") unless ARTIFACT_MANIFEST.length == 39
   ARTIFACT_MANIFEST.each do |relative|
     bytes = read_file(relative)
     fail_check("missing final newline: #{relative}") unless bytes.end_with?("\n")

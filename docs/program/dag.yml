@@ -17,9 +17,13 @@ nodes:
       - docs/release/1.7-implementation-report.md
   G18:
     depends_on: [G17]
-    status: pending
+    status: passed
     success: AGENT_WORKFLOW_READY
     returns_to: G18
+    evidence:
+      - docs/adr/0021-agent-workflow-contracts.md
+      - docs/release/1.8-implementation-report.md
+      - docs/release/1.8-agent-experiment.md
   G3:
     depends_on: [G18]
     status: pending

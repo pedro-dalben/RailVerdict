@@ -3,6 +3,7 @@
 require "optparse"
 require "json"
 require "fileutils"
+require "open3"
 require "securerandom"
 
 module RailVerdict
@@ -30,6 +31,8 @@ module RailVerdict
         explain          Explain a finding with optional AI
         investigate      Investigate top findings with optional AI
         repair           Build a deterministic repair packet for a finding
+        repair verify    Re-verify a repair packet against fresh evidence
+        review           Show the bounded review packet for a verification
         receipt          Create or verify a Verification Receipt
         handoff          Create or verify a Verification Handoff (evidence reuse)
         mcp              MCP adapter (serve)
@@ -70,10 +73,10 @@ module RailVerdict
         command_findings(argv.drop(1))
       when "explain"
         command_explain(argv.drop(1))
-      when "investigate"
-        command_investigate(argv.drop(1))
       when "repair"
         command_repair(argv.drop(1))
+      when "review"
+        command_review(argv.drop(1))
         when "receipt"
         command_receipt(argv.drop(1))
       when "handoff"
@@ -385,6 +388,166 @@ module RailVerdict
       else EXIT_NO_GATE
       end
     end
+    def command_review(argv)
+      if argv.first.nil? || argv.first.start_with?("-")
+        return command_review_show(argv)
+      elsif %w[-h --help help].include?(argv.first)
+        @stdout.puts "Usage: railverdict review [show|observe|complete] [options]"
+        return EXIT_OK
+      end
+      sub = argv.first
+      if sub == "show"
+        command_review_show(argv.drop(1))
+      elsif sub == "observe"
+        command_review_observe(argv.drop(1))
+      elsif sub == "complete"
+        command_review_complete(argv.drop(1))
+      else
+        raise RailVerdict::UsageError, "review requires a subcommand: show, observe, or complete"
+      end
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict review: #{error.message}"
+      @stderr.puts USAGE
+      EXIT_NO_GATE
+    rescue RailVerdict::Error => error
+      @stderr.puts "railverdict review: #{error.message}"
+      EXIT_NO_GATE
+    end
+
+    def command_review_show(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", base: nil, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict review [show] [--config PATH] [--format console|json] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+      end
+      parse!(parser, argv)
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      outcome, interrupted = execute_check(options.merge(changed: true))
+      return EXIT_INTERRUPTED if interrupted
+      packet = ReviewPacket.build(outcome: outcome)
+      if options[:format] == "json"
+        @stdout.write("#{CanonicalJSON.generate(packet)}\n")
+      else
+        @stdout.write(Reporters::Review.render_packet(packet))
+      end
+      exit_code_for_policy(EngineeringPolicy.evaluate(outcome: outcome), outcome)
+    end
+
+    def command_review_observe(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", observations: [] }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict review observe --observation PATH [--observation PATH] [--config PATH] [--format console|json]"
+        opts.on("--observation PATH", String) { |value| options[:observations] << value }
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+      end
+      parse!(parser, argv)
+      raise RailVerdict::UsageError, "observe requires --observation PATH" if options[:observations].empty?
+      raise RailVerdict::UsageError, "too many observations (max 32)" if options[:observations].length > 32
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      current = observe_workflow_state(config_path: options[:config])
+      verdicts = options[:observations].map do |path|
+        document = read_bounded_json(path, "observation")
+        ReviewObservation.validate(observation: document, current: current)
+      end
+      if options[:format] == "json"
+        @stdout.write("#{CanonicalJSON.generate({ 'observations' => verdicts })}\n")
+      else
+        @stdout.write(Reporters::Review.render_observations(verdicts))
+      end
+      verdicts.all? { |verdict| verdict["status"] == "valid_bound" } ? EXIT_OK : EXIT_NO_GATE
+    end
+
+    def command_review_complete(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", base: nil, baseline: nil, waiver: nil, observations: [] }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict review complete [--observation PATH] [--config PATH] [--format console|json] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--observation PATH", String) { |value| options[:observations] << value }
+        opts.on("--config PATH", String) { |value| options[:config] = value }
+        opts.on("--format FORMAT", String) { |value| options[:format] = value }
+        opts.on("--base REV", String) { |value| options[:base] = value }
+        opts.on("--baseline PATH", String) { |value| options[:baseline] = value }
+        opts.on("--waiver PATH", String) { |value| options[:waiver] = value }
+      end
+      parse!(parser, argv)
+      raise RailVerdict::UsageError, "too many observations (max 32)" if options[:observations].length > 32
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      outcome, interrupted = execute_check(options.merge(changed: true))
+      return EXIT_INTERRUPTED if interrupted
+      packet = ReviewPacket.build(outcome: outcome)
+      policy = EngineeringPolicy.evaluate(outcome: outcome)
+      current = {
+        "head" => packet["provenance"]["head"],
+        "configuration_digest" => packet["provenance"]["configuration_digest"],
+        "policy_digest" => policy["policy_digest"]
+      }
+      validated = options[:observations].map do |path|
+        document = read_bounded_json(path, "observation")
+        verdict = ReviewObservation.validate(observation: document, current: current)
+        { "observation_id" => verdict["observation_id"].to_s,
+          "author" => document.is_a?(Hash) ? document["author"].to_s : "unknown",
+          "binding" => verdict["status"] }
+      end
+      receipt = WorkflowReceipt.build(packet: packet, policy_decision: policy["decision"],
+        gate: outcome.result.gate, observations: validated)
+      if options[:format] == "json"
+        @stdout.write("#{CanonicalJSON.generate(receipt)}\n")
+      else
+        @stdout.write(Reporters::Review.render_workflow(receipt))
+      end
+      exit_code_for_readiness(receipt["readiness"])
+    end
+
+    def observe_workflow_state(config_path:)
+      configuration = Configuration.load(resolved_override_path(config_path, File.join(@working_directory, DEFAULT_CONFIG_PATH)))
+      head = begin
+        output, _, status = Open3.capture3("git", "rev-parse", "HEAD", chdir: @working_directory)
+        status.success? ? output.strip : nil
+      rescue StandardError
+        nil
+      end
+      {
+        "head" => head,
+        "configuration_digest" => configuration.digest,
+        "policy_digest" => EngineeringPolicy.policy_digest(EngineeringPolicy.effective_policy(configuration))
+      }
+    end
+
+    def read_bounded_json(path, kind)
+      text = begin
+        File.binread(path)
+      rescue StandardError
+        raise RailVerdict::Error, "cannot read #{kind}: #{path}"
+      end
+      raise RailVerdict::Error, "#{kind} exceeds 256 KiB: #{path}" if text.bytesize > 256 * 1024
+      begin
+        JSON.parse(text)
+      rescue JSON::ParserError
+        raise RailVerdict::Error, "invalid #{kind} JSON: #{path}"
+      end
+    end
+
+    def exit_code_for_readiness(readiness)
+      case readiness
+      when "ready" then EXIT_OK
+      when "blocked_by_gate" then EXIT_POLICY_FAIL
+      when "review_pending" then EXIT_REVIEW_REQUIRED
+      else EXIT_NO_GATE
+      end
+    end
 
     def command_baseline(argv)
       subcommand = argv.first
@@ -647,6 +810,7 @@ module RailVerdict
     end
 
     def command_repair(argv)
+      return command_repair_verify(argv.drop(1)) if argv.first == "verify"
       finding_ref = argv.first
       raise RailVerdict::UsageError, "repair requires a finding id or fingerprint" unless finding_ref && !finding_ref.start_with?("-")
 
@@ -684,6 +848,64 @@ module RailVerdict
     rescue RailVerdict::UsageError => e
       @stderr.puts "railverdict repair: #{e.message}"
       EXIT_NO_GATE
+    end
+
+    def command_repair_verify(argv)
+      options = { config: DEFAULT_CONFIG_PATH, format: "console", packet: nil, changed: false, base: nil, baseline: nil, waiver: nil }
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: railverdict repair verify --packet PATH [--config PATH] [--format console|json] [--changed] [--base REV] [--baseline PATH] [--waiver PATH]"
+        opts.on("--packet PATH", String) { |v| options[:packet] = v }
+        opts.on("--config PATH", String) { |v| options[:config] = v }
+        opts.on("--format FORMAT", String) { |v| options[:format] = v }
+        opts.on("--changed") { options[:changed] = true }
+        opts.on("--base REV", String) { |v| options[:base] = v }
+        opts.on("--baseline PATH", String) { |v| options[:baseline] = v }
+        opts.on("--waiver PATH", String) { |v| options[:waiver] = v }
+      end
+      parse!(parser, argv)
+      raise RailVerdict::UsageError, "repair verify requires --packet PATH" if options[:packet].nil?
+      raise RailVerdict::UsageError, "--base requires --changed" if options[:base] && !options[:changed]
+      unless %w[console json].include?(options[:format])
+        raise RailVerdict::UsageError, "invalid --format #{options[:format].inspect}; expected console or json"
+      end
+
+      packet = read_bounded_json(options[:packet], "repair packet")
+      raise RailVerdict::Error, "invalid repair packet: not a document" unless packet.is_a?(Hash)
+      errors = SchemaValidator.validate_repair_packet(packet)
+      raise RailVerdict::Error, "invalid repair packet: #{errors.first}" unless errors.empty?
+
+      outcome, interrupted = execute_check(options.merge(changed: options[:changed] || !options[:base].nil?))
+      return EXIT_INTERRUPTED if interrupted
+      result = Repair::Verifier.verify(packet: packet, new_outcome: outcome)
+      if options[:format] == "json"
+        @stdout.write("#{CanonicalJSON.generate(verifier_result_h(result))}\n")
+      else
+        @stdout.write(Reporters::Review.render_repair_verify(result))
+      end
+      case result.overall_status
+      when "successful" then EXIT_OK
+      when "unsuccessful" then EXIT_POLICY_FAIL
+      else EXIT_NO_GATE
+      end
+    rescue RailVerdict::UsageError => error
+      @stderr.puts "railverdict repair verify: #{error.message}"
+      @stderr.puts USAGE
+      EXIT_NO_GATE
+    rescue RailVerdict::Error => error
+      @stderr.puts "railverdict repair verify: #{error.message}"
+      EXIT_NO_GATE
+    end
+
+    def verifier_result_h(result)
+      {
+        "target_status" => result.target_status,
+        "gate" => result.gate,
+        "completion_status" => result.completion_status,
+        "new_blocking_findings" => result.new_blocking_findings,
+        "verification_boundary_changed" => result.verification_boundary_changed,
+        "regressed" => result.regressed,
+        "overall_status" => result.overall_status
+      }
     end
 
     def command_receipt(argv)

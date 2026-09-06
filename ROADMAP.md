@@ -4,7 +4,7 @@
 
 RailVerdict progressed through Phase 0–9 to 1.0 (deterministic verification), then 1.0.1 (operational compatibility), 1.1 (PR Intelligence), and 1.2 (Agent Verification Protocol). Phase 0–9 established identity, trust contracts, deterministic core, evidence, debt policy, Git/PR scope, Rails context, AI, repair, MCP, and 1.0 hardening. Later releases consumed earlier contracts without creating another source of gate authority. 1.2 closeout reconciles 1.0→1.2 truth before any 1.3 planning.
 
-Historical Phase 0–9 detail is preserved below. Current state: **1.4.0 released 2026-08-26** (tag v1.4.0, RubyGems published — last distributed release). **1.5** source candidate `ba713d8` (Lab 5.0, 136 PASS; not tagged/published). **1.6** source candidate `d71671c` (suite 627/0, Lab 146/146; not tagged/published). **1.7 Engineering Policy & Review Governance** released 2026-09-05 (tag v1.7.0, GitHub Release with verified artifact; RubyGems publication follows maintainer OTP). See CHANGELOG.md, `docs/program/1.6-current-state.md`, and `docs/release/1.7-*`.
+Historical Phase 0–9 detail is preserved below. Current state: **1.7 Engineering Policy & Review Governance** released 2026-09-05 (tag v1.7.0, GitHub Release with verified artifact; RubyGems publication follows maintainer OTP). **1.8 Agent Workflow & Review Orchestration** in progress on `feat/1.8-agent-workflow` (ADR 0021). See CHANGELOG.md, `docs/program/1.6-current-state.md`, and `docs/release/1.8-*`.
 
 ## Phases (historical 0–9 preserved + 1.3/1.4)
 
@@ -31,6 +31,8 @@ Historical Phase 0–9 detail is preserved below. Current state: **1.4.0 release
 - [x] **1.4 Agent Handoff & Evidence Reuse** (2026-08-26) — Handoff v1 `256 KiB` `handoff_id`, `Reuse.evaluate` single authority, `check --handoff` + `handoff create|inspect|verify` + MCP `create/inspect/verify_handoff` parity, `TOCTOU` guard. Tag v1.4.0, RubyGems published (last distributed release).
 - [x] **1.5 Rails-Native Adoption & CI Efficiency** (2026-08-27) — Native Brakeman analyzer, targeted test verification (`TestSelection` & `Resolvers::TestCandidates`), safe infrastructure fallbacks, per-analyzer tiered evidence reuse (`VerificationPlan`), finding ID normalization, and IntegrarPlus dogfooding (99.4% test savings). Source candidate `ba713d8`, Lab 5.0 (136 PASS); **not tagged, not published** (release skipped in favor of 1.6.0 direct).
 - [x] **1.6 Rails Change Intelligence & Reviewer Focus** (2026-09-05) — 19 Rails surfaces, explainable risk, FULL/TARGETED scope, Review Focus, config 1.6 review policy. Source candidate `d71671c`, suite 627/0, Lab 146/146; **not tagged, not published** (`READY_TO_RELEASE`; see `docs/program/1.6-current-state.md`).
+- [x] **1.7 Engineering Policy & Review Governance** (2026-09-05) — ADR 0020, `engineering_policy` config 1.7, `railverdict policy` (exits 0/1/2/3), MCP `get_engineering_policy`, policy-drift binding. Tag v1.7.0, GitHub Release with verified artifact (RubyGems publication follows maintainer OTP); suite 673/0, Lab 161/161.
+- [ ] **1.8 Agent Workflow & Review Orchestration** (in progress) — ADR 0021, `ReviewPacket`/`ReviewObservation`/`WorkflowReceipt`, `review show|observe|complete`, `repair verify`, MCP +3 tools (16), BYOA flows, exploratory agent experiment. Branch `feat/1.8-agent-workflow`.
 
 ## Phase Details
 

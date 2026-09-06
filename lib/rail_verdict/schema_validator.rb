@@ -26,6 +26,9 @@ module RailVerdict
     RECEIPT_VALIDATION_SCHEMA = "receipt-validation-v1.schema.json"
     VERIFICATION_HANDOFF_SCHEMA = "verification-handoff-v1.schema.json"
     ENGINEERING_POLICY_SCHEMA = "engineering-policy-v1.schema.json"
+    REVIEW_PACKET_SCHEMA = "review-packet-v1.schema.json"
+    REVIEW_OBSERVATION_SCHEMA = "review-observation-v1.schema.json"
+    WORKFLOW_RECEIPT_SCHEMA = "workflow-receipt-v1.schema.json"
 
     def self.schema_dir
       File.expand_path("../../schemas", __dir__)
@@ -103,6 +106,18 @@ module RailVerdict
 
     def self.validate_engineering_policy(data)
       validate(data, ENGINEERING_POLICY_SCHEMA)
+    end
+
+    def self.validate_review_packet(data)
+      validate(data, REVIEW_PACKET_SCHEMA)
+    end
+
+    def self.validate_review_observation(data)
+      validate(data, REVIEW_OBSERVATION_SCHEMA)
+    end
+
+    def self.validate_workflow_receipt(data)
+      validate(data, WORKFLOW_RECEIPT_SCHEMA)
     end
 
     def self.validate(data, schema_name)

@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "author": "human",
+  "confidence": "medium",
+  "authoritative": false,
+  "state_binding": {
+    "head": "abc1234",
+    "configuration_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "policy_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "observations": [
+    {
+      "summary": "Migration adds an index concurrently; safe to deploy.",
+      "paths": [
+        "db/migrate/20260905000000_add_index.rb"
+      ],
+      "severity": "medium"
+    }
+  ],
+  "observation_id": "sha256:06e4b001b86f089c7b3e019280d56b0f2b44e82b2b58ec46b17cb395ccc44ce8"
+}

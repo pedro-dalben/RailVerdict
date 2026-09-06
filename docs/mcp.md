@@ -46,12 +46,15 @@ All tools are `readOnlyHint: true, destructiveHint: false, idempotentHint: true,
 | `inspect_handoff` | `{handoff}` | `{handoff_valid, receipt_fresh, decision, reasons}` | Structural inspect without trust; never executes analyzers. |
 | `verify_handoff` | `{handoff}` | `{handoff_valid, receipt_fresh, decision, reasons}` | Canonical `Reuse.evaluate` against current identity; stale evidence yields `VERIFICATION_REQUIRED`. |
 | `get_engineering_policy` | `{}` | fresh: `{status:"fresh", engineering_policy: Engineering Policy v1}`; otherwise explicit status/code/message | Same canonical `EngineeringPolicy` service as CLI `policy`: readiness (`PASS`/`FAIL`/`INCOMPLETE`/`REVIEW_REQUIRED`), never a second gate. |
+| `get_review_packet` | `{}` | fresh: `{status:"fresh", review_packet: Review Packet v1}`; otherwise explicit status/code/message | Bounded review context, deterministic/review lanes split; same service as CLI `review show`. |
+| `verify_review_observation` | `{observation}` | `{status: valid_bound\|stale\|untrusted\|invalid\|unavailable, observation_id, code}` | Gate-neutral validation against re-observed state; inline documents key-normalized. |
+| `create_workflow_receipt` | `{observations[]?}` | fresh: `{status:"fresh", workflow_receipt: Workflow Receipt v1}`; stale cache yields `verification_required` | Closure record from cached verify plus validated observations; reports only. |
 
 No `exec`, `read_file`, `edit`, `baseline_create`, `waiver` tools. Resources/Prompts not exposed.
 
 ## Capability discovery
 
-`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 13 tools.
+`initialize` returns `serverInfo {name: railverdict, title: RailVerdict, version}`, `capabilities {tools:{listChanged:false}}`, `instructions` read-only verifier statement, `protocolVersion: 2025-11-25`. `tools/list` enumerates the 16 tools.
 
 ### Agent workflow
 
@@ -59,15 +62,18 @@ No `exec`, `read_file`, `edit`, `baseline_create`, `waiver` tools. Resources/Pro
 verify ──► GateResult + embedded verification_receipt
    ├─ get_verification_receipt   (no analyzer rerun)
    ├─ get_pr_intelligence        (changed scope only; no analyzer rerun)
-   └─ get_engineering_policy     (readiness over the decided gate; no rerun)
-edit → previous receipt/intelligence/policy become stale → verify again
+   ├─ get_engineering_policy     (readiness over the decided gate; no rerun)
+   └─ get_review_packet          (bounded review context; no rerun)
+observe ──► verify_review_observation   (gate-neutral binding proof)
+close ──► create_workflow_receipt       (freshness automatic from cache)
+edit → previous contracts become stale → verify again
 ```
 
 One agent verification executes analyzers exactly once (`verify`); derived contracts never re-execute them. See [Agent Verification Protocol](agent-verification.md).
 
 ## Structured content
 
-Per `server/tools` spec, each `tools/call` returns `{content:[{type:"text", text: serialized JSON}], structuredContent, isError}`. `structuredContent` is canonical versioned JSON; `content` mirrors it for backward compat. Text is UTF-8 scrubbed and bounded. Schemas reuse `schemas/*v1.json` (`result-v1`, `finding-v1`, `repair-packet-v1`, `ai-analysis-v1`).
+Per `server/tools` spec, each `tools/call` returns `{content:[{type:"text", text: serialized JSON}], structuredContent, isError}`. `structuredContent` is canonical versioned JSON; `content` mirrors it for backward compat. Text is UTF-8 scrubbed and bounded. Schemas reuse `schemas/*v1.json` (`result-v1`, `finding-v1`, `repair-packet-v1`, `ai-analysis-v1`, `engineering-policy-v1`, `review-packet-v1`, `review-observation-v1`, `workflow-receipt-v1`).
 
 ## Output bounds
 
