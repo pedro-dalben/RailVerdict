@@ -221,4 +221,28 @@ class TestCLISurface < Minitest::Test
     cli = RailVerdict::CLI.new(stdout: StringIO.new, stderr: StringIO.new)
     assert_equal 130, cli.send(:exit_code_for, result, interrupted: true)
   end
+
+  def test_investigate_is_dispatched_not_unknown_command
+    root = File.join(RailVerdictTestHelpers::REPOSITORY_ROOT, "test", "fixtures", "rails_offense")
+    exit_code, stdout, stderr = run_cli(["investigate", "--preview-context", "--format", "json"], working_directory: root)
+    assert_equal 0, exit_code
+    assert_empty stderr
+    assert JSON.parse(stdout).key?("manifests")
+  end
+
+  def test_sarif_format_rejected_where_banners_promise_console_json_only
+    { "doctor" => [], "findings" => [], "explain" => ["dummy-ref"], "repair" => ["dummy-ref"] }.each do |command, extra|
+      exit_code, stdout, stderr = run_cli([command, *extra, "--format", "sarif"])
+      assert_equal 2, exit_code, command
+      assert_empty stdout, command
+      assert_includes stderr, "invalid --format", command
+    end
+  end
+
+  def test_check_keeps_sarif_format
+    root = File.join(RailVerdictTestHelpers::REPOSITORY_ROOT, "test", "fixtures", "rails_offense")
+    exit_code, stdout, _stderr = run_cli(["check", "--format", "sarif"], working_directory: root)
+    assert_equal 1, exit_code
+    assert_equal "2.1.0", JSON.parse(stdout).fetch("version")
+  end
 end
